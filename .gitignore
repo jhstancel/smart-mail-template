@@ -1,0 +1,17 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pkl
+*.log
+
+# macOS / IDE
+.DS_Store
+.vscode/
+
+# datasets / secrets
+.env
+data/private/*
+
