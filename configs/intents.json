@@ -1,0 +1,14 @@
+{
+  "order_confirmation": {
+    "required": ["customerName", "partNumber", "quantity", "vendor", "poNumber", "shipDate", "leadTime"],
+    "template": "order_confirmation.j2"
+  },
+  "quote_request": {
+    "required": ["customerName", "partNumber", "quantity", "vendor", "validThrough"],
+    "template": "quote_request.j2"
+  },
+  "delay_notice": {
+    "required": ["customerName", "partNumber", "poNumber", "newShipDate", "reason", "contact"],
+    "template": "delay_notice.j2"
+  }
+}

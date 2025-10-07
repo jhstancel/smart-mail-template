@@ -1,0 +1,6 @@
+{
+  "quote_request": ["quote", "pricing", "rfq", "estimate", "quote request"],
+  "order_confirmation": ["po", "order confirmed", "order confirmation", "thank you for your order"],
+  "delay_notice": ["delay", "backorder", "lead time change", "pushed", "slipped", "new ship date"]
+}
+

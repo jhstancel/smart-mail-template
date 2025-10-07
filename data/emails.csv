@@ -1,0 +1,4 @@
+to,subject,body,intent
+buyer@vendor.com,Re: Quote for PN-4812,Can you confirm pricing for 3 units?,quote_request
+ops@client.com,Order Confirmation PO-00917,We received your order for PN-4812...,order_confirmation
+
