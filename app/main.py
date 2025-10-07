@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import json
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
@@ -19,18 +18,27 @@ from app.preprocess import clean_subject_body
 # Paths
 # --------------------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / "model_artifacts"              # <- project-level artifacts
+ART = ROOT / "model_artifacts"              # project-level artifacts
 CONFIGS = ROOT / "configs"
 TEMPLATES = ROOT / "templates"
 UI_DIR = ROOT / "ui"
 
-# Jinja environment
+# --------------------------------------------------------------------------------------
+# Guardrail thresholds
+# --------------------------------------------------------------------------------------
+# If top prediction < this, we won't auto-suggest; we'll ask the user to confirm.
+CONFIDENCE_THRESHOLD = 0.65
+# If < this, we’ll explicitly warn that the model is guessing.
+LOW_CONFIDENCE_THRESHOLD = 0.45
+
+# --------------------------------------------------------------------------------------
+# Jinja / Config
+# --------------------------------------------------------------------------------------
 env = Environment(
     loader=FileSystemLoader(str(TEMPLATES)),
     autoescape=select_autoescape(enabled_extensions=("j2",)),
 )
 
-# Load config intents (used by /schema and /generate)
 with open(CONFIGS / "intents.json", "r") as f:
     INTENTS: Dict[str, Dict[str, Any]] = json.load(f)
 
@@ -68,6 +76,9 @@ class PredictResp(BaseModel):
     intent: str
     confidence: float
     top_k: List[Tuple[str, float]]
+    auto_suggest: bool
+    threshold: float
+    message: str
 
 class GenerateReq(BaseModel):
     intent: str
@@ -81,7 +92,7 @@ class GenerateResp(BaseModel):
 # --------------------------------------------------------------------------------------
 # App
 # --------------------------------------------------------------------------------------
-app = FastAPI(title="ops-mail-studio", version="0.5.0")
+app = FastAPI(title="ops-mail-studio", version="0.6.0")
 
 # CORS (loose for local dev; tighten for deployment)
 app.add_middleware(
@@ -134,6 +145,7 @@ def health():
         "config_intents": list(INTENTS.keys()),  # what /generate supports
         "model_classes": model_classes,          # what /predict can output
         "artifacts_path": str(ART.resolve()),
+        "confidence_threshold": CONFIDENCE_THRESHOLD,
     }
 
 @app.get("/schema")
@@ -151,7 +163,6 @@ def predict(req: PredictReq):
     model_probs: Dict[str, float] = {}
     if vec and clf and text:
         X = vec.transform([text])
-        # Use decision_function when available for better-calibrated ranking
         if hasattr(clf, "decision_function"):
             z = clf.decision_function(X).ravel()
             labels = clf.classes_
@@ -175,9 +186,7 @@ def predict(req: PredictReq):
     beta = 0.2 if (not rec_probs and dom_probs) else 0.0  # domain prior
     gamma = max(0.0, 1.0 - alpha - beta)  # recipient prior
 
-    # Union of intents across all sources
     intents = set(INTENTS.keys()) | set(model_probs) | set(rec_probs) | set(dom_probs)
-
     combined: List[Tuple[str, float]] = []
     for i in intents:
         p_model = model_probs.get(i, 0.0)
@@ -186,28 +195,39 @@ def predict(req: PredictReq):
         score = alpha * p_model + gamma * p_rec + beta * p_dom
         combined.append((i, float(score)))
 
-    # Sort and package response
     combined.sort(key=lambda x: x[1], reverse=True)
     top_intent, top_score = ("", 0.0)
     if combined:
         top_intent, top_score = combined[0]
 
+    # -------------------
+    # Guardrail decision
+    # -------------------
+    auto_suggest = bool(top_score >= CONFIDENCE_THRESHOLD)
+    if top_score < LOW_CONFIDENCE_THRESHOLD:
+        message = "Low confidence — choose from top_k or provide more context."
+    elif not auto_suggest:
+        message = "Not confident enough to auto-suggest — confirm intent from top_k."
+    else:
+        message = "High confidence — using predicted intent."
+
     return {
         "intent": top_intent,
         "confidence": float(top_score),
         "top_k": [(i, float(s)) for i, s in combined[:5]],
+        "auto_suggest": auto_suggest,
+        "threshold": CONFIDENCE_THRESHOLD,
+        "message": message,
     }
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq):
     if req.intent not in INTENTS:
         raise HTTPException(status_code=400, detail=f"Unknown intent: {req.intent}")
-
     meta = INTENTS[req.intent]
     tmpl_name = meta["template"]
     required = meta.get("required", [])
-
-    missing = [k for k in required if not req.fields.get(k)]
+    missing = [k for k in required if not str(req.fields.get(k, "")).strip()]
     template = env.get_template(tmpl_name)
     rendered = template.render(**req.fields)
     subject, body = split_subject_body(rendered)
