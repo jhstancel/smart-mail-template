@@ -4,13 +4,15 @@ from typing import Dict, Any, List, Tuple
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import os, json, joblib
 import numpy as np
+from pathlib import Path
 
 # cleaning utilities
 from app.preprocess import clean_subject_body
 
 # ---- Paths & environment ----
 ROOT = os.path.dirname(os.path.dirname(__file__))
-ART = os.path.join(ROOT, "model_artifacts")
+ART = Path(__file__).resolve().parent.parent / "model_artifacts"
+print("[DEBUG] Loading artifacts from:", (Path(ART)).resolve())
 CONFIGS = os.path.join(ROOT, "configs")
 TEMPLATES = os.path.join(ROOT, "templates")
 

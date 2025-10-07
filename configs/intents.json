@@ -1,14 +1,10 @@
 {
-  "order_confirmation": {
-    "required": ["customerName", "partNumber", "quantity", "vendor", "poNumber", "shipDate", "leadTime"],
-    "template": "order_confirmation.j2"
-  },
-  "quote_request": {
-    "required": ["customerName", "partNumber", "quantity", "vendor", "validThrough"],
-    "template": "quote_request.j2"
-  },
-  "delay_notice": {
-    "required": ["customerName", "partNumber", "poNumber", "newShipDate", "reason", "contact"],
-    "template": "delay_notice.j2"
-  }
+  "order_confirmation": {"template": "order_confirmation.j2"},
+  "quote_request": {"template": "quote_request.j2"},
+  "delay_notice": {"template": "delay_notice.j2"},
+  "shipment_update": {"template": "shipment_update.j2"},
+  "invoice_payment": {"template": "invoice_payment.j2"},
+  "packing_slip_docs": {"template": "packing_slip_docs.j2"},
+  "followup": {"template": "followup.j2"}
 }
+
