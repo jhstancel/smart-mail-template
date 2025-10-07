@@ -6,6 +6,10 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 import os, json, joblib
 import numpy as np
 
+# cleaning utilities
+from app.preprocess import clean_subject_body
+
+# ---- Paths & environment ----
 ROOT = os.path.dirname(os.path.dirname(__file__))
 ART = os.path.join(ROOT, "model_artifacts")
 CONFIGS = os.path.join(ROOT, "configs")
@@ -16,8 +20,7 @@ env = Environment(
     autoescape=select_autoescape(enabled_extensions=("j2",)),
 )
 
-# lazy load artifacts
-def _maybe(path): 
+def _maybe(path: str):
     return path if os.path.exists(path) else None
 
 VEC_PATH = _maybe(os.path.join(ART, "vectorizer.pkl"))
@@ -31,13 +34,14 @@ prior = joblib.load(PRIOR_PATH) if PRIOR_PATH else {}
 with open(os.path.join(CONFIGS, "intents.json"), "r") as f:
     INTENTS = json.load(f)
 
+# ---- Schemas ----
 class PredictReq(BaseModel):
-    to: str = Field(..., description="recipient email")
+    to: str = Field(..., description="recipient email, e.g. buyer@vendor.com")
     subject: str = ""
-    body_hint: str = ""
+    body_hint: str = ""  # optional free text; notes/context you might type
 
 class PredictResp(BaseModel):
-    intents: List[Tuple[str, float]]
+    intents: List[Tuple[str, float]]  # [(intent, score)]
 
 class GenerateReq(BaseModel):
     intent: str
@@ -48,27 +52,39 @@ class GenerateResp(BaseModel):
     body: str
     missing: List[str]
 
-app = FastAPI(title="ops-mail-studio", version="0.1.0")
+# ---- App ----
+app = FastAPI(title="ops-mail-studio", version="0.2.0")
 
 def softmax(z: np.ndarray) -> np.ndarray:
     z = z - np.max(z)
     e = np.exp(z)
     return e / e.sum()
 
+def split_subject_body(rendered: str) -> Tuple[str, str]:
+    lines = (rendered or "").strip().splitlines()
+    if lines and lines[0].lower().startswith("subject:"):
+        subject = lines[0].split(":", 1)[1].strip()
+        body = "\n".join(lines[1:]).lstrip()
+        return subject, body
+    return "", (rendered or "").strip()
+
 @app.get("/health")
 def health():
     return {
-        "vectorizer": bool(vec),
-        "classifier": bool(clf),
-        "recipient_prior": bool(prior),
+        "vectorizer_loaded": bool(vec),
+        "classifier_loaded": bool(clf),
+        "recipient_prior_loaded": bool(prior),
         "intents": list(INTENTS.keys())
     }
 
 @app.post("/predict", response_model=PredictResp)
 def predict(req: PredictReq):
-    # model score (if available)
-    model_probs = {}
-    text = (req.subject + " || " + req.body_hint).lower().strip()
+    # Clean subject/body_hint the same way training data is cleaned
+    subj_clean, body_clean = clean_subject_body(req.subject, req.body_hint, is_html=False)
+    text = (subj_clean + " || " + body_clean).lower().strip()
+
+    # Model probability (if artifacts exist and there is text)
+    model_probs: Dict[str, float] = {}
     if vec and clf and text:
         X = vec.transform([text])
         if hasattr(clf, "decision_function"):
@@ -81,39 +97,36 @@ def predict(req: PredictReq):
             labels = clf.classes_
             model_probs = {lbl: float(p) for lbl, p in zip(labels, proba)}
 
-    # recipient prior
+    # Recipient prior (counts normalized)
     recip = (req.to or "").lower()
     recip_probs = prior.get(recip, {})
-    s = sum(recip_probs.values()) or 0
-    recip_probs = {k: v / s for k, v in recip_probs.items()} if s else {}
+    total_prior = float(sum(recip_probs.values())) or 0.0
+    if total_prior:
+        recip_probs = {k: v / total_prior for k, v in recip_probs.items()}
+    else:
+        recip_probs = {}
 
-    # combine
+    # Combine model + prior
     intents = set(model_probs.keys()) | set(recip_probs.keys()) | set(INTENTS.keys())
-    alpha = 0.7 if model_probs else 0.0  # no model? rely on prior only
-    combined = []
+    alpha = 0.7 if model_probs else 0.0  # if no model, rely on prior only
+    combined: List[Tuple[str, float]] = []
     for i in intents:
         p_model = model_probs.get(i, 0.0)
         p_prior = recip_probs.get(i, 0.0)
-        score = alpha * p_model + (1 - alpha) * p_prior
+        score = alpha * p_model + (1.0 - alpha) * p_prior
         combined.append((i, float(score)))
     combined.sort(key=lambda x: x[1], reverse=True)
-    return {"intents": combined[:3]}
 
-def split_subject_body(rendered: str):
-    lines = rendered.strip().splitlines()
-    if lines and lines[0].lower().startswith("subject:"):
-        subject = lines[0].split(":", 1)[1].strip()
-        body = "\n".join(lines[1:]).lstrip()
-        return subject, body
-    return "", rendered.strip()
+    return {"intents": combined[:3]}
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq):
     if req.intent not in INTENTS:
-        raise HTTPException(400, f"Unknown intent: {req.intent}")
+        raise HTTPException(status_code=400, detail=f"Unknown intent: {req.intent}")
+
     meta = INTENTS[req.intent]
     tmpl_name = meta["template"]
-    required = meta["required"]
+    required = meta.get("required", [])
 
     missing = [k for k in required if not req.fields.get(k)]
     template = env.get_template(tmpl_name)
