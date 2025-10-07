@@ -1,10 +1,31 @@
 {
-  "order_confirmation": {"template": "order_confirmation.j2"},
-  "quote_request": {"template": "quote_request.j2"},
-  "delay_notice": {"template": "delay_notice.j2"},
-  "shipment_update": {"template": "shipment_update.j2"},
-  "invoice_payment": {"template": "invoice_payment.j2"},
-  "packing_slip_docs": {"template": "packing_slip_docs.j2"},
-  "followup": {"template": "followup.j2"}
+  "quote_request": {
+    "template": "quote_request.j2",
+    "required": ["customerName", "vendor", "partNumber", "quantity", "needBy", "validThrough", "senderName"]
+  },
+  "order_confirmation": {
+    "template": "order_confirmation.j2",
+    "required": ["customerName", "poNumber", "itemsSummary", "promisedShip", "senderName"]
+  },
+  "delay_notice": {
+    "template": "delay_notice.j2",
+    "required": ["customerName", "poNumber", "partNumber", "previousShip", "newShip", "reason", "senderName"]
+  },
+  "shipment_update": {
+    "template": "shipment_update.j2",
+    "required": ["customerName", "poNumber", "carrier", "trackingNumber", "shipDate", "itemsSummary", "senderName"]
+  },
+  "invoice_payment": {
+    "template": "invoice_payment.j2",
+    "required": ["customerName", "invoiceNumber", "amount", "paymentMethod", "paymentDate", "senderName"]
+  },
+  "packing_slip_docs": {
+    "template": "packing_slip_docs.j2",
+    "required": ["customerName", "poNumber", "docsList", "senderName"]
+  },
+  "followup": {
+    "template": "followup.j2",
+    "required": ["customerName", "context", "ask", "senderName"]
+  }
 }
 

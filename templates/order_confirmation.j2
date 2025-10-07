@@ -1,12 +1,13 @@
-Subject: Order Confirmation – {{ partNumber }} (PO {{ poNumber }})
+Subject: Order Confirmation – PO {{ poNumber }}
 
 Hi {{ customerName }},
 
-We’ve received your order for {{ quantity }} × {{ partNumber }} from {{ vendor }}.
-Estimated ship date: {{ shipDate }} (lead time {{ leadTime }}).
+We’ve entered PO {{ poNumber }} as follows:
+Items: {{ itemsSummary }}
+Promised ship date: {{ promisedShip }}
 
-We’ll share tracking details once the carrier picks up. Let us know if anything needs to change.
+Reply if any detail needs correction.
 
 Best regards,
-{{ senderName or "Operations Team" }}
+{{ senderName }}
 

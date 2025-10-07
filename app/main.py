@@ -1,50 +1,73 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Tuple
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-import os, json, joblib
-import numpy as np
-from pathlib import Path
+from __future__ import annotations
 
-# cleaning utilities
+import os
+import json
+from pathlib import Path
+from typing import Dict, Any, List, Tuple
+
+import joblib
+import numpy as np
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from pydantic import BaseModel, Field
+
 from app.preprocess import clean_subject_body
 
-# ---- Paths & environment ----
-ROOT = os.path.dirname(os.path.dirname(__file__))
-ART = Path(__file__).resolve().parent.parent / "model_artifacts"
-print("[DEBUG] Loading artifacts from:", (Path(ART)).resolve())
-CONFIGS = os.path.join(ROOT, "configs")
-TEMPLATES = os.path.join(ROOT, "templates")
+# --------------------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------------------
+ROOT = Path(__file__).resolve().parent.parent
+ART = ROOT / "model_artifacts"              # <- project-level artifacts
+CONFIGS = ROOT / "configs"
+TEMPLATES = ROOT / "templates"
+UI_DIR = ROOT / "ui"
 
+# Jinja environment
 env = Environment(
-    loader=FileSystemLoader(TEMPLATES),
+    loader=FileSystemLoader(str(TEMPLATES)),
     autoescape=select_autoescape(enabled_extensions=("j2",)),
 )
 
-def _maybe(path: str):
-    return path if os.path.exists(path) else None
+# Load config intents (used by /schema and /generate)
+with open(CONFIGS / "intents.json", "r") as f:
+    INTENTS: Dict[str, Dict[str, Any]] = json.load(f)
 
-VEC_PATH = _maybe(os.path.join(ART, "vectorizer.pkl"))
-CLF_PATH = _maybe(os.path.join(ART, "clf.pkl"))
-PRIOR_RECIP_PATH = _maybe(os.path.join(ART, "recipient_prior.pkl"))
-PRIOR_DOMAIN_PATH = _maybe(os.path.join(ART, "domain_prior.pkl"))
+# Resolve artifact files (optional = None)
+def _maybe(p: Path) -> Path | None:
+    return p if p.exists() else None
 
+VEC_PATH = _maybe(ART / "vectorizer.pkl")
+CLF_PATH = _maybe(ART / "clf.pkl")
+PRIOR_RECIP_PATH = _maybe(ART / "recipient_prior.pkl")
+PRIOR_DOMAIN_PATH = _maybe(ART / "domain_prior.pkl")
+
+# Load artifacts
+print("[DEBUG] Loading artifacts from:", ART.resolve())
 vec = joblib.load(VEC_PATH) if VEC_PATH else None
 clf = joblib.load(CLF_PATH) if CLF_PATH else None
-prior_recipient = joblib.load(PRIOR_RECIP_PATH) if PRIOR_RECIP_PATH else {}
-prior_domain = joblib.load(PRIOR_DOMAIN_PATH) if PRIOR_DOMAIN_PATH else {}
+prior_recipient: Dict[str, Dict[str, float]] = joblib.load(PRIOR_RECIP_PATH) if PRIOR_RECIP_PATH else {}
+prior_domain: Dict[str, Dict[str, float]] = joblib.load(PRIOR_DOMAIN_PATH) if PRIOR_DOMAIN_PATH else {}
 
-with open(os.path.join(CONFIGS, "intents.json"), "r") as f:
-    INTENTS = json.load(f)
+if clf is not None:
+    try:
+        print("[DEBUG] Model classes:", list(getattr(clf, "classes_", [])))
+    except Exception as e:
+        print("[DEBUG] Could not read model classes:", e)
 
-# ---- Schemas ----
+# --------------------------------------------------------------------------------------
+# Schemas
+# --------------------------------------------------------------------------------------
 class PredictReq(BaseModel):
-    to: str = Field(..., description="recipient email, e.g. buyer@vendor.com")
+    to: str = Field(..., description="Recipient email, e.g. buyer@vendor.com")
     subject: str = ""
-    body_hint: str = ""  # optional free text; notes/context you might type
+    body_hint: str = ""  # optional context you might type
 
 class PredictResp(BaseModel):
-    intents: List[Tuple[str, float]]  # [(intent, score)]
+    intent: str
+    confidence: float
+    top_k: List[Tuple[str, float]]
 
 class GenerateReq(BaseModel):
     intent: str
@@ -55,9 +78,27 @@ class GenerateResp(BaseModel):
     body: str
     missing: List[str]
 
-# ---- App ----
-app = FastAPI(title="ops-mail-studio", version="0.3.0")
+# --------------------------------------------------------------------------------------
+# App
+# --------------------------------------------------------------------------------------
+app = FastAPI(title="ops-mail-studio", version="0.5.0")
 
+# CORS (loose for local dev; tighten for deployment)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve static UI if present at /ui
+if UI_DIR.is_dir():
+    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+
+# --------------------------------------------------------------------------------------
+# Helpers
+# --------------------------------------------------------------------------------------
 def softmax(z: np.ndarray) -> np.ndarray:
     z = z - np.max(z)
     e = np.exp(z)
@@ -75,19 +116,34 @@ def normalize_probs(d: Dict[str, float]) -> Dict[str, float]:
     s = float(sum(d.values())) or 0.0
     return {k: v / s for k, v in d.items()} if s else {}
 
+# --------------------------------------------------------------------------------------
+# Endpoints
+# --------------------------------------------------------------------------------------
 @app.get("/health")
 def health():
+    model_classes = []
+    try:
+        model_classes = list(getattr(clf, "classes_", [])) if clf else []
+    except Exception:
+        model_classes = []
     return {
         "vectorizer_loaded": bool(vec),
         "classifier_loaded": bool(clf),
         "recipient_prior_loaded": bool(prior_recipient),
         "domain_prior_loaded": bool(prior_domain),
-        "intents": list(INTENTS.keys())
+        "config_intents": list(INTENTS.keys()),  # what /generate supports
+        "model_classes": model_classes,          # what /predict can output
+        "artifacts_path": str(ART.resolve()),
     }
+
+@app.get("/schema")
+def schema():
+    """Expose intents.json so a UI can render required fields per intent."""
+    return INTENTS
 
 @app.post("/predict", response_model=PredictResp)
 def predict(req: PredictReq):
-    # Clean subject/body_hint the same way training data is cleaned
+    # Clean subject/body_hint same as training
     subj_clean, body_clean = clean_subject_body(req.subject, req.body_hint, is_html=False)
     text = (subj_clean + " || " + body_clean).lower().strip()
 
@@ -95,36 +151,33 @@ def predict(req: PredictReq):
     model_probs: Dict[str, float] = {}
     if vec and clf and text:
         X = vec.transform([text])
+        # Use decision_function when available for better-calibrated ranking
         if hasattr(clf, "decision_function"):
             z = clf.decision_function(X).ravel()
             labels = clf.classes_
             P = softmax(z)
             model_probs = {lbl: float(p) for lbl, p in zip(labels, P)}
         else:
-            proba = clf.predict_proba(X).ravel()
+            proba = getattr(clf, "predict_proba")(X).ravel()
             labels = clf.classes_
             model_probs = {lbl: float(p) for lbl, p in zip(labels, proba)}
 
-    # Recipient prior
+    # Recipient/domain priors
     recip = (req.to or "").lower()
-    rec_probs = prior_recipient.get(recip, {})
-    rec_probs = normalize_probs(rec_probs)
-
-    # Domain prior fallback (if recipient prior is empty)
+    rec_probs = normalize_probs(prior_recipient.get(recip, {}))
     dom_probs = {}
     if not rec_probs and "@" in recip:
         dom = recip.split("@", 1)[1]
         dom_probs = normalize_probs(prior_domain.get(dom, {}))
 
-    # Weighting:
-    # - alpha: model probability weight (use more when there is signal text)
-    # - beta: small domain prior weight only if no recipient prior
-    alpha = 0.7 if model_probs else 0.0
-    beta = 0.2 if (not rec_probs and dom_probs) else 0.0
-    # recipient prior weight is whatever remains
-    gamma = max(0.0, 1.0 - alpha - beta)
+    # Weights: favor model when present, otherwise lean on priors
+    alpha = 0.7 if model_probs else 0.0  # model
+    beta = 0.2 if (not rec_probs and dom_probs) else 0.0  # domain prior
+    gamma = max(0.0, 1.0 - alpha - beta)  # recipient prior
 
+    # Union of intents across all sources
     intents = set(INTENTS.keys()) | set(model_probs) | set(rec_probs) | set(dom_probs)
+
     combined: List[Tuple[str, float]] = []
     for i in intents:
         p_model = model_probs.get(i, 0.0)
@@ -132,9 +185,18 @@ def predict(req: PredictReq):
         p_dom = dom_probs.get(i, 0.0)
         score = alpha * p_model + gamma * p_rec + beta * p_dom
         combined.append((i, float(score)))
-    combined.sort(key=lambda x: x[1], reverse=True)
 
-    return {"intents": combined[:3]}
+    # Sort and package response
+    combined.sort(key=lambda x: x[1], reverse=True)
+    top_intent, top_score = ("", 0.0)
+    if combined:
+        top_intent, top_score = combined[0]
+
+    return {
+        "intent": top_intent,
+        "confidence": float(top_score),
+        "top_k": [(i, float(s)) for i, s in combined[:5]],
+    }
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq):

@@ -1,12 +1,14 @@
-Subject: Update on {{ partNumber }} (PO {{ poNumber }})
+Subject: Schedule Update – PO {{ poNumber }} / {{ partNumber }}
 
 Hi {{ customerName }},
 
-An update on your order: the new estimated ship date is {{ newShipDate }} due to {{ reason }}.
-We’ll keep you posted on any changes and will send tracking when available.
+Quick update on PO {{ poNumber }} ({{ partNumber }}):
+Previous ship date: {{ previousShip }}
+New ship date: {{ newShip }}
+Reason: {{ reason }}
 
-If you need to adjust the order, contact {{ contact }}.
+If this impacts your plan, tell me the priority and we’ll adjust.
 
 Best regards,
-{{ senderName or "Operations Team" }}
+{{ senderName }}
 
