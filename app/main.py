@@ -1,4 +1,3 @@
-# app/main.py
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from typing import Dict, Any, List, Tuple
@@ -25,11 +24,13 @@ def _maybe(path: str):
 
 VEC_PATH = _maybe(os.path.join(ART, "vectorizer.pkl"))
 CLF_PATH = _maybe(os.path.join(ART, "clf.pkl"))
-PRIOR_PATH = _maybe(os.path.join(ART, "recipient_prior.pkl"))
+PRIOR_RECIP_PATH = _maybe(os.path.join(ART, "recipient_prior.pkl"))
+PRIOR_DOMAIN_PATH = _maybe(os.path.join(ART, "domain_prior.pkl"))
 
 vec = joblib.load(VEC_PATH) if VEC_PATH else None
 clf = joblib.load(CLF_PATH) if CLF_PATH else None
-prior = joblib.load(PRIOR_PATH) if PRIOR_PATH else {}
+prior_recipient = joblib.load(PRIOR_RECIP_PATH) if PRIOR_RECIP_PATH else {}
+prior_domain = joblib.load(PRIOR_DOMAIN_PATH) if PRIOR_DOMAIN_PATH else {}
 
 with open(os.path.join(CONFIGS, "intents.json"), "r") as f:
     INTENTS = json.load(f)
@@ -53,7 +54,7 @@ class GenerateResp(BaseModel):
     missing: List[str]
 
 # ---- App ----
-app = FastAPI(title="ops-mail-studio", version="0.2.0")
+app = FastAPI(title="ops-mail-studio", version="0.3.0")
 
 def softmax(z: np.ndarray) -> np.ndarray:
     z = z - np.max(z)
@@ -68,12 +69,17 @@ def split_subject_body(rendered: str) -> Tuple[str, str]:
         return subject, body
     return "", (rendered or "").strip()
 
+def normalize_probs(d: Dict[str, float]) -> Dict[str, float]:
+    s = float(sum(d.values())) or 0.0
+    return {k: v / s for k, v in d.items()} if s else {}
+
 @app.get("/health")
 def health():
     return {
         "vectorizer_loaded": bool(vec),
         "classifier_loaded": bool(clf),
-        "recipient_prior_loaded": bool(prior),
+        "recipient_prior_loaded": bool(prior_recipient),
+        "domain_prior_loaded": bool(prior_domain),
         "intents": list(INTENTS.keys())
     }
 
@@ -97,23 +103,32 @@ def predict(req: PredictReq):
             labels = clf.classes_
             model_probs = {lbl: float(p) for lbl, p in zip(labels, proba)}
 
-    # Recipient prior (counts normalized)
+    # Recipient prior
     recip = (req.to or "").lower()
-    recip_probs = prior.get(recip, {})
-    total_prior = float(sum(recip_probs.values())) or 0.0
-    if total_prior:
-        recip_probs = {k: v / total_prior for k, v in recip_probs.items()}
-    else:
-        recip_probs = {}
+    rec_probs = prior_recipient.get(recip, {})
+    rec_probs = normalize_probs(rec_probs)
 
-    # Combine model + prior
-    intents = set(model_probs.keys()) | set(recip_probs.keys()) | set(INTENTS.keys())
-    alpha = 0.7 if model_probs else 0.0  # if no model, rely on prior only
+    # Domain prior fallback (if recipient prior is empty)
+    dom_probs = {}
+    if not rec_probs and "@" in recip:
+        dom = recip.split("@", 1)[1]
+        dom_probs = normalize_probs(prior_domain.get(dom, {}))
+
+    # Weighting:
+    # - alpha: model probability weight (use more when there is signal text)
+    # - beta: small domain prior weight only if no recipient prior
+    alpha = 0.7 if model_probs else 0.0
+    beta = 0.2 if (not rec_probs and dom_probs) else 0.0
+    # recipient prior weight is whatever remains
+    gamma = max(0.0, 1.0 - alpha - beta)
+
+    intents = set(INTENTS.keys()) | set(model_probs) | set(rec_probs) | set(dom_probs)
     combined: List[Tuple[str, float]] = []
     for i in intents:
         p_model = model_probs.get(i, 0.0)
-        p_prior = recip_probs.get(i, 0.0)
-        score = alpha * p_model + (1.0 - alpha) * p_prior
+        p_rec = rec_probs.get(i, 0.0)
+        p_dom = dom_probs.get(i, 0.0)
+        score = alpha * p_model + gamma * p_rec + beta * p_dom
         combined.append((i, float(score)))
     combined.sort(key=lambda x: x[1], reverse=True)
 

@@ -1,10 +1,26 @@
-import os, sys, csv, email
+import os, sys, csv, email, re
 from email import policy
+from email.utils import getaddresses
 from app.preprocess import clean_subject_body, canon_text
+
+ADDR_RE = re.compile(r'[^@<\s]+@[^>\s]+')
+
+def primary_to_and_domain(hdr: str):
+    if not hdr:
+        return "", ""
+    addrs = [a[1] for a in getaddresses([hdr]) if a[1]]
+    if not addrs:
+        return "", ""
+    primary = addrs[0].lower().strip()
+    m = ADDR_RE.search(primary)
+    if not m:
+        return primary, ""
+    addr = m.group(0)
+    domain = addr.split("@", 1)[1]
+    return addr, domain
 
 def extract_text(msg):
     if msg.is_multipart():
-        # prefer text/plain; fall back to text/html
         txt, html = "", ""
         for part in msg.walk():
             ct = (part.get_content_type() or "").lower()
@@ -23,7 +39,7 @@ def extract_text(msg):
         return payload, (ct == "text/html")
 
 def iter_messages(path):
-    # Apple Mail: .mbox as a *folder* with Messages/*.emlx
+    # Apple Mail: .mbox is a folder with Messages/*.emlx
     if os.path.isdir(path) and path.endswith(".mbox"):
         messages_dir = os.path.join(path, "Messages")
         for root, _, files in os.walk(messages_dir):
@@ -46,33 +62,32 @@ def main():
     src, dst = sys.argv[1], sys.argv[2]
     os.makedirs(os.path.dirname(dst), exist_ok=True)
 
-    seen = set()  # for dedup
+    seen = set()
     kept = 0
+
     with open(dst, "w", newline="") as out:
         w = csv.writer(out)
-        w.writerow(["to","subject","body","intent"])
+        # include to_domain for better priors
+        w.writerow(["to","to_domain","subject","body","intent"])
         for msg in iter_messages(src):
-            to = (msg["to"] or "").strip()
-            subj = (msg["subject"] or "").strip()
+            to_addr, to_domain = primary_to_and_domain(msg.get("to"))
+            subj = (msg.get("subject") or "").strip()
             body_raw, is_html = extract_text(msg)
             subj_clean, body_clean = clean_subject_body(subj, body_raw, is_html)
 
-            # drop empties
-            if not (subj_clean or body_clean): 
+            if not (subj_clean or body_clean):
                 continue
 
-            # de-dup by canonical text
             key = canon_text(subj_clean, body_clean)
             if key in seen:
                 continue
             seen.add(key)
 
-            w.writerow([to, subj_clean, body_clean, ""])
+            w.writerow([to_addr, to_domain, subj_clean, body_clean, ""])
             kept += 1
+
     print(f"Wrote {kept} rows to {dst}")
 
 if __name__ == "__main__":
     main()
-# Example:
-# python scripts/mbox_to_csv.py "/Users/you/Desktop/INBOX.mbox" data/emails.csv
 
