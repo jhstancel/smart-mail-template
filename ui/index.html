@@ -149,7 +149,6 @@
   .hr{height:1px; background:linear-gradient(90deg, transparent, var(--panel-border), transparent); margin:14px 0 10px 0; border:none;}
   .inline{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
 
-  /* Live compose highlights (respect reduced motion) */
   @media (prefers-reduced-motion: reduce) { .glow-in { animation: none !important; } }
   .glow-in { animation: glowIn 700ms ease-out; }
   @keyframes glowIn { 0% { background: color-mix(in srgb, var(--accent) 14%, transparent) } 100% { background: transparent; } }
@@ -165,22 +164,90 @@
   body[data-theme$="minimal"] textarea { transition: none; }
   body[data-theme$="minimal"] .intent-card:hover { transform:none; box-shadow: var(--shadow-1); filter:none; }
 
-  /* Theme Switcher */
-  .theme-switcher{ position:fixed; top:12px; left:12px; z-index:10; display:flex; gap:8px; align-items:center; }
-  .theme-switcher select{ width:auto; min-width:220px; }
+  /* ===== Settings Gear (upper-right) ===== */
+  .settings{
+    position:fixed; top:12px; right:12px; z-index:20;
+  }
+  .settings-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:38px; height:38px; border-radius:12px; border:1px solid var(--panel-border);
+    background:color-mix(in srgb, var(--bg) 85%, white 15%);
+    box-shadow: var(--shadow-1); cursor:pointer;
+    transition: transform .15s ease, box-shadow .25s ease;
+  }
+  .settings-btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-2); }
+  .settings-menu{
+    margin-top:8px; min-width:260px; max-width:320px;
+    display:none; flex-direction:column; gap:8px;
+    padding:10px; border-radius:14px; border:1px solid var(--panel-border);
+    background:var(--glass); box-shadow: var(--shadow-2);
+  }
+  .settings-menu.open{ display:flex; }
+  .settings-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    border:1px solid var(--card-border); border-radius:12px;
+    background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+    padding:10px 12px; cursor:pointer;
+  }
+  .settings-item .label{ font-weight:700; }
+  .settings-item .hint{ color:var(--muted); font-size:12px; }
+
+  .settings-subpanel{ overflow:hidden; height:0; opacity:0; transition: height .35s ease, opacity .35s ease, margin .35s ease; margin:0; }
+  .settings-subpanel.open{ height:auto; opacity:1; margin-top:6px; }
+  .settings-row{ display:flex; align-items:center; gap:10px; }
+  .settings-row select{ min-width:200px; }
+
+  .chev{ width:14px; height:14px; transition: transform .25s ease; }
+  .rot90{ transform: rotate(90deg); }
 </style>
 </head>
 <body>
-<!-- Theme Switcher (upper-left) -->
-<div class="theme-switcher panel" style="padding:8px 10px">
-  <label for="themeSelect" style="margin:0">Theme</label>
-  <select id="themeSelect" aria-label="Theme">
-    <option value="light-minimal">Light Minimal (Default)</option>
-    <option value="dark-minimal">Dark Minimal</option>
-    <option value="cosmic">Cosmic</option>
-    <option value="dusk-gradient">Dusk Gradient</option>
-    <option value="forest-mist">Forest Mist</option>
-  </select>
+<!-- Settings Gear (upper-right) -->
+<div class="settings" id="settings">
+  <button id="settingsBtn" class="settings-btn" aria-haspopup="true" aria-expanded="false" aria-controls="settingsMenu" title="Settings">
+    <!-- Gear Icon -->
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/>
+      <path d="M19.4 13.1a7.52 7.52 0 0 0 .05-2.21l2.06-1.6-2-3.46-2.49 .57a7.52 7.52 0 0 0-1.92-1.11l-.5-2.53H9.39l-.5 2.53a7.52 7.52 0 0 0-1.92 1.1l-2.49-.56-2 3.46 2.06 1.6a7.52 7.52 0 0 0 0 2.22l-2.06 1.6 2 3.46 2.49-.57c.6 .47 1.24 .85 1.93 1.12l.5 2.53h4.31l.5-2.53c.68-.27 1.33-.65 1.92-1.12l2.49.57 2-3.46-2.06-1.6Z" stroke="currentColor" stroke-width="1.4"/>
+    </svg>
+  </button>
+  <div id="settingsMenu" class="settings-menu panel" role="menu" aria-label="Settings">
+    <!-- Item: Theme -->
+    <div class="settings-item" data-item="theme" role="menuitem" tabindex="0">
+      <div>
+        <div class="label">Theme</div>
+        <div class="hint">Light Minimal, Dark Minimal, Cosmic, Dusk, Forest</div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+    </div>
+    <div id="subTheme" class="settings-subpanel">
+      <div class="settings-row">
+        <label for="themeSelect" class="muted" style="min-width:90px">Preset</label>
+        <select id="themeSelect" aria-label="Theme">
+          <option value="light-minimal">Light Minimal (Default)</option>
+          <option value="dark-minimal">Dark Minimal</option>
+          <option value="cosmic">Cosmic</option>
+          <option value="dusk-gradient">Dusk Gradient</option>
+          <option value="forest-mist">Forest Mist</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Item: Typing Animation -->
+    <div class="settings-item" data-item="typing" role="menuitem" tabindex="0">
+      <div>
+        <div class="label">Compose Animation</div>
+        <div class="hint">Enable or disable live typing effect</div>
+      </div>
+      <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+    </div>
+    <div id="subTyping" class="settings-subpanel">
+      <label class="toggle" for="liveCompose" style="margin-top:2px">
+        <input id="liveCompose" type="checkbox" checked /> Compose Live
+      </label>
+      <p class="muted" style="margin:6px 0 0">Note: Minimal themes dampen most animations.</p>
+    </div>
+  </div>
 </div>
 
 <canvas id="stars"></canvas>
@@ -234,10 +301,6 @@
     </div>
     <div id="fields" class="kvs"></div>
     <div class="inline" style="margin:8px 0">
-      <label class="toggle">
-        <input id="liveCompose" type="checkbox" checked />
-        Compose Live
-      </label>
       <button id="btnGenerate" class="btn">Generate</button>
       <span id="missing" class="muted"></span>
     </div>
@@ -297,7 +360,7 @@ const Starfield = (function(){
 
 /* ===== Utilities ===== */
 const $ = s => document.querySelector(s);
-const toTitle = (key) => key.replace(/[_\-]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/\s+/g,' ').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+const toTitle = (key) => key.replace(/[\-_]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/\s+/g,' ').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 function badge(score, thr=0.55){ const pct = Math.round(score*100); let cls='pill'; if(score>=thr) cls+=' ok'; else if(score>=0.45) cls+=' warn'; else cls+=' bad'; return `<span class="${cls}">${pct}%</span>`; }
 
 /* ===== Elements & state ===== */
@@ -389,7 +452,7 @@ async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{
   renderIntentGrid();
   // Default theme
   document.body.setAttribute('data-theme', 'light-minimal');
-  themeSelect.value = 'light-minimal';
+  if(themeSelect) themeSelect.value = 'light-minimal';
   Starfield.stop(); // no stars in minimal by default
 
   try{
@@ -462,7 +525,39 @@ function applyTheme(val){
   if(val === 'cosmic') Starfield.start(); else Starfield.stop();
 }
 
-themeSelect.addEventListener('change', (e)=> applyTheme(e.target.value));
+if(themeSelect){
+  themeSelect.addEventListener('change', (e)=> applyTheme(e.target.value));
+}
+
+/* ===== Settings interactions ===== */
+const settingsBtn = $('#settingsBtn');
+const settingsMenu = $('#settingsMenu');
+const itemTheme = document.querySelector('.settings-item[data-item="theme"]');
+const itemTyping = document.querySelector('.settings-item[data-item="typing"]');
+const subTheme = $('#subTheme');
+const subTyping = $('#subTyping');
+
+function closeAllSubs(){
+  [subTheme, subTyping].forEach(s=> s.classList.remove('open'));
+  document.querySelectorAll('.settings-item .chev').forEach(c=> c.classList.remove('rot90'));
+}
+function openOnly(panel, chev){ closeAllSubs(); panel.classList.add('open'); chev.classList.add('rot90'); }
+
+settingsBtn.addEventListener('click', ()=>{
+  const isOpen = settingsMenu.classList.toggle('open');
+  settingsBtn.setAttribute('aria-expanded', String(isOpen));
+  if(!isOpen) closeAllSubs();
+});
+
+itemTheme.addEventListener('click', ()=> openOnly(subTheme, itemTheme.querySelector('.chev')));
+itemTyping.addEventListener('click', ()=> openOnly(subTyping, itemTyping.querySelector('.chev')));
+
+// Click outside to close
+window.addEventListener('click', (e)=>{
+  if(!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)){
+    settingsMenu.classList.remove('open'); settingsBtn.setAttribute('aria-expanded','false'); closeAllSubs();
+  }
+});
 
 </script>
 </body>
