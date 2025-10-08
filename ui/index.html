@@ -2,262 +2,434 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Smart Mail — Predict & Generate</title>
+<title>Smart Mail — Celestial</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  :root{--bg:#0b0c10;--card:#111318;--ink:#e8eaed;--muted:#aab2bd;--accent:#4da3ff;--ok:#2ecc71;--warn:#f39c12;--bad:#e74c3c;}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
-  .wrap{max-width:960px;margin:40px auto;padding:0 16px}
-  h1{font-size:20px;margin:0 0 16px}
-  .grid{display:grid;gap:12px}
-  .card{background:var(--card);border:1px solid #1d212a;border-radius:14px;padding:16px}
-  label{display:block;margin:0 0 6px;font-weight:600}
-  input[type=text], input[type=email], textarea, select{
-    width:100%;background:#0e1016;border:1px solid #222634;border-radius:10px;color:var(--ink);padding:10px 12px;
+  :root{
+    --bg:#0b0f16;
+    --glass:#0f1623cc;
+    --ink:#e9eef7;
+    --muted:#a7b3c5;
+    --accent:#7ab8ff;
+    --accent-2:#8ee3ff;
+    --ok:#2ecc71; --warn:#ffb84d; --bad:#ff6b6b;
   }
-  textarea{min-height:90px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .btn{background:#1b67ff;border:none;color:white;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
-  .btn.secondary{background:#2b3242}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-weight:700;font-size:12px}
-  .badge.ok{background:color-mix(in srgb, var(--ok) 20%, transparent); color:var(--ok); border:1px solid var(--ok)}
-  .badge.warn{background:color-mix(in srgb, var(--warn) 20%, transparent); color:var(--warn); border:1px solid var(--warn)}
-  .badge.bad{background:color-mix(in srgb, var(--bad) 20%, transparent); color:var(--bad); border:1px solid var(--bad)}
-  .kvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:8px}
-  .kv{display:flex;flex-direction:column;gap:4px}
-  .row-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .muted{color:var(--muted);font-size:12px}
-  .hr{height:1px;background:#222634;margin:12px 0;border:none}
-  .alt{display:flex;flex-wrap:wrap;gap:6px}
-  .alt button{background:#202638;border:1px solid #2b3242;border-radius:8px;color:var(--ink);padding:6px 8px;cursor:pointer}
-  .out{white-space:pre-wrap;background:#0e1016;border:1px solid #222634;border-radius:10px;padding:12px}
-  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .pill{padding:2px 8px;border-radius:999px;border:1px solid #2b3242;background:#151a23;color:var(--ink);font-size:12px}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; color:var(--ink); background:var(--bg);
+    font:15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+    overflow-x:hidden;
+  }
+  canvas#stars{position:fixed; inset:0; z-index:-3;}
+  .glow-veil{position:fixed; inset:-10vmax; z-index:-2;
+    background: radial-gradient(60vmax 60vmax at 20% -10%, rgba(120,170,255,.12), transparent 60%),
+                radial-gradient(50vmax 50vmax at 110% 20%, rgba(120,220,255,.10), transparent 55%),
+                radial-gradient(40vmax 35vmax at 40% 120%, rgba(160,140,255,.08), transparent 60%);
+    filter: blur(40px); pointer-events:none;
+  }
+
+  .wrap{max-width:1080px; margin:48px auto; padding:0 20px}
+  .panel{
+    background:var(--glass);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45), 0 0 80px rgba(122,184,255,.06) inset;
+    padding:18px 18px 2px 18px;
+  }
+  .title{font-weight:800; letter-spacing:.3px; margin:0 0 10px 0; font-size:20px}
+  .subtitle{color:var(--muted); margin-top:2px; font-size:13px}
+
+  .intent-grid{
+    display:grid; gap:12px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    margin-top:12px;
+  }
+  .intent-card{
+    position:relative; padding:14px; cursor:pointer; border-radius:16px;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow: 0 6px 20px rgba(0,0,0,.35);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, border-color .25s ease, filter .25s ease;
+    transform-origin: center;
+  }
+  /* Note 6 – bigger hover */
+  .intent-card:hover{
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 18px 44px rgba(0,0,0,.5), 0 0 32px rgba(122,184,255,.10);
+    border-color: rgba(122,184,255,.25);
+    filter: saturate(1.05);
+  }
+
+  /* Note 2 – dynamic selected animation */
+  .intent-card.active{
+    box-shadow: 0 0 0 6px rgba(122,184,255,.10), 0 14px 40px rgba(0,0,0,.55);
+    animation: pulse 2.6s ease-in-out infinite;
+  }
+  .intent-card.active::after{
+    content:"";
+    position:absolute; inset:-2px;
+    border-radius:18px;
+    background: conic-gradient(from 0deg at 50% 50%, rgba(122,184,255,.0), rgba(122,184,255,.55), rgba(142,227,255,.0) 30%, rgba(122,184,255,.0) 60%, rgba(122,184,255,.4) 85%, rgba(122,184,255,0));
+    filter: blur(6px);
+    pointer-events:none;
+    animation: sweep 4.5s linear infinite;
+    opacity:.8;
+  }
+  @keyframes pulse{
+    0%,100%{ transform: translateY(-1px) scale(1.02); }
+    50%{ transform: translateY(-2px) scale(1.04); }
+  }
+  @keyframes sweep{
+    from{ transform: rotate(0deg); }
+    to{ transform: rotate(360deg); }
+  }
+
+  .intent-name{font-weight:800; margin:0 0 6px; letter-spacing:.2px}
+  .intent-desc{color:var(--muted); font-size:13px}
+
+  .stage{ margin-top:16px; overflow:hidden; transition: height .45s ease, opacity .45s ease, margin .45s ease; }
+  .stage.hidden{ height:0; opacity:0; margin:0; }
+
+  label{display:block; margin:8px 0 6px; font-weight:700; letter-spacing:.2px}
+  input[type=text], input[type=email], textarea, select{
+    width:100%; color:var(--ink); background:rgba(15,22,35,.6); border:1px solid rgba(255,255,255,.08);
+    border-radius:12px; padding:12px 14px;
+    outline:none; box-shadow: 0 0 0 0 rgba(122,184,255,0);
+    transition: box-shadow .25s ease, border-color .25s ease, background .25s ease, transform .25s ease;
+  }
+  input:focus, textarea:focus, select:focus{
+    border-color: rgba(122,184,255,.45);
+    box-shadow: 0 0 0 6px rgba(122,184,255,.08);
+    background: rgba(18,26,42,.85);
+    transform: translateZ(0) scale(1.01);
+  }
+  textarea{min-height:90px; resize:vertical}
+
+  .row{display:grid; gap:12px; grid-template-columns:1fr 1fr}
+  .kvs{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+  .muted{color:var(--muted); font-size:12px}
+
+  .badge{display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:800;}
+  .ok{background:color-mix(in srgb, var(--ok) 22%, transparent); color:var(--ok); border:1px solid var(--ok)}
+  .warn{background:color-mix(in srgb, var(--warn) 22%, transparent); color:var(--warn); border:1px solid var(--warn)}
+  .bad{background:color-mix(in srgb, var(--bad) 22%, transparent); color:var(--bad); border:1px solid var(--bad)}
+
+  .btn{
+    background: linear-gradient(180deg, #1b67ff, #124bcb);
+    color:white; font-weight:900; letter-spacing:.3px; border:none; border-radius:12px;
+    padding:11px 14px; cursor:pointer;
+    box-shadow: 0 10px 30px rgba(40,110,255,.35), 0 0 40px rgba(90,160,255,.18) inset;
+    transition: transform .15s ease, box-shadow .25s ease, filter .15s ease;
+  }
+  .btn:hover{ transform: translateY(-1px) scale(1.03); filter: brightness(1.03); }
+  .btn.secondary{ background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); color:var(--ink); border:1px solid rgba(255,255,255,.10); box-shadow:none }
+  .btn:disabled{opacity:.6; cursor:not-allowed}
+
+  .out{white-space:pre-wrap; background:rgba(15,22,35,.55); border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px;}
+
+  .hr{height:1px; background:linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent); margin:14px 0 10px 0; border:none;}
+  .inline{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .pill{padding:4px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04);}
+
+  .reveal{opacity:0; transform: translateY(8px) scale(.995); animation: reveal .45s cubic-bezier(.22,.6,.26,1) forwards;}
+  @keyframes reveal{ to{opacity:1; transform: translateY(0) scale(1);} }
+
+  @media (max-width: 720px){ .row{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
-<div class="wrap grid">
+<canvas id="stars"></canvas>
+<div class="glow-veil"></div>
 
-  <div class="card">
-    <h1>Smart Mail — Predict & Generate</h1>
-    <div class="grid">
+<div class="wrap">
+  <div class="panel reveal">
+    <h1 class="title">Smart Mail — Celestial</h1>
+    <div class="subtitle">Choose what you’re doing. You can switch to Auto Detect if you prefer.</div>
+    <div id="intentGrid" class="intent-grid"></div>
+
+    <!-- Auto-detect stage -->
+    <div id="autoStage" class="stage hidden">
+      <div class="hr"></div>
       <div class="row">
         <div>
-          <label for="to">To (recipient)</label>
+          <label for="to">To (Recipient)</label>
           <input id="to" type="email" placeholder="buyer@vendor.com" />
         </div>
         <div>
-          <label for="subject">Subject (draft)</label>
+          <label for="subject">Subject (Draft)</label>
           <input id="subject" type="text" placeholder="RFQ PN-4812" />
         </div>
       </div>
       <div>
-        <label for="body_hint">Body hint (1–2 lines)</label>
-        <textarea id="body_hint" placeholder="requesting pricing and lead time for PN-4812 qty 5"></textarea>
+        <label for="hint">Body Hint (One or Two Lines)</label>
+        <textarea id="hint" placeholder="Requesting pricing and lead time for PN-4812 quantity five"></textarea>
       </div>
-      <div class="row-actions">
-        <button id="btnPredict" class="btn">Predict intent</button>
-        <span id="health" class="muted"></span>
+      <div class="inline" style="margin:10px 0 6px">
+        <button id="btnPredict" class="btn">Auto Detect Intent</button>
+        <span id="predStatus" class="muted"></span>
       </div>
-      <div id="predArea" style="display:none">
-        <div class="hr"></div>
-        <div class="inline">
-          <strong>Predicted:</strong>
-          <span id="predIntent" class="pill"></span>
-          <span id="predConf" class="pill"></span>
-          <span id="predMsg" class="muted"></span>
-        </div>
-        <div class="alt" id="topK"></div>
+      <div id="predInfo" class="inline" style="display:none;margin-top:6px">
+        <span class="pill">Predicted: <b id="predIntent"></b></span>
+        <span id="predBadge" class="badge"></span>
+        <span id="predMsg" class="muted"></span>
       </div>
+      <div id="topK" class="inline" style="gap:6px; flex-wrap:wrap; margin:8px 0 4px"></div>
     </div>
   </div>
 
-  <div class="card">
+  <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
-      <h2 style="margin:0;font-size:16px">Fields</h2>
-      <span class="muted" id="fieldsHint">(auto-loads from selected intent)</span>
+      <h2 class="title" style="font-size:18px; margin:0">Fields</h2>
+      <span class="subtitle" id="fieldsHint">(Select an option or use Auto Detect)</span>
     </div>
     <div id="fields" class="kvs"></div>
-    <div class="row-actions">
-      <button id="btnGenerate" class="btn">Generate email</button>
-      <span class="muted" id="missing"></span>
+    <div class="inline" style="margin:8px 0">
+      <button id="btnGenerate" class="btn">Generate</button>
+      <span id="missing" class="muted"></span>
+      <span id="health" class="muted" style="margin-left:auto"></span>
     </div>
   </div>
 
-  <div class="card">
+  <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
-      <h2 style="margin:0;font-size:16px">Output</h2>
-      <span class="muted">(copy into your email client)</span>
+      <h2 class="title" style="font-size:18px; margin:0">Output</h2>
+      <span class="subtitle">Copy into your email client</span>
     </div>
     <div class="row">
       <div>
         <label>Subject</label>
         <div id="outSubject" class="out"></div>
-        <div class="row-actions">
-          <button class="btn secondary" id="copySubject">Copy subject</button>
+        <div class="inline" style="margin-top:8px">
+          <button id="copySubject" class="btn secondary">Copy Subject</button>
         </div>
       </div>
       <div>
         <label>Body</label>
         <div id="outBody" class="out"></div>
-        <div class="row-actions">
-          <button class="btn secondary" id="copyBody">Copy body</button>
-          <button class="btn secondary" id="copyBoth">Copy both</button>
+        <div class="inline" style="margin-top:8px">
+          <button id="copyBody" class="btn secondary">Copy Body</button>
+          <button id="copyBoth" class="btn secondary">Copy Both</button>
         </div>
       </div>
     </div>
   </div>
-
 </div>
 
 <script>
-const $ = sel => document.querySelector(sel);
-const toEl = $('#to'), subjectEl = $('#subject'), bodyHintEl = $('#body_hint');
-const predArea = $('#predArea'), predIntent = $('#predIntent'), predConf = $('#predConf'), predMsg = $('#predMsg'), topK = $('#topK');
-const fieldsWrap = $('#fields'), fieldsHint = $('#fieldsHint'), missingEl = $('#missing');
-const outSubject = $('#outSubject'), outBody = $('#outBody');
-const healthEl = $('#health');
+/* ===== Starfield (subtle) ===== */
+(function starfield(){
+  const c = document.getElementById('stars');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const ctx = c.getContext('2d');
+  let stars=[];
+  function resize(){ c.width=innerWidth*dpr; c.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
+  function init(){
+    stars = [];
+    const count = Math.floor((innerWidth*innerHeight)/9000);
+    for(let i=0;i<count;i++){
+      stars.push({x:Math.random()*innerWidth, y:Math.random()*innerHeight, r:Math.random()*1.2+0.2, a:Math.random()*0.4+0.4, v:Math.random()*0.04+0.01});
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    stars.forEach(s=>{ s.y+=s.v; if(s.y>innerHeight) s.y=-5;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle=`rgba(200,230,255,${s.a})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  window.addEventListener('resize', ()=>{ resize(); init(); });
+  resize(); init(); draw();
+})();
 
+/* ===== Utilities ===== */
+const $ = s => document.querySelector(s);
+const toTitle = (key) => {
+  // convert camelCase or snake to Title Case with spaces
+  return key
+    .replace(/[_\-]+/g,' ')
+    .replace(/([a-z])([A-Z])/g,'$1 $2')
+    .replace(/\s+/g,' ')
+    .trim()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+};
+
+/* ===== Elements ===== */
+const intentGrid = $('#intentGrid');
+const autoStage = $('#autoStage');
+const fieldsWrap = $('#fields');
+const fieldsHint = $('#fieldsHint');
+const predInfo = $('#predInfo');
+const predIntent = $('#predIntent');
+const predMsg = $('#predMsg');
+const topK = $('#topK');
+const predStatus = $('#predStatus');
+const health = $('#health');
 let SCHEMA = {};
 let SELECTED_INTENT = null;
-let LAST_TOPK = [];
+let CONF_THR = 0.55;
 
-// Simple presets for checkboxes/dropdowns for common intents
-function presetFor(intent, field){
-  // useful dropdowns/checks
-  if(intent === 'shipment_update' && field === 'carrier'){
-    return { type:'select', options:['UPS','FedEx','DHL','USPS','Other'] };
-  }
-  if(intent === 'invoice_payment' && field === 'paymentMethod'){
-    return { type:'select', options:['ACH','Wire','Card','Check'] };
-  }
-  if(intent === 'packing_slip_docs' && field === 'docsList'){
-    return { type:'checks', options:['Packing slip','COO','SDS','Commercial Invoice','AWB/BOL'] };
-  }
-  return null;
+/* Intent descriptions (Title Case) */
+const INTENT_DESCS = {
+  "quote_request": "Ask For Pricing Or Lead Time.",
+  "shipment_update": "Send Tracking, Carrier, Ship Date.",
+  "order_confirmation": "Acknowledge Or Confirm A PO.",
+  "invoice_payment": "Payment Or Invoice Notice.",
+  "delay_notice": "Notify A Date Change Or Backorder.",
+  "packing_slip_docs": "Send Documents: Packing Slip, COO, SDS.",
+  "followup": "Polite Nudge Or Status Check.",
+  "auto_detect": "Let The System Read Your Draft And Suggest An Intent."
+};
+
+/* Build a card; supports toggle (Note 1) */
+function intentCard(name){
+  const div = document.createElement('div');
+  div.className = 'intent-card';
+  const label = (name==='auto_detect') ? 'Auto Detect' : toTitle(name.replaceAll('_',' '));
+  div.innerHTML = `
+    <div class="intent-name">${label}</div>
+    <div class="intent-desc">${INTENT_DESCS[name]||''}</div>
+  `;
+  div.addEventListener('click', ()=>{
+    const isActive = div.classList.contains('active');
+    document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+    if(isActive){
+      // Deselect: clear selection and fields
+      SELECTED_INTENT = null;
+      renderFields(null);
+      autoStage.classList.add('hidden');
+      return;
+    }
+    // Select
+    div.classList.add('active');
+    if(name==='auto_detect'){
+      autoStage.classList.remove('hidden');
+      setSelectedIntent(null);
+    }else{
+      autoStage.classList.add('hidden');
+      setSelectedIntent(name);
+    }
+  });
+  return div;
 }
 
-async function getJSON(url){ const r = await fetch(url); return r.json(); }
-async function postJSON(url, data){ const r = await fetch(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data)}); return r.json(); }
+function renderIntentGrid(){
+  intentGrid.innerHTML = '';
+  const order = ["quote_request","shipment_update","order_confirmation","invoice_payment","delay_notice","packing_slip_docs","followup"];
+  order.forEach(i => intentGrid.appendChild(intentCard(i)));
+  const auto = intentCard('auto_detect');
+  auto.style.background = 'linear-gradient(180deg, rgba(122,184,255,.18), rgba(255,255,255,.03))';
+  intentGrid.appendChild(auto);
+}
 
 function badge(score){
-  if(score >= 0.65) return `<span class="badge ok">${(score*100).toFixed(0)}%</span>`;
-  if(score >= 0.45) return `<span class="badge warn">${(score*100).toFixed(0)}%</span>`;
-  return `<span class="badge bad">${(score*100).toFixed(0)}%</span>`;
+  const pct = Math.round(score*100);
+  const cls = (score>=CONF_THR) ? 'ok' : (score>=0.45 ? 'warn' : 'bad');
+  return `<span class="badge ${cls}">${pct}%</span>`;
 }
 
+/* Note 5 – friendly required hint + labels */
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
-  missingEl.textContent = '';
-  if(!intent || !SCHEMA[intent]){ fieldsHint.textContent = '(select an intent)'; return; }
-  fieldsHint.textContent = `(${intent} – required: ${SCHEMA[intent].required?.join(', ') || '—'})`;
-
+  if(!intent || !SCHEMA[intent]){
+    fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
+    return;
+  }
   const req = SCHEMA[intent].required || [];
-  for(const name of req){
-    const preset = presetFor(intent, name);
-    const div = document.createElement('div');
-    div.className = 'kv';
-    const label = document.createElement('label');
-    label.textContent = name;
-    div.appendChild(label);
+  const niceList = req.map(toTitle).join(', ');
+  fieldsHint.textContent = req.length ? `Required Fields: ${niceList}` : 'No Required Fields';
 
-    if(preset && preset.type === 'select'){
-      const sel = document.createElement('select');
-      for(const opt of preset.options){
-        const o = document.createElement('option'); o.value = opt; o.textContent = opt; sel.appendChild(o);
-      }
-      sel.id = `f_${name}`;
-      div.appendChild(sel);
-    } else if(preset && preset.type === 'checks'){
-      const wrap = document.createElement('div'); wrap.style.display='flex'; wrap.style.flexWrap='wrap'; wrap.style.gap='8px';
-      for(const opt of preset.options){
-        const id = `chk_${name}_${opt.replace(/\s+/g,'_')}`;
-        const cdiv = document.createElement('div'); cdiv.className='inline';
-        const cb = document.createElement('input'); cb.type='checkbox'; cb.id = id; cb.value = opt;
-        const lab = document.createElement('label'); lab.htmlFor = id; lab.textContent = opt; lab.style.fontWeight='500';
-        cdiv.appendChild(cb); cdiv.appendChild(lab); wrap.appendChild(cdiv);
-      }
-      div.appendChild(wrap);
-    } else {
-      const input = document.createElement('input');
-      input.type = 'text'; input.id = `f_${name}`; input.placeholder = name;
-      div.appendChild(input);
-    }
-    fieldsWrap.appendChild(div);
+  for(const key of req){
+    const wrap = document.createElement('div');
+    wrap.className = 'kv';
+    const label = document.createElement('label');
+    label.textContent = toTitle(key);
+    const input = document.createElement('input');
+    input.type = 'text'; input.id = `f_${key}`; input.placeholder = toTitle(key);
+    wrap.appendChild(label); wrap.appendChild(input);
+    fieldsWrap.appendChild(wrap);
   }
 }
 
 function collectFields(intent){
   const req = SCHEMA[intent]?.required || [];
   const fields = {};
-  for(const name of req){
-    const preset = presetFor(intent, name);
-    if(preset && preset.type==='checks'){
-      const checks = Array.from(fieldsWrap.querySelectorAll(`#fields input[id^="chk_${name}_"]:checked`)).map(c=>c.value);
-      fields[name] = checks.join(', ');
-    } else {
-      const el = document.getElementById(`f_${name}`);
-      fields[name] = el ? (el.value || '') : '';
-    }
+  for(const key of req){
+    const el = document.getElementById(`f_${key}`);
+    fields[key] = el ? (el.value || '') : '';
   }
   return fields;
 }
 
-function setSelectedIntent(intent, conf=0){
-  SELECTED_INTENT = intent || null;
-  predIntent.textContent = intent ? intent : '—';
-  predConf.innerHTML = badge(conf);
+function setSelectedIntent(name){
+  SELECTED_INTENT = name || null;
   renderFields(SELECTED_INTENT);
 }
 
-async function init(){
+/* API */
+async function getJSON(u){ const r = await fetch(u); return r.json(); }
+async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)}); return r.json(); }
+
+/* Init */
+(async function init(){
+  renderIntentGrid();
   try{
-    const health = await getJSON('/health');
-    healthEl.textContent = `Model: ${health.model_classes?.length||0} intents • Threshold ${Math.round((health.confidence_threshold||0.65)*100)}%`;
+    const h = await getJSON('/health');
+    CONF_THR = h.confidence_threshold || 0.55;
+    health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
     SCHEMA = await getJSON('/schema');
   }catch(e){
-    healthEl.textContent = 'Server not reachable';
+    health.textContent = 'Server Not Reachable';
   }
-}
+})();
 
+/* Auto-detect flow */
 $('#btnPredict').addEventListener('click', async ()=>{
-  predArea.style.display = 'none';
-  const payload = { to: toEl.value, subject: subjectEl.value, body_hint: bodyHintEl.value };
-  const res = await postJSON('/predict', payload);
-  LAST_TOPK = res.top_k || [];
-  predArea.style.display = 'block';
+  predStatus.textContent = 'Detecting…';
+  predInfo.style.display = 'none'; topK.innerHTML='';
+  const to = $('#to').value, subject = $('#subject').value, hint = $('#hint').value;
+  const res = await postJSON('/predict', {to, subject, body_hint: hint});
+  predStatus.textContent = '';
+  predInfo.style.display = 'flex';
+  $('#predIntent').textContent = res.intent ? toTitle(res.intent.replaceAll('_',' ')) : '—';
+  const holder = document.createElement('span'); holder.innerHTML = badge(res.confidence);
+  const old = document.getElementById('predBadge'); if(old) old.replaceWith(holder); holder.id='predBadge';
   $('#predMsg').textContent = res.message || '';
-  setSelectedIntent(res.intent, res.confidence);
-
-  // Render top-k as quick-pick buttons
   topK.innerHTML = '';
-  (res.top_k || []).forEach(([name,score])=>{
+  (res.top_k||[]).forEach(([name,score])=>{
     const b = document.createElement('button');
-    b.textContent = `${name} (${Math.round(score*100)}%)`;
-    b.addEventListener('click', ()=> setSelectedIntent(name, score));
+    b.className = 'btn secondary'; b.textContent = `${toTitle(name.replaceAll('_',' '))} (${Math.round(score*100)}%)`;
+    b.addEventListener('click', ()=> {
+      document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+      [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===toTitle(name.replaceAll('_',' ')))?.classList.add('active');
+      setSelectedIntent(name);
+      window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
+    });
     topK.appendChild(b);
   });
 });
 
+/* Generate */
 $('#btnGenerate').addEventListener('click', async ()=>{
-  if(!SELECTED_INTENT){ missingEl.textContent = 'Select an intent first.'; return; }
+  if(!SELECTED_INTENT){ $('#missing').textContent = 'Select An Option (Or Auto Detect) First.'; return; }
   const fields = collectFields(SELECTED_INTENT);
   const res = await postJSON('/generate', { intent: SELECTED_INTENT, fields });
-  outSubject.textContent = res.subject || '';
-  outBody.textContent = res.body || '';
-  missingEl.textContent = (res.missing && res.missing.length) ? `Missing: ${res.missing.join(', ')}` : '';
+  $('#outSubject').textContent = res.subject || '';
+  $('#outBody').textContent = res.body || '';
+  const missing = (res.missing && res.missing.length) ? res.missing.map(toTitle).join(', ') : '';
+  $('#missing').textContent = missing ? `Missing: ${missing}` : '';
 });
 
-async function copyText(text){
-  try{ await navigator.clipboard.writeText(text); }catch(e){ /* ignore */ }
-}
-$('#copySubject').addEventListener('click', ()=> copyText(outSubject.textContent));
-$('#copyBody').addEventListener('click', ()=> copyText(outBody.textContent));
-$('#copyBoth').addEventListener('click', ()=> copyText(outSubject.textContent + "\n\n" + outBody.textContent));
-
-init();
+/* Copy */
+async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
+$('#copySubject').addEventListener('click', ()=> copyText($('#outSubject').textContent));
+$('#copyBody').addEventListener('click', ()=> copyText($('#outBody').textContent));
+$('#copyBoth').addEventListener('click', ()=> copyText($('#outSubject').textContent + "\n\n" + $('#outBody').textContent));
 </script>
 </body>
 </html>
