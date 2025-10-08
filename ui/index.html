@@ -165,15 +165,14 @@
   body[data-theme$="minimal"] .intent-card:hover { transform:none; box-shadow: var(--shadow-1); filter:none; }
 
   /* ===== Settings Gear (upper-right) ===== */
-  .settings{
-    position:fixed; top:12px; right:12px; z-index:20;
-  }
+  .settings{ position:fixed; top:12px; right:12px; z-index:20; }
   .settings-btn{
     display:flex; align-items:center; justify-content:center; gap:8px;
     width:38px; height:38px; border-radius:12px; border:1px solid var(--panel-border);
     background:color-mix(in srgb, var(--bg) 85%, white 15%);
     box-shadow: var(--shadow-1); cursor:pointer;
     transition: transform .15s ease, box-shadow .25s ease;
+    position:relative;
   }
   .settings-btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-2); }
   .settings-menu{
@@ -199,6 +198,89 @@
 
   .chev{ width:14px; height:14px; transition: transform .25s ease; }
   .rot90{ transform: rotate(90deg); }
+
+  /* ===== Easter Egg UI Elements ===== */
+
+  /* Gear splash tooltip */
+  .splash-tip{
+    position:absolute; top:46px; right:0;
+    background:var(--glass); border:1px solid var(--panel-border);
+    box-shadow: var(--shadow-2); border-radius:10px; padding:8px 10px;
+    white-space:nowrap; font-weight:800; font-size:12px; color:var(--ink);
+    opacity:0; transform: translateY(-6px); pointer-events:none; transition: opacity .2s ease, transform .2s ease;
+  }
+  .splash-tip.show{ opacity:1; transform: translateY(0); }
+
+  /* Rabbit + portal */
+  .rabbit{ position:fixed; bottom:18px; left:-40px; width:18px; height:18px; border-radius:50%;
+    background:white; box-shadow: 0 0 16px rgba(255,255,255,.8); z-index:30; animation: hop 1.6s ease-in-out forwards; }
+  @keyframes hop{
+    0%{ transform: translateX(0) translateY(0) }
+    20%{ transform: translateX(20vw) translateY(-40px) }
+    40%{ transform: translateX(40vw) translateY(0) }
+    60%{ transform: translateX(60vw) translateY(-36px) }
+    80%{ transform: translateX(80vw) translateY(0) }
+    100%{ transform: translateX(105vw) translateY(-48px) }
+  }
+  .portal{ position:fixed; right:10%; bottom:60px; width:0; height:0; border-radius:50%; z-index:31;
+    background: radial-gradient(circle at 50% 50%, rgba(120,220,255,.9), rgba(120,180,255,.25) 40%, transparent 60%);
+    filter: blur(2px); animation: portalOpen .6s ease-out forwards; }
+  @keyframes portalOpen { to{ width:160px; height:160px; box-shadow: 0 0 60px rgba(120,200,255,.5) inset; } }
+  .portal-msg{
+    position:fixed; right:calc(10% + 14px); bottom:150px; z-index:32; max-width:320px;
+    background:var(--glass); border:1px solid var(--panel-border); padding:10px 12px; border-radius:12px;
+    font-weight:800; box-shadow: var(--shadow-2);
+    animation: fadeIn .25s ease-out both;
+  }
+  @keyframes fadeIn { from{ opacity:0; transform: translateY(6px) } to{ opacity:1; transform: translateY(0) } }
+
+  /* Corruption overlay + effects */
+  .corrupt-overlay{
+    position:fixed; inset:0; z-index:40; pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(255,0,0,.03), rgba(0,255,255,.03) 2px, transparent 3px, transparent 6px),
+      radial-gradient(60vmax 60vmax at 50% -10%, rgba(255,255,255,.06), transparent 60%);
+    mix-blend-mode: overlay; opacity:.0; transition:opacity .25s ease;
+  }
+  body.corrupting .corrupt-overlay{ opacity:.9; animation: jitter .15s infinite alternate; }
+  body.corrupting{ filter: hue-rotate(20deg) contrast(1.1) saturate(1.2); }
+  @keyframes jitter{
+    from{ transform: translate(-1px,0) skewX(.3deg) }
+    to  { transform: translate(1px,0)  skewX(-.3deg)}
+  }
+
+  .flash{ position:fixed; inset:0; background:white; z-index:50; opacity:0; pointer-events:none; }
+  .flash.show{ animation: flashbang .7s ease-out both; }
+  @keyframes flashbang{ 0%{opacity:0} 20%{opacity:1} 100%{opacity:0} }
+
+  .buffer{
+    position:fixed; inset:0; background:color-mix(in srgb, var(--bg) 70%, black 30%); z-index:45; display:none;
+    align-items:center; justify-content:center; color:var(--ink);
+  }
+  .buffer.show{ display:flex; }
+  .buffer-card{
+    background:var(--glass); border:1px solid var(--panel-border); border-radius:16px; padding:18px; width:min(520px, 90vw);
+    box-shadow: var(--shadow-2); text-align:center;
+  }
+  .bar{ height:10px; border-radius:10px; background:color-mix(in srgb, var(--bg) 85%, white 15%); overflow:hidden; border:1px solid var(--panel-border); }
+  .bar > i{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+  /* Printer reload effect */
+  .print-mask{ position:fixed; inset:0; background:var(--bg); z-index:44; display:none; }
+  .print-mask.show{ display:block; animation: printReveal 2.4s steps(24) forwards .2s; }
+  @keyframes printReveal{
+    from{ clip-path: inset(0 0 100% 0); }
+    to{   clip-path: inset(100% 0 0 0); }
+  }
+  .print-line{
+    position:fixed; left:0; right:0; top:0; height:2px; z-index:46; background: color-mix(in srgb, var(--ink) 40%, transparent);
+    display:none;
+  }
+  .print-line.show{ display:block; animation: lineSweep 2.4s linear forwards .2s; }
+  @keyframes lineSweep{
+    from{ transform: translateY(0) }
+    to{ transform: translateY(100vh) }
+  }
 </style>
 </head>
 <body>
@@ -210,6 +292,7 @@
       <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/>
       <path d="M19.4 13.1a7.52 7.52 0 0 0 .05-2.21l2.06-1.6-2-3.46-2.49 .57a7.52 7.52 0 0 0-1.92-1.11l-.5-2.53H9.39l-.5 2.53a7.52 7.52 0 0 0-1.92 1.1l-2.49-.56-2 3.46 2.06 1.6a7.52 7.52 0 0 0 0 2.22l-2.06 1.6 2 3.46 2.49-.57c.6 .47 1.24 .85 1.93 1.12l.5 2.53h4.31l.5-2.53c.68-.27 1.33-.65 1.92-1.12l2.49.57 2-3.46-2.06-1.6Z" stroke="currentColor" stroke-width="1.4"/>
     </svg>
+    <div id="splashTip" class="splash-tip" role="status" aria-live="polite"></div>
   </button>
   <div id="settingsMenu" class="settings-menu panel" role="menu" aria-label="Settings">
     <!-- Item: Theme -->
@@ -250,10 +333,24 @@
   </div>
 </div>
 
+<!-- Cosmic visuals -->
 <canvas id="stars"></canvas>
 <div class="glow-veil"></div>
 
-<div class="wrap">
+<!-- Corruption helpers -->
+<div id="corruptOverlay" class="corrupt-overlay" aria-hidden="true"></div>
+<div id="flash" class="flash" aria-hidden="true"></div>
+<div id="buffer" class="buffer" role="dialog" aria-modal="true" aria-label="Buffering">
+  <div class="buffer-card">
+    <div style="font-weight:800; margin-bottom:8px">Reinitializing display…</div>
+    <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+    <div id="barPct" class="muted" style="margin-top:8px">0%</div>
+  </div>
+</div>
+<div id="printMask" class="print-mask" aria-hidden="true"></div>
+<div id="printLine" class="print-line" aria-hidden="true"></div>
+
+<div class="wrap" id="appWrap">
   <!-- Header -->
   <div class="panel reveal">
     <h1 class="title">Smart Mail</h1>
@@ -360,8 +457,10 @@ const Starfield = (function(){
 
 /* ===== Utilities ===== */
 const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 const toTitle = (key) => key.replace(/[\-_]+/g,' ').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/\s+/g,' ').trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
 function badge(score, thr=0.55){ const pct = Math.round(score*100); let cls='pill'; if(score>=thr) cls+=' ok'; else if(score>=0.45) cls+=' warn'; else cls+=' bad'; return `<span class="${cls}">${pct}%</span>`; }
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
 /* ===== Elements & state ===== */
 const intentGrid = $('#intentGrid');
@@ -378,13 +477,29 @@ const outBody = $('#outBody');
 const health = $('#health');
 const themeSelect = $('#themeSelect');
 
+const splashTip = $('#splashTip');
+const settingsBtn = $('#settingsBtn');
+const settingsMenu = $('#settingsMenu');
+const itemTheme = document.querySelector('.settings-item[data-item="theme"]');
+const itemTyping = document.querySelector('.settings-item[data-item="typing"]');
+const subTheme = $('#subTheme');
+const subTyping = $('#subTyping');
+
+const corruptOverlay = $('#corruptOverlay');
+const flashEl = $('#flash');
+const bufferEl = $('#buffer');
+const barFill = $('#barFill');
+const barPct = $('#barPct');
+const printMask = $('#printMask');
+const printLine = $('#printLine');
+
 let SCHEMA = {};
 let SELECTED_INTENT = null;
 let CONF_THR = 0.55;
 let prevSubject = '';
 let prevBody = '';
 
-/* Intent descriptions */
+/* ===== Intent descriptions ===== */
 const INTENT_DESCS = {
   quote_request: "Ask For Pricing Or Lead Time.",
   shipment_update: "Send Tracking, Carrier, Ship Date.",
@@ -396,6 +511,21 @@ const INTENT_DESCS = {
   auto_detect: "Let The System Read Your Draft And Suggest An Intent."
 };
 
+/* ===== Minecraft splashes (curated set) ===== */
+const SPLASHES = [
+  "Punching trees!", "Now with 100% more blocks!", "Yaaay clouds!", "So fresh, so clean!",
+  "The cake is a lie!", "Much wow, very block!", "Mind the Creepers!", "Don’t dig straight down!",
+  "Redstone-ready!", "Hardcore, baby!", "Plenty of sheep!", "Spelunk responsibly!",
+  "Watch your step!", "Embrace the grind!", "Chickens gonna cluck!", "Piglin approved!",
+  "Blocks on blocks!", "Boats go brrr!", "Suspicious stew?!", "Keep calm and craft on!",
+  "Enchanting vibes!", "Bee yourself!", "Mine all day!", "Build all night!",
+  "Nether? I hardly know her!", "Cave update feelings!", "RTX? Very shiny!", "Punch wood → Profit!",
+  "Mending your ways!", "Eat your golden carrots!", "Warden says hi…", "Fortune favors you!",
+  "Adventure awaits!", "Stay blocky!", "Better than diamonds?", "Creeper? …Aww man.",
+  "Remember your bed!", "Set your spawn!", "Hiss-terical!", "Powered rails zoom!"
+];
+
+/* ===== Intent grid ===== */
 function intentCard(name){
   const div = document.createElement('div');
   div.className = 'intent-card';
@@ -407,7 +537,6 @@ function intentCard(name){
   div.addEventListener('click', ()=>{
     const isActive = div.classList.contains('active');
     document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
-
     if(isActive){ SELECTED_INTENT = null; renderFields(null); autoStage.classList.add('hidden'); return; }
     div.classList.add('active');
     if(name==='auto_detect'){ autoStage.classList.remove('hidden'); setSelectedIntent(null); }
@@ -415,7 +544,6 @@ function intentCard(name){
   });
   return div;
 }
-
 function renderIntentGrid(){
   intentGrid.innerHTML = '';
   const order = ["quote_request","shipment_update","order_confirmation","invoice_payment","delay_notice","packing_slip_docs","followup"];
@@ -425,7 +553,7 @@ function renderIntentGrid(){
   intentGrid.appendChild(auto);
 }
 
-/* Fields */
+/* ===== Fields ===== */
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
   if(!intent || !SCHEMA[intent]){ fieldsHint.textContent = '(Select An Option Or Use Auto Detect)'; return; }
@@ -443,11 +571,11 @@ function renderFields(intent){
 function collectFields(intent){ const req = SCHEMA[intent]?.required || []; const fields = {}; for(const key of req){ const el = document.getElementById(`f_${key}`); fields[key] = el ? (el.value || '') : ''; } return fields; }
 function setSelectedIntent(name){ SELECTED_INTENT = name || null; renderFields(SELECTED_INTENT); }
 
-/* API */
+/* ===== API ===== */
 async function getJSON(u){ const r = await fetch(u); return r.json(); }
 async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)}); return r.json(); }
 
-/* Init */
+/* ===== Init ===== */
 (async function init(){
   renderIntentGrid();
   // Default theme
@@ -463,7 +591,7 @@ async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{
   }catch(e){ health.textContent = 'Server Not Reachable'; }
 })();
 
-/* Auto-detect */
+/* ===== Auto-detect ===== */
 $('#btnPredict').addEventListener('click', async ()=>{
   predStatus.textContent = 'Detecting…'; predInfo.style.display = 'none'; topK.innerHTML='';
   const to = $('#to').value, subject = $('#subject').value, hint = $('#hint').value;
@@ -503,7 +631,7 @@ async function typeSubjectAndBody(newSubject, newBody){
   prevSubject = newSubject; prevBody = newBody;
 }
 
-/* Generate */
+/* ===== Generate ===== */
 $('#btnGenerate').addEventListener('click', async ()=>{
   if(!SELECTED_INTENT){ $('#missing').textContent = 'Select An Option (Or Auto Detect) First.'; return; }
   const fields = collectFields(SELECTED_INTENT);
@@ -513,7 +641,7 @@ $('#btnGenerate').addEventListener('click', async ()=>{
   await typeSubjectAndBody(res.subject||'', res.body||'');
 });
 
-/* Copy */
+/* ===== Copy ===== */
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
 $('#copySubject').addEventListener('click', ()=> copyText(outSubject.textContent));
 $('#copyBody').addEventListener('click',   ()=> copyText(outBody.textContent));
@@ -524,41 +652,108 @@ function applyTheme(val){
   document.body.setAttribute('data-theme', val);
   if(val === 'cosmic') Starfield.start(); else Starfield.stop();
 }
-
-if(themeSelect){
-  themeSelect.addEventListener('change', (e)=> applyTheme(e.target.value));
-}
+if(themeSelect){ themeSelect.addEventListener('change', (e)=> applyTheme(e.target.value)); }
 
 /* ===== Settings interactions ===== */
-const settingsBtn = $('#settingsBtn');
-const settingsMenu = $('#settingsMenu');
-const itemTheme = document.querySelector('.settings-item[data-item="theme"]');
-const itemTyping = document.querySelector('.settings-item[data-item="typing"]');
-const subTheme = $('#subTheme');
-const subTyping = $('#subTyping');
-
-function closeAllSubs(){
-  [subTheme, subTyping].forEach(s=> s.classList.remove('open'));
-  document.querySelectorAll('.settings-item .chev').forEach(c=> c.classList.remove('rot90'));
-}
+function closeAllSubs(){ [subTheme, subTyping].forEach(s=> s.classList.remove('open')); document.querySelectorAll('.settings-item .chev').forEach(c=> c.classList.remove('rot90')); }
 function openOnly(panel, chev){ closeAllSubs(); panel.classList.add('open'); chev.classList.add('rot90'); }
-
-settingsBtn.addEventListener('click', ()=>{
-  const isOpen = settingsMenu.classList.toggle('open');
-  settingsBtn.setAttribute('aria-expanded', String(isOpen));
-  if(!isOpen) closeAllSubs();
-});
-
+settingsBtn.addEventListener('click', ()=>{ const isOpen = settingsMenu.classList.toggle('open'); settingsBtn.setAttribute('aria-expanded', String(isOpen)); if(!isOpen) closeAllSubs(); });
 itemTheme.addEventListener('click', ()=> openOnly(subTheme, itemTheme.querySelector('.chev')));
 itemTyping.addEventListener('click', ()=> openOnly(subTyping, itemTyping.querySelector('.chev')));
+window.addEventListener('click', (e)=>{ if(!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)){ settingsMenu.classList.remove('open'); settingsBtn.setAttribute('aria-expanded','false'); closeAllSubs(); }});
 
-// Click outside to close
-window.addEventListener('click', (e)=>{
-  if(!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)){
-    settingsMenu.classList.remove('open'); settingsBtn.setAttribute('aria-expanded','false'); closeAllSubs();
-  }
+/* ===== Gear splash tooltip (Minecraft messages) ===== */
+let splashTimer=null;
+settingsBtn.addEventListener('mouseenter', ()=>{
+  splashTimer = setTimeout(()=>{
+    splashTip.textContent = SPLASHES[Math.floor(Math.random()*SPLASHES.length)];
+    splashTip.classList.add('show');
+  }, 1200);
+});
+settingsBtn.addEventListener('mouseleave', ()=>{
+  clearTimeout(splashTimer); splashTip.classList.remove('show');
 });
 
+/* ===== Rabbit Hole (type “follow the white rabbit”) ===== */
+const SECRET_RABBIT = "follow the white rabbit";
+function listenForPhrase(targetEl){
+  let buf = "";
+  const handler = (e)=>{
+    const t = (e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA')) ? String(e.key||"") : "";
+    if(!t || t.length>1) return;
+    buf = (buf + t).slice(-SECRET_RABBIT.length);
+    if(buf.toLowerCase() === SECRET_RABBIT){ triggerRabbit(); buf=""; }
+  };
+  document.addEventListener('keydown', handler);
+}
+function triggerRabbit(){
+  const r = document.createElement('div'); r.className='rabbit'; document.body.appendChild(r);
+  const portal = document.createElement('div'); portal.className='portal';
+  const msg = document.createElement('div'); msg.className='portal-msg';
+  msg.textContent = SPLASHES[Math.floor(Math.random()*SPLASHES.length)];
+  document.body.appendChild(portal);
+  setTimeout(()=> document.body.appendChild(msg), 450);
+  setTimeout(()=>{ portal.remove(); msg.remove(); }, 3200);
+  setTimeout(()=> r.remove(), 1700);
+}
+listenForPhrase(document);
+
+/* ===== Corruption Easter Egg =====
+   Trigger by typing “corruption” in any input/textarea OR Ctrl/⌘+Alt+C
+*/
+const SECRET_CORR = "corruption";
+let corrBuf = "";
+document.addEventListener('keydown', (e)=>{
+  // Keyboard combo
+  if((e.ctrlKey||e.metaKey) && e.altKey && (e.key==='c' || e.key==='C')){ triggerCorruption(); return; }
+  // Typed phrase
+  const isField = (e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA'));
+  if(!isField) return;
+  const k = e.key || "";
+  if(k.length===1){ corrBuf = (corrBuf + k).slice(-SECRET_CORR.length); if(corrBuf.toLowerCase()===SECRET_CORR){ triggerCorruption(); corrBuf=""; } }
+});
+
+async function triggerCorruption(){
+  // 1) Glitch phase
+  document.body.classList.add('corrupting');
+  if(document.body.dataset.theme !== 'cosmic') Starfield.stop();
+  await delay(1600);
+
+  // 2) Flash / blow up
+  flashEl.classList.add('show');
+  await delay(700);
+  flashEl.classList.remove('show');
+
+  // 3) Buffer screen
+  bufferEl.classList.add('show');
+  let pct = 0;
+  while(pct < 100){
+    pct += Math.max(1, Math.round(Math.random()*14));
+    pct = Math.min(pct, 100);
+    barFill.style.width = pct + '%';
+    barPct.textContent = pct + '%';
+    await delay(120 + Math.random()*200);
+  }
+  await delay(250);
+
+  // 4) Printer reload
+  bufferEl.classList.remove('show');
+  printMask.classList.add('show');
+  printLine.classList.add('show');
+  // Temporarily hide content, then reveal line-by-line feel
+  $$('.panel').forEach(p=> p.style.opacity = '0');
+  await delay(2600);
+  printMask.classList.remove('show');
+  printLine.classList.remove('show');
+  $$('.panel').forEach((p,i)=> setTimeout(()=> p.style.opacity = '1', 60*i));
+
+  // 5) Clean up
+  document.body.classList.remove('corrupting');
+  if(document.body.dataset.theme === 'cosmic') Starfield.start();
+}
+
+/* ===== Kick things off ===== */
+applyTheme('light-minimal'); // default
 </script>
 </body>
 </html>
