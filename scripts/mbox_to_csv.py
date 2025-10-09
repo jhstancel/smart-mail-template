@@ -3,7 +3,8 @@ from email import policy
 from email.utils import getaddresses
 from app.preprocess import clean_subject_body, canon_text
 
-ADDR_RE = re.compile(r'[^@<\s]+@[^>\s]+')
+ADDR_RE = re.compile(r"[^@<\s]+@[^>\s]+")
+
 
 def primary_to_and_domain(hdr: str):
     if not hdr:
@@ -18,6 +19,7 @@ def primary_to_and_domain(hdr: str):
     addr = m.group(0)
     domain = addr.split("@", 1)[1]
     return addr, domain
+
 
 def extract_text(msg):
     if msg.is_multipart():
@@ -38,6 +40,7 @@ def extract_text(msg):
         payload = (msg.get_payload(decode=True) or b"").decode(errors="ignore")
         return payload, (ct == "text/html")
 
+
 def iter_messages(path):
     # Apple Mail: .mbox is a folder with Messages/*.emlx
     if os.path.isdir(path) and path.endswith(".mbox"):
@@ -51,13 +54,17 @@ def iter_messages(path):
         return
     # Standard mbox file
     import mailbox
+
     m = mailbox.mbox(path)
     for msg in m:
         yield msg
 
+
 def main():
     if len(sys.argv) != 3:
-        print("usage: python scripts/mbox_to_csv.py <INBOX.mbox|mbox-folder> data/emails.csv")
+        print(
+            "usage: python scripts/mbox_to_csv.py <INBOX.mbox|mbox-folder> data/emails.csv"
+        )
         sys.exit(1)
     src, dst = sys.argv[1], sys.argv[2]
     os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -68,7 +75,7 @@ def main():
     with open(dst, "w", newline="") as out:
         w = csv.writer(out)
         # include to_domain for better priors
-        w.writerow(["to","to_domain","subject","body","intent"])
+        w.writerow(["to", "to_domain", "subject", "body", "intent"])
         for msg in iter_messages(src):
             to_addr, to_domain = primary_to_and_domain(msg.get("to"))
             subj = (msg.get("subject") or "").strip()
@@ -88,6 +95,6 @@ def main():
 
     print(f"Wrote {kept} rows to {dst}")
 
+
 if __name__ == "__main__":
     main()
-

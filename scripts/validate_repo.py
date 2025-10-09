@@ -8,8 +8,10 @@ CONFIGS = ROOT / "configs"
 TEMPLATES = ROOT / "templates"
 README = ROOT / "README.md"
 
+
 def fail(msg: str) -> None:
     raise SystemExit(f"[validate] ERROR: {msg}")
+
 
 def load_intents():
     f = CONFIGS / "intents.json"
@@ -17,6 +19,7 @@ def load_intents():
         fail("configs/intents.json not found")
     with f.open() as fp:
         return json.load(fp)
+
 
 def ensure_templates_exist(intents):
     missing = []
@@ -27,10 +30,12 @@ def ensure_templates_exist(intents):
     if missing:
         fail(f"Missing templates for intents: {', '.join(missing)}")
 
+
 def ensure_subject_line(template_text: str, intent: str):
     # Require a Subject: line at top of template
     if "Subject:" not in template_text.splitlines()[0]:
         fail(f"Template {intent}.j2 must start with a 'Subject:' line")
+
 
 def render_sample(env, intent: str, required_fields):
     # Provide generic placeholders by name
@@ -57,11 +62,23 @@ def render_sample(env, intent: str, required_fields):
     text = tpl.render(**fields)
     return text
 
+
 def has_polite_greeting_and_thanks(text: str) -> bool:
     t = text.lower()
-    greet = any(x in t for x in ("hello ", "hi ", "dear ", "good morning", "good afternoon", "good evening"))
+    greet = any(
+        x in t
+        for x in (
+            "hello ",
+            "hi ",
+            "dear ",
+            "good morning",
+            "good afternoon",
+            "good evening",
+        )
+    )
     thanks = any(x in t for x in ("thank you", "thanks", "appreciate"))
     return greet and thanks
+
 
 def main():
     intents = load_intents()
@@ -78,10 +95,12 @@ def main():
         required = meta.get("required", []) if isinstance(meta, dict) else []
         rendered = render_sample(env, intent, required)
         if not has_polite_greeting_and_thanks(rendered):
-            fail(f"Template {intent}.j2 should include a greeting and a thank-you phrase")
+            fail(
+                f"Template {intent}.j2 should include a greeting and a thank-you phrase"
+            )
 
     print("[validate] OK: configs ↔ templates appear consistent and polite.")
 
+
 if __name__ == "__main__":
     main()
-

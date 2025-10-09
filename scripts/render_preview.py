@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TEMPLATES = ROOT / "templates"
 CONFIGS = ROOT / "configs"
 
+
 def smart_placeholder(key: str) -> str:
     k = key.lower()
     if any(x in k for x in ("date", "ship", "due")):
@@ -35,6 +36,7 @@ def smart_placeholder(key: str) -> str:
         return "Smart Mail User"
     return "TEST"
 
+
 def parse_kv(pairs):
     data = {}
     for p in pairs:
@@ -46,10 +48,16 @@ def parse_kv(pairs):
         data[k] = v
     return data
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--intent", required=True, help="intent name (e.g., quote_request)")
-    ap.add_argument("--kv", nargs="*", default=[], help='override placeholders, e.g., customerName="Jane" quantity=10')
+    ap.add_argument(
+        "--kv",
+        nargs="*",
+        default=[],
+        help='override placeholders, e.g., customerName="Jane" quantity=10',
+    )
     args = ap.parse_args()
 
     env = Environment(loader=FileSystemLoader(str(TEMPLATES)))
@@ -68,6 +76,6 @@ def main():
     rendered = template.render(**context)
     print(rendered)
 
+
 if __name__ == "__main__":
     main()
-

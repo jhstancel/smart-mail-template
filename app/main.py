@@ -18,7 +18,7 @@ from app.preprocess import clean_subject_body
 # Paths
 # --------------------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / "model_artifacts"              # project-level artifacts
+ART = ROOT / "model_artifacts"  # project-level artifacts
 CONFIGS = ROOT / "configs"
 TEMPLATES = ROOT / "templates"
 UI_DIR = ROOT / "ui"
@@ -42,9 +42,11 @@ env = Environment(
 with open(CONFIGS / "intents.json", "r") as f:
     INTENTS: Dict[str, Dict[str, Any]] = json.load(f)
 
+
 # Resolve artifact files (optional = None)
 def _maybe(p: Path) -> Path | None:
     return p if p.exists() else None
+
 
 VEC_PATH = _maybe(ART / "vectorizer.pkl")
 CLF_PATH = _maybe(ART / "clf.pkl")
@@ -55,14 +57,19 @@ PRIOR_DOMAIN_PATH = _maybe(ART / "domain_prior.pkl")
 print("[DEBUG] Loading artifacts from:", ART.resolve())
 vec = joblib.load(VEC_PATH) if VEC_PATH else None
 clf = joblib.load(CLF_PATH) if CLF_PATH else None
-prior_recipient: Dict[str, Dict[str, float]] = joblib.load(PRIOR_RECIP_PATH) if PRIOR_RECIP_PATH else {}
-prior_domain: Dict[str, Dict[str, float]] = joblib.load(PRIOR_DOMAIN_PATH) if PRIOR_DOMAIN_PATH else {}
+prior_recipient: Dict[str, Dict[str, float]] = (
+    joblib.load(PRIOR_RECIP_PATH) if PRIOR_RECIP_PATH else {}
+)
+prior_domain: Dict[str, Dict[str, float]] = (
+    joblib.load(PRIOR_DOMAIN_PATH) if PRIOR_DOMAIN_PATH else {}
+)
 
 if clf is not None:
     try:
         print("[DEBUG] Model classes:", list(getattr(clf, "classes_", [])))
     except Exception as e:
         print("[DEBUG] Could not read model classes:", e)
+
 
 # --------------------------------------------------------------------------------------
 # Schemas
@@ -72,6 +79,7 @@ class PredictReq(BaseModel):
     subject: str = ""
     body_hint: str = ""  # optional context you might type
 
+
 class PredictResp(BaseModel):
     intent: str
     confidence: float
@@ -80,14 +88,17 @@ class PredictResp(BaseModel):
     threshold: float
     message: str
 
+
 class GenerateReq(BaseModel):
     intent: str
     fields: Dict[str, Any]
+
 
 class GenerateResp(BaseModel):
     subject: str
     body: str
     missing: List[str]
+
 
 # --------------------------------------------------------------------------------------
 # App
@@ -107,6 +118,7 @@ app.add_middleware(
 if UI_DIR.is_dir():
     app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
 
+
 # --------------------------------------------------------------------------------------
 # Helpers
 # --------------------------------------------------------------------------------------
@@ -114,6 +126,7 @@ def softmax(z: np.ndarray) -> np.ndarray:
     z = z - np.max(z)
     e = np.exp(z)
     return e / e.sum()
+
 
 def split_subject_body(rendered: str) -> Tuple[str, str]:
     lines = (rendered or "").strip().splitlines()
@@ -123,9 +136,11 @@ def split_subject_body(rendered: str) -> Tuple[str, str]:
         return subject, body
     return "", (rendered or "").strip()
 
+
 def normalize_probs(d: Dict[str, float]) -> Dict[str, float]:
     s = float(sum(d.values())) or 0.0
     return {k: v / s for k, v in d.items()} if s else {}
+
 
 # --------------------------------------------------------------------------------------
 # Endpoints
@@ -143,20 +158,24 @@ def health():
         "recipient_prior_loaded": bool(prior_recipient),
         "domain_prior_loaded": bool(prior_domain),
         "config_intents": list(INTENTS.keys()),  # what /generate supports
-        "model_classes": model_classes,          # what /predict can output
+        "model_classes": model_classes,  # what /predict can output
         "artifacts_path": str(ART.resolve()),
         "confidence_threshold": CONFIDENCE_THRESHOLD,
     }
+
 
 @app.get("/schema")
 def schema():
     """Expose intents.json so a UI can render required fields per intent."""
     return INTENTS
 
+
 @app.post("/predict", response_model=PredictResp)
 def predict(req: PredictReq):
     # Clean subject/body_hint same as training
-    subj_clean, body_clean = clean_subject_body(req.subject, req.body_hint, is_html=False)
+    subj_clean, body_clean = clean_subject_body(
+        req.subject, req.body_hint, is_html=False
+    )
     text = (subj_clean + " || " + body_clean).lower().strip()
 
     # Model probability (if artifacts exist and there is text)
@@ -220,6 +239,7 @@ def predict(req: PredictReq):
         "message": message,
     }
 
+
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq):
     if req.intent not in INTENTS:
@@ -232,4 +252,3 @@ def generate(req: GenerateReq):
     rendered = template.render(**req.fields)
     subject, body = split_subject_body(rendered)
     return {"subject": subject, "body": body, "missing": missing}
-

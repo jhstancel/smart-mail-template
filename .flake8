@@ -1,0 +1,18 @@
+[flake8]
+# Modern, readable wrap width
+max-line-length = 120
+
+# Temporarily ignore multiple-import style warnings; tighten later.
+extend-ignore = E401
+
+# Targeted exceptions for known cases; remove these over time.
+per-file-ignores =
+    tests/test_api.py: F401,E501
+    model/train.py: F401
+    scripts/validate_repo.py: F401
+    scripts/filter_csv.py: F541,E501
+    scripts/mbox_to_csv.py: E501
+    scripts/new_intent.py: E501
+    scripts/render_preview.py: E501
+    app/preprocess.py: E401
+

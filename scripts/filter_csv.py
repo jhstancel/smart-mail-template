@@ -11,6 +11,7 @@ OUT = os.path.join(ROOT, "data", "emails.filtered.csv")
 # Helper functions
 # ------------------------------------------------------------
 
+
 def load_rules(path):
     if not os.path.exists(path):
         return {
@@ -23,17 +24,21 @@ def load_rules(path):
     with open(path, "r") as f:
         return json.load(f)
 
+
 def domain_of(addr: str):
     if not addr or "@" not in addr:
         return ""
     return addr.split("@", 1)[1].lower()
 
+
 def any_keyword(text: str, keywords):
     t = (text or "").lower()
     return any(k in t for k in keywords)
 
+
 def token_count(text: str):
     return len(set(re.findall(r"[a-z]{3,}", (text or "").lower())))
+
 
 # ---------- Top-authored extraction (key fix) ----------
 QUOTE_START = re.compile(
@@ -51,6 +56,7 @@ QUOTE_START = re.compile(
     r"forwarded message"
     r")"
 )
+
 
 def top_authored_segment(text: str) -> str:
     """
@@ -72,17 +78,36 @@ def top_authored_segment(text: str) -> str:
         out.pop()
     return "\n".join(out).strip()
 
+
 # ---------- Filters ----------
 COURTESY_KWS = [
-    "thank you", "thanks", "got it", "appreciate", "no problem",
-    "you're welcome", "you are welcome", "sounds good", "perfect",
-    "will do", "ok", "okay", "great, thanks", "thank you!"
+    "thank you",
+    "thanks",
+    "got it",
+    "appreciate",
+    "no problem",
+    "you're welcome",
+    "you are welcome",
+    "sounds good",
+    "perfect",
+    "will do",
+    "ok",
+    "okay",
+    "great, thanks",
+    "thank you!",
 ]
 
 SIG_KWS = [
-    "best regards", "kind regards", "sent from my", "cheers,", "sincerely",
-    "thanks,", "regards,", "respectfully"
+    "best regards",
+    "kind regards",
+    "sent from my",
+    "cheers,",
+    "sincerely",
+    "thanks,",
+    "regards,",
+    "respectfully",
 ]
+
 
 def is_courtesy_top(subj: str, body: str, max_len_words: int = 20) -> bool:
     top = (top_authored_segment(body) or "").lower()
@@ -91,6 +116,7 @@ def is_courtesy_top(subj: str, body: str, max_len_words: int = 20) -> bool:
         return True
     return False
 
+
 def is_signature_only_top(body: str, max_len_words: int = 12) -> bool:
     top = (top_authored_segment(body) or "").lower()
     words = len(re.findall(r"\w+", top))
@@ -98,20 +124,35 @@ def is_signature_only_top(body: str, max_len_words: int = 12) -> bool:
         return True
     return False
 
+
 def is_short_or_filler_subject(subj: str) -> bool:
     s = (subj or "").lower().strip()
     if len(s) < 6 or s in {"-", "//", "re:", "fwd:"}:
         return True
     return False
 
+
 def is_auto_generated(text: str) -> bool:
     t = (text or "").lower()
-    return any(k in t for k in [
-        "unsubscribe", "notification", "do not reply", "no-reply", "noreply",
-        "auto-generated", "automated message", "privacy policy",
-        "update preferences", "email preferences", "marketing email",
-        "follow us", "visit our website"
-    ])
+    return any(
+        k in t
+        for k in [
+            "unsubscribe",
+            "notification",
+            "do not reply",
+            "no-reply",
+            "noreply",
+            "auto-generated",
+            "automated message",
+            "privacy policy",
+            "update preferences",
+            "email preferences",
+            "marketing email",
+            "follow us",
+            "visit our website",
+        ]
+    )
+
 
 def is_forward_without_new_content(body: str, min_top_words: int = 20) -> bool:
     t = (body or "").lower()
@@ -121,9 +162,11 @@ def is_forward_without_new_content(body: str, min_top_words: int = 20) -> bool:
             return True
     return False
 
+
 # ------------------------------------------------------------
 # Main filtering logic
 # ------------------------------------------------------------
+
 
 def main():
     rules = load_rules(RULES_PATH)
@@ -153,14 +196,25 @@ def main():
     forwarded_no_new = df["body"].apply(is_forward_without_new_content)
 
     # Combine
-    keep &= ~(courtesy | signature_only | top_too_short | short_subject | auto_generated | forwarded_no_new)
+    keep &= ~(
+        courtesy
+        | signature_only
+        | top_too_short
+        | short_subject
+        | auto_generated
+        | forwarded_no_new
+    )
 
     # Rules-based thresholds
     if rules.get("block_subject_keywords"):
-        badsub = df["subject"].apply(lambda s: any_keyword(s, rules["block_subject_keywords"]))
+        badsub = df["subject"].apply(
+            lambda s: any_keyword(s, rules["block_subject_keywords"])
+        )
         keep &= ~badsub
     if rules.get("block_body_keywords"):
-        badbody = df["body"].apply(lambda s: any_keyword(s, rules["block_body_keywords"]))
+        badbody = df["body"].apply(
+            lambda s: any_keyword(s, rules["block_body_keywords"])
+        )
         keep &= ~badbody
 
     # Domain-level filtering
@@ -191,6 +245,6 @@ def main():
     print(f"[filter] kept {after}/{before} rows ({before - after} removed)")
     print(f"[filter] wrote -> {OUT}")
 
+
 if __name__ == "__main__":
     main()
-

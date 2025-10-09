@@ -6,6 +6,7 @@ from app.main import app
 
 client = TestClient(app)
 
+
 # --------------------------
 # Helper assertions
 # --------------------------
@@ -119,4 +120,3 @@ def test_generate_polite_for_all_intents():
 
         # Check tone (greeting + thanks) for all intents.
         _assert_polite(body)
-
