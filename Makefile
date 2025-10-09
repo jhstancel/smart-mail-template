@@ -1,7 +1,7 @@
 # --- Smart Mail Template Makefile ---
 
 # Use python3 by default; override with: make <target> PYTHON=python
-PYTHON ?= python3
+PYTHON ?= .venv/bin/python
 
 # Tools (override if needed)
 BLACK ?= black
