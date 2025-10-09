@@ -145,6 +145,12 @@
   .btn:hover{ transform: translateY(-1px) scale(1.03); filter: brightness(1.03); }
   .btn.secondary{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none }
 
+  /* Toast success state (temporary) */
+  .btn.toast{
+    background: linear-gradient(180deg, var(--ok), color-mix(in srgb, var(--ok) 80%, black 20%)) !important;
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--ok) 35%, transparent), 0 0 40px color-mix(in srgb, var(--ok) 18%, transparent) inset !important;
+  }
+
   .out{white-space:pre-wrap; background:color-mix(in srgb, var(--bg) 90%, black 10%); border:1px solid var(--panel-border); border-radius:12px; padding:12px;}
   .hr{height:1px; background:linear-gradient(90deg, transparent, var(--panel-border), transparent); margin:14px 0 10px 0; border:none;}
   .inline{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
@@ -422,7 +428,8 @@
         <div id="outBody" class="out"></div>
         <div class="inline" style="margin-top:8px">
           <button id="copyBody" class="btn secondary">Copy Body</button>
-          <button id="copyBoth" class="btn secondary">Copy Both</button>
+          <!-- Copy Both removed -->
+          <button id="btnClear" class="btn secondary">Clear</button>
         </div>
       </div>
     </div>
@@ -641,11 +648,40 @@ $('#btnGenerate').addEventListener('click', async ()=>{
   await typeSubjectAndBody(res.subject||'', res.body||'');
 });
 
+/* ===== Toast helper ===== */
+function flashToast(btn, text='Copied!'){
+  if(!btn) return;
+  const original = btn.textContent;
+  btn.classList.add('toast');
+  btn.textContent = text;
+  setTimeout(()=>{ btn.classList.remove('toast'); btn.textContent = original; }, 1100);
+}
+
+/* ===== Clear ===== */
+function clearAll(){
+  // Clear all text/email inputs and textareas
+  document.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => el.value = '');
+  // Clear outputs
+  outSubject.textContent = '';
+  outBody.textContent = '';
+  // Reset prediction UI
+  predStatus.textContent = '';
+  predInfo.style.display = 'none';
+  topK.innerHTML = '';
+  // Deselect intents and reset fields
+  document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+  SELECTED_INTENT = null;
+  renderFields(null);
+}
+
 /* ===== Copy ===== */
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
-$('#copySubject').addEventListener('click', ()=> copyText(outSubject.textContent));
-$('#copyBody').addEventListener('click',   ()=> copyText(outBody.textContent));
-$('#copyBoth').addEventListener('click',   ()=> copyText(outSubject.textContent + "\n\n" + outBody.textContent));
+$('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget); });
+$('#copyBody').addEventListener('click',   (e)=>{ copyText(outBody.textContent);   flashToast(e.currentTarget); });
+// Removed copyBoth handler
+
+// Clear button
+$('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget); });
 
 /* ===== Theme switching ===== */
 function applyTheme(val){
