@@ -38,7 +38,7 @@ run:
 	$(UVICORN) app.main:app --reload
 
 test:
-	$(PYTEST) -q
+	$(PYTHON) -m pytest -q
 
 validate:
 	$(PYTHON) scripts/validate_repo.py
