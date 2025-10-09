@@ -92,3 +92,26 @@ gitpush:
 	fi
 	@./scripts/gitpush.sh "$(m)"
 
+
+# --- One-command commit+push targets ---
+
+# Code push (with checks)
+# Usage: make cp m="feat(scope): message"
+.PHONY: cp
+cp:
+	@if [ -z "$(m)" ]; then \
+	  echo 'Usage: make cp m="feat(scope): message"'; \
+	  exit 1; \
+	fi
+	@./scripts/gitpush.sh "$(m)"
+
+# Doc push (no checks)
+# Usage: make dp m="docs: message"
+.PHONY: dp
+dp:
+	@if [ -z "$(m)" ]; then \
+	  echo 'Usage: make dp m="docs: message"'; \
+	  exit 1; \
+	fi
+	@./scripts/docpush.sh "$(m)"
+
