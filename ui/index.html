@@ -579,16 +579,31 @@ async function typeSubjectAndBody(newSubject, newBody){
 function flashToast(btn, text='Copied!'){
   if(!btn) return;
   const originalText = btn.textContent;
-  const originalWidth = btn.offsetWidth;           // lock current width
+  const originalWidth = btn.offsetWidth;
+  const originalHeight = btn.offsetHeight;
+
   btn.style.width = originalWidth + 'px';
+  btn.style.height = originalHeight + 'px';
+  btn.style.display = 'flex';
+  btn.style.alignItems = 'center';
+  btn.style.justifyContent = 'center';
+  btn.style.textAlign = 'center';
+
   btn.classList.add('toast');
   btn.textContent = text;
+
   setTimeout(()=>{
     btn.classList.remove('toast');
     btn.textContent = originalText;
-    btn.style.width = '';                          // release width lock
+    btn.style.width = '';
+    btn.style.height = '';
+    btn.style.display = '';
+    btn.style.alignItems = '';
+    btn.style.justifyContent = '';
+    btn.style.textAlign = '';
   }, 1100);
 }
+
 
 /* ===== Clear ===== */
 function clearAll(){
