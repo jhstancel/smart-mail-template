@@ -82,3 +82,13 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type d -name ".pytest_cache" -exec rm -rf {} + 2>/dev/null || true
 
+# --- One-command commit+push (runs format, validate, test, lint) ---
+# Usage: make gitpush m="feat(ui): did a cool thing"
+.PHONY: gitpush
+gitpush:
+	@if [ -z "$(m)" ]; then \
+	  echo 'Usage: make gitpush m="feat(scope): message"'; \
+	  exit 1; \
+	fi
+	@./scripts/gitpush.sh "$(m)"
+
