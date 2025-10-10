@@ -676,12 +676,15 @@ function clearAll(){
 
 /* ===== Copy ===== */
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
-$('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget); });
-$('#copyBody').addEventListener('click',   (e)=>{ copyText(outBody.textContent);   flashToast(e.currentTarget); });
+$('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget, 'Copied'); });
+$('#copyBody').addEventListener('click',   (e)=>{ copyText(outBody.textContent);   flashToast(e.currentTarget, 'Copied'); });
 // Removed copyBoth handler
 
 // Clear button
-$('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget); });
+$('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget, 'Cleared'); });
+
+// Clear button
+//$('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget); });
 
 /* ===== Theme switching ===== */
 function applyTheme(val){
