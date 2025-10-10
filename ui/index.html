@@ -383,7 +383,6 @@
         <textarea id="hint" placeholder="Requesting pricing and lead time for PN-4812 quantity five"></textarea>
       </div>
       <div class="inline" style="margin:10px 0 6px">
-        <button id="btnPredict" class="btn">Auto Detect Intent</button>
         <span id="predStatus" class="muted"></span>
       </div>
       <div id="predInfo" class="inline" style="display:none;margin-top:6px">
@@ -608,28 +607,41 @@ try{
 
 })();
 
-/* ===== Auto-detect ===== */
-$('#btnPredict').addEventListener('click', async ()=>{
-  predStatus.textContent = 'Detecting…'; predInfo.style.display = 'none'; topK.innerHTML='';
-  const to = $('#to').value, subject = $('#subject').value, hint = $('#hint').value;
-  const res = await postJSON('/predict', {to, subject, body_hint: hint});
-  predStatus.textContent = ''; predInfo.style.display = 'flex';
-  $('#predIntent').textContent = res.intent ? toTitle(res.intent.replaceAll('_',' ')) : '—';
-  const holder = document.createElement('span'); holder.innerHTML = badge(res.confidence, CONF_THR);
-  const old = document.getElementById('predBadge'); if(old) old.replaceWith(holder); holder.id='predBadge';
-  $('#predMsg').textContent = res.message || '';
-  topK.innerHTML = '';
-  (res.top_k||[]).forEach(([name,score])=>{
-    const b = document.createElement('button'); b.className = 'btn secondary'; b.textContent = `${toTitle(name.replaceAll('_',' '))} (${Math.round(score*100)}%)`;
-    b.addEventListener('click', ()=> {
-      document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
-      [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===toTitle(name.replaceAll('_',' ')))?.classList.add('active');
-      setSelectedIntent(name);
-      window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
+
+
+
+
+const btnPredict = $('#btnPredict');
+if (btnPredict){
+  btnPredict.addEventListener('click', async ()=>{
+    predStatus.textContent = 'Detecting…'; predInfo.style.display = 'none'; topK.innerHTML='';
+    const to = $('#to').value, subject = $('#subject').value, hint = $('#hint').value;
+    const res = await postJSON('/predict', {to, subject, body_hint: hint});
+    predStatus.textContent = ''; predInfo.style.display = 'flex';
+    $('#predIntent').textContent = res.intent ? toTitle(res.intent.replaceAll('_',' ')) : '—';
+    const holder = document.createElement('span'); holder.innerHTML = badge(res.confidence, CONF_THR);
+    const old = document.getElementById('predBadge'); if(old) old.replaceWith(holder); holder.id='predBadge';
+    $('#predMsg').textContent = res.message || '';
+    topK.innerHTML = '';
+    (res.top_k||[]).forEach(([name,score])=>{
+      const b = document.createElement('button'); b.className = 'btn secondary'; b.textContent = `${toTitle(name.replaceAll('_',' '))} (${Math.round(score*100)}%)`;
+      b.addEventListener('click', ()=> {
+        document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+        [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===toTitle(name.replaceAll('_',' ')))?.classList.add('active');
+        setSelectedIntent(name);
+        window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
+      });
+      topK.appendChild(b);
     });
-    topK.appendChild(b);
   });
-});
+}
+
+
+
+
+
+
+
 
 /* ===== Live typing animation ===== */
 function setTextInstant(el, text){ el.textContent = text || ''; el.classList.add('glow-in'); setTimeout(()=>el.classList.remove('glow-in'), 700); }
