@@ -83,6 +83,7 @@
                 radial-gradient(40vmax 35vmax at 40% 120%, rgba(160,140,255,.08), transparent 60%);
     filter: blur(40px); pointer-events:none;
   }
+  /* Hide cosmic effects for non-cosmic themes */
   body:not([data-theme="cosmic"]) canvas#stars,
   body:not([data-theme="cosmic"]) .glow-veil{ display:none; }
 
@@ -99,6 +100,7 @@
   .title{font-weight:800; letter-spacing:.3px; margin:0 0 10px 0; font-size:20px}
   .subtitle{color:var(--muted); margin-top:2px; font-size:13px}
 
+  /* Intent grid */
   .intent-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top:12px; }
   .intent-card{ position:relative; padding:14px; cursor:pointer; border-radius:16px;
     background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
@@ -143,15 +145,10 @@
   .btn:hover{ transform: translateY(-1px) scale(1.03); filter: brightness(1.03); }
   .btn.secondary{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none }
 
-  /* Toast success state (temporary) — lighter green */
+  /* Toast success state (temporary) */
   .btn.toast{
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--ok) 70%, white 30%),
-      color-mix(in srgb, var(--ok) 85%, black 15%)
-    ) !important;
-    box-shadow: 0 10px 30px color-mix(in srgb, var(--ok) 30%, transparent),
-                0 0 40px color-mix(in srgb, var(--ok) 16%, transparent) inset !important;
+    background: linear-gradient(180deg, var(--ok), color-mix(in srgb, var(--ok) 80%, black 20%)) !important;
+    box-shadow: 0 10px 30px color-mix(in srgb, var(--ok) 35%, transparent), 0 0 40px color-mix(in srgb, var(--ok) 18%, transparent) inset !important;
   }
 
   .out{white-space:pre-wrap; background:color-mix(in srgb, var(--bg) 90%, black 10%); border:1px solid var(--panel-border); border-radius:12px; padding:12px;}
@@ -166,12 +163,14 @@
   #outBody .line{ margin: 2px 0; }
   .toggle { display:flex; align-items:center; gap:8px; cursor:pointer; }
 
+  /* ===== Minimal theme dampening (no/low animation) ===== */
   body[data-theme$="minimal"] .intent-card,
   body[data-theme$="minimal"] .btn,
   body[data-theme$="minimal"] input,
   body[data-theme$="minimal"] textarea { transition: none; }
   body[data-theme$="minimal"] .intent-card:hover { transform:none; box-shadow: var(--shadow-1); filter:none; }
 
+  /* ===== Settings Gear (upper-right) ===== */
   .settings{ position:fixed; top:12px; right:12px; z-index:20; }
   .settings-btn{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -206,6 +205,9 @@
   .chev{ width:14px; height:14px; transition: transform .25s ease; }
   .rot90{ transform: rotate(90deg); }
 
+  /* ===== Easter Egg UI Elements ===== */
+
+  /* Gear splash tooltip */
   .splash-tip{
     position:absolute; top:46px; right:0;
     background:var(--glass); border:1px solid var(--panel-border);
@@ -215,6 +217,7 @@
   }
   .splash-tip.show{ opacity:1; transform: translateY(0); }
 
+  /* Rabbit + portal */
   .rabbit{ position:fixed; bottom:18px; left:-40px; width:18px; height:18px; border-radius:50%;
     background:white; box-shadow: 0 0 16px rgba(255,255,255,.8); z-index:30; animation: hop 1.6s ease-in-out forwards; }
   @keyframes hop{
@@ -237,6 +240,7 @@
   }
   @keyframes fadeIn { from{ opacity:0; transform: translateY(6px) } to{ opacity:1; transform: translateY(0) } }
 
+  /* Corruption overlay + effects */
   .corrupt-overlay{
     position:fixed; inset:0; z-index:40; pointer-events:none;
     background:
@@ -267,6 +271,7 @@
   .bar{ height:10px; border-radius:10px; background:color-mix(in srgb, var(--bg) 85%, white 15%); overflow:hidden; border:1px solid var(--panel-border); }
   .bar > i{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
 
+  /* Printer reload effect */
   .print-mask{ position:fixed; inset:0; background:var(--bg); z-index:44; display:none; }
   .print-mask.show{ display:block; animation: printReveal 2.4s steps(24) forwards .2s; }
   @keyframes printReveal{
@@ -285,8 +290,10 @@
 </style>
 </head>
 <body>
+<!-- Settings Gear (upper-right) -->
 <div class="settings" id="settings">
   <button id="settingsBtn" class="settings-btn" aria-haspopup="true" aria-expanded="false" aria-controls="settingsMenu" title="Settings">
+    <!-- Gear Icon -->
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" stroke="currentColor" stroke-width="1.8"/>
       <path d="M19.4 13.1a7.52 7.52 0 0 0 .05-2.21l2.06-1.6-2-3.46-2.49 .57a7.52 7.52 0 0 0-1.92-1.11l-.5-2.53H9.39l-.5 2.53a7.52 7.52 0 0 0-1.92 1.1l-2.49-.56-2 3.46 2.06 1.6a7.52 7.52 0 0 0 0 2.22l-2.06 1.6 2 3.46 2.49-.57c.6 .47 1.24 .85 1.93 1.12l.5 2.53h4.31l.5-2.53c.68-.27 1.33-.65 1.92-1.12l2.49.57 2-3.46-2.06-1.6Z" stroke="currentColor" stroke-width="1.4"/>
@@ -294,6 +301,7 @@
     <div id="splashTip" class="splash-tip" role="status" aria-live="polite"></div>
   </button>
   <div id="settingsMenu" class="settings-menu panel" role="menu" aria-label="Settings">
+    <!-- Item: Theme -->
     <div class="settings-item" data-item="theme" role="menuitem" tabindex="0">
       <div>
         <div class="label">Theme</div>
@@ -314,6 +322,7 @@
       </div>
     </div>
 
+    <!-- Item: Typing Animation -->
     <div class="settings-item" data-item="typing" role="menuitem" tabindex="0">
       <div>
         <div class="label">Compose Animation</div>
@@ -330,9 +339,11 @@
   </div>
 </div>
 
+<!-- Cosmic visuals -->
 <canvas id="stars"></canvas>
 <div class="glow-veil"></div>
 
+<!-- Corruption helpers -->
 <div id="corruptOverlay" class="corrupt-overlay" aria-hidden="true"></div>
 <div id="flash" class="flash" aria-hidden="true"></div>
 <div id="buffer" class="buffer" role="dialog" aria-modal="true" aria-label="Buffering">
@@ -346,12 +357,15 @@
 <div id="printLine" class="print-line" aria-hidden="true"></div>
 
 <div class="wrap" id="appWrap">
+  <!-- Header -->
   <div class="panel reveal">
     <h1 class="title">Smart Mail</h1>
     <div class="subtitle">Pick an intent. Or use Auto Detect.</div>
 
+    <!-- Intent grid -->
     <div id="intentGrid" class="intent-grid"></div>
 
+    <!-- Auto-detect stage -->
     <div id="autoStage" class="stage hidden">
       <div class="hr"></div>
       <div class="row">
@@ -381,6 +395,7 @@
     </div>
   </div>
 
+  <!-- Fields -->
   <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
       <h2 class="title" style="font-size:18px; margin:0">Fields</h2>
@@ -394,6 +409,7 @@
     </div>
   </div>
 
+  <!-- Output -->
   <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
       <h2 class="title" style="font-size:18px; margin:0">Output</h2>
@@ -412,6 +428,7 @@
         <div id="outBody" class="out"></div>
         <div class="inline" style="margin-top:8px">
           <button id="copyBody" class="btn secondary">Copy Body</button>
+          <!-- Copy Both removed -->
           <button id="btnClear" class="btn secondary">Clear</button>
         </div>
       </div>
@@ -420,16 +437,22 @@
 </div>
 
 <script>
-/* ===== Starfield ===== */
+/* ===== Starfield (subtle) with controller ===== */
 const Starfield = (function(){
   const c = document.getElementById('stars');
   const ctx = c.getContext('2d');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   let stars=[], rafId=null, running=false;
   function resize(){ c.width=innerWidth*dpr; c.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
-  function init(){ stars = []; const count = Math.floor((innerWidth*innerHeight)/9000);
-    for(let i=0;i<count;i++){ stars.push({x:Math.random()*innerWidth, y:Math.random()*innerHeight, r:Math.random()*1.2+0.2, a:Math.random()*0.4+0.4, v:Math.random()*0.04+0.01}); } }
-  function draw(){ if(!running) return; ctx.clearRect(0,0,innerWidth,innerHeight);
+  function init(){
+    stars = [];
+    const count = Math.floor((innerWidth*innerHeight)/9000);
+    for(let i=0;i<count;i++){
+      stars.push({x:Math.random()*innerWidth, y:Math.random()*innerHeight, r:Math.random()*1.2+0.2, a:Math.random()*0.4+0.4, v:Math.random()*0.04+0.01});
+    }
+  }
+  function draw(){
+    if(!running) return; ctx.clearRect(0,0,innerWidth,innerHeight);
     stars.forEach(s=>{ s.y+=s.v; if(s.y>innerHeight) s.y=-5; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fillStyle=`rgba(200,230,255,${s.a})`; ctx.fill(); });
     rafId = requestAnimationFrame(draw);
   }
@@ -469,6 +492,7 @@ const itemTyping = document.querySelector('.settings-item[data-item="typing"]');
 const subTheme = $('#subTheme');
 const subTyping = $('#subTyping');
 
+const corruptOverlay = $('#corruptOverlay');
 const flashEl = $('#flash');
 const bufferEl = $('#buffer');
 const barFill = $('#barFill');
@@ -494,7 +518,7 @@ const INTENT_DESCS = {
   auto_detect: "Let The System Read Your Draft And Suggest An Intent."
 };
 
-/* ===== Splashes ===== */
+/* ===== Minecraft splashes (curated set) ===== */
 const SPLASHES = [
   "Punching trees!", "Now with 100% more blocks!", "Yaaay clouds!", "So fresh, so clean!",
   "The cake is a lie!", "Much wow, very block!", "Mind the Creepers!", "Don’t dig straight down!",
@@ -558,73 +582,23 @@ function setSelectedIntent(name){ SELECTED_INTENT = name || null; renderFields(S
 async function getJSON(u){ const r = await fetch(u); return r.json(); }
 async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)}); return r.json(); }
 
-/* ===== Live typing animation ===== */
-function setTextInstant(el, text){ el.textContent = text || ''; el.classList.add('glow-in'); setTimeout(()=>el.classList.remove('glow-in'), 700); }
-async function typeLine(el, text, maxMs=500){
-  const live = document.getElementById('liveCompose')?.checked !== false; const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!live || reduced || document.body.dataset.theme.endsWith('minimal')) return setTextInstant(el, text);
-  el.textContent = '';
-  const t0 = performance.now(); const total = text.length; let i = 0; const step = Math.max(1, Math.ceil(total / Math.max(1, maxMs/16)));
-  return new Promise(resolve=>{ function tick(ts){ i = Math.min(total, i + step); el.textContent = text.slice(0, i); if (i >= total || (ts - t0) >= maxMs) { el.textContent = text; el.classList.add('glow-in'); setTimeout(()=>el.classList.remove('glow-in'), 700); resolve(); } else requestAnimationFrame(tick); } requestAnimationFrame(tick); });
-}
-async function typeSubjectAndBody(newSubject, newBody){
-  const live = document.getElementById('liveCompose')?.checked !== false; const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; const minimal = document.body.dataset.theme.endsWith('minimal');
-  if (!live || reduced || minimal) setTextInstant(outSubject, newSubject); else await typeLine(outSubject, newSubject, 350);
-  const lines = (newBody || '').split('\n'); outBody.innerHTML = lines.map(()=>'<div class="line"></div>').join(''); const nodes = [...outBody.querySelectorAll('.line')];
-  for (let i=0; i<lines.length; i++){ if (!live || reduced || minimal) setTextInstant(nodes[i], lines[i]); else await typeLine(nodes[i], lines[i], 450); }
-  prevSubject = newSubject; prevBody = newBody;
-}
+/* ===== Init ===== */
+(async function init(){
+  renderIntentGrid();
+  // Default theme
+  document.body.setAttribute('data-theme', 'light-minimal');
+  if(themeSelect) themeSelect.value = 'light-minimal';
+  Starfield.stop(); // no stars in minimal by default
 
-/* ===== Toast helper (keeps width) ===== */
-function flashToast(btn, text='Copied!'){
-  if(!btn) return;
-  const originalText = btn.textContent;
-  const originalWidth = btn.offsetWidth;
-  const originalHeight = btn.offsetHeight;
+  try{
+    const h = await getJSON('/health');
+    CONF_THR = h.confidence_threshold || 0.55;
+    health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
+    SCHEMA = await getJSON('/schema');
+  }catch(e){ health.textContent = 'Server Not Reachable'; }
+})();
 
-  btn.style.width = originalWidth + 'px';
-  btn.style.height = originalHeight + 'px';
-  btn.style.display = 'flex';
-  btn.style.alignItems = 'center';
-  btn.style.justifyContent = 'center';
-  btn.style.textAlign = 'center';
-
-  btn.classList.add('toast');
-  btn.textContent = text;
-
-  setTimeout(()=>{
-    btn.classList.remove('toast');
-    btn.textContent = originalText;
-    btn.style.width = '';
-    btn.style.height = '';
-    btn.style.display = '';
-    btn.style.alignItems = '';
-    btn.style.justifyContent = '';
-    btn.style.textAlign = '';
-  }, 1100);
-}
-
-
-/* ===== Clear ===== */
-function clearAll(){
-  document.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => el.value = '');
-  outSubject.textContent = '';
-  outBody.textContent = '';
-  predStatus.textContent = '';
-  predInfo.style.display = 'none';
-  topK.innerHTML = '';
-  document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
-  SELECTED_INTENT = null;
-  renderFields(null);
-}
-
-/* ===== Copy / Clear buttons ===== */
-async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
-$('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget, 'Copied!'); });
-$('#copyBody').addEventListener('click',   (e)=>{ copyText(outBody.textContent);   flashToast(e.currentTarget, 'Copied!'); });
-$('#btnClear').addEventListener('click',   (e)=>{ clearAll();                       flashToast(e.currentTarget, 'Cleared!'); });
-
-/* ===== Predict / Generate ===== */
+/* ===== Auto-detect ===== */
 $('#btnPredict').addEventListener('click', async ()=>{
   predStatus.textContent = 'Detecting…'; predInfo.style.display = 'none'; topK.innerHTML='';
   const to = $('#to').value, subject = $('#subject').value, hint = $('#hint').value;
@@ -646,6 +620,25 @@ $('#btnPredict').addEventListener('click', async ()=>{
     topK.appendChild(b);
   });
 });
+
+/* ===== Live typing animation ===== */
+function setTextInstant(el, text){ el.textContent = text || ''; el.classList.add('glow-in'); setTimeout(()=>el.classList.remove('glow-in'), 700); }
+async function typeLine(el, text, maxMs=500){
+  const live = document.getElementById('liveCompose')?.checked !== false; const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!live || reduced || document.body.dataset.theme.endsWith('minimal')) return setTextInstant(el, text);
+  el.textContent = '';
+  const t0 = performance.now(); const total = text.length; let i = 0; const step = Math.max(1, Math.ceil(total / Math.max(1, maxMs/16)));
+  return new Promise(resolve=>{ function tick(ts){ i = Math.min(total, i + step); el.textContent = text.slice(0, i); if (i >= total || (ts - t0) >= maxMs) { el.textContent = text; el.classList.add('glow-in'); setTimeout(()=>el.classList.remove('glow-in'), 700); resolve(); } else requestAnimationFrame(tick); } requestAnimationFrame(tick); });
+}
+async function typeSubjectAndBody(newSubject, newBody){
+  const live = document.getElementById('liveCompose')?.checked !== false; const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches; const minimal = document.body.dataset.theme.endsWith('minimal');
+  if (!live || reduced || minimal) setTextInstant(outSubject, newSubject); else await typeLine(outSubject, newSubject, 350);
+  const lines = (newBody || '').split('\n'); outBody.innerHTML = lines.map(()=>'<div class="line"></div>').join(''); const nodes = [...outBody.querySelectorAll('.line')];
+  for (let i=0; i<lines.length; i++){ if (!live || reduced || minimal) setTextInstant(nodes[i], lines[i]); else await typeLine(nodes[i], lines[i], 450); }
+  prevSubject = newSubject; prevBody = newBody;
+}
+
+/* ===== Generate ===== */
 $('#btnGenerate').addEventListener('click', async ()=>{
   if(!SELECTED_INTENT){ $('#missing').textContent = 'Select An Option (Or Auto Detect) First.'; return; }
   const fields = collectFields(SELECTED_INTENT);
@@ -655,17 +648,57 @@ $('#btnGenerate').addEventListener('click', async ()=>{
   await typeSubjectAndBody(res.subject||'', res.body||'');
 });
 
-/* ===== Theme & settings ===== */
-function applyTheme(val){ document.body.setAttribute('data-theme', val); if(val === 'cosmic') Starfield.start(); else Starfield.stop(); }
+/* ===== Toast helper ===== */
+function flashToast(btn, text='Copied!'){
+  if(!btn) return;
+  const original = btn.textContent;
+  btn.classList.add('toast');
+  btn.textContent = text;
+  setTimeout(()=>{ btn.classList.remove('toast'); btn.textContent = original; }, 1100);
+}
+
+/* ===== Clear ===== */
+function clearAll(){
+  // Clear all text/email inputs and textareas
+  document.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => el.value = '');
+  // Clear outputs
+  outSubject.textContent = '';
+  outBody.textContent = '';
+  // Reset prediction UI
+  predStatus.textContent = '';
+  predInfo.style.display = 'none';
+  topK.innerHTML = '';
+  // Deselect intents and reset fields
+  document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+  SELECTED_INTENT = null;
+  renderFields(null);
+}
+
+/* ===== Copy ===== */
+async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
+$('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget); });
+$('#copyBody').addEventListener('click',   (e)=>{ copyText(outBody.textContent);   flashToast(e.currentTarget); });
+// Removed copyBoth handler
+
+// Clear button
+$('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget); });
+
+/* ===== Theme switching ===== */
+function applyTheme(val){
+  document.body.setAttribute('data-theme', val);
+  if(val === 'cosmic') Starfield.start(); else Starfield.stop();
+}
+if(themeSelect){ themeSelect.addEventListener('change', (e)=> applyTheme(e.target.value)); }
+
+/* ===== Settings interactions ===== */
 function closeAllSubs(){ [subTheme, subTyping].forEach(s=> s.classList.remove('open')); document.querySelectorAll('.settings-item .chev').forEach(c=> c.classList.remove('rot90')); }
 function openOnly(panel, chev){ closeAllSubs(); panel.classList.add('open'); chev.classList.add('rot90'); }
-const settingsBtnEl = document.getElementById('settingsBtn');
-settingsBtnEl.addEventListener('click', ()=>{ const isOpen = settingsMenu.classList.toggle('open'); settingsBtn.setAttribute('aria-expanded', String(isOpen)); if(!isOpen) closeAllSubs(); });
+settingsBtn.addEventListener('click', ()=>{ const isOpen = settingsMenu.classList.toggle('open'); settingsBtn.setAttribute('aria-expanded', String(isOpen)); if(!isOpen) closeAllSubs(); });
 itemTheme.addEventListener('click', ()=> openOnly(subTheme, itemTheme.querySelector('.chev')));
 itemTyping.addEventListener('click', ()=> openOnly(subTyping, itemTyping.querySelector('.chev')));
 window.addEventListener('click', (e)=>{ if(!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)){ settingsMenu.classList.remove('open'); settingsBtn.setAttribute('aria-expanded','false'); closeAllSubs(); }});
 
-/* Splash tooltip */
+/* ===== Gear splash tooltip (Minecraft messages) ===== */
 let splashTimer=null;
 settingsBtn.addEventListener('mouseenter', ()=>{
   splashTimer = setTimeout(()=>{
@@ -677,21 +710,86 @@ settingsBtn.addEventListener('mouseleave', ()=>{
   clearTimeout(splashTimer); splashTip.classList.remove('show');
 });
 
-/* Easter eggs omitted for brevity in this snippet (unchanged from your file) */
+/* ===== Rabbit Hole (type “follow the white rabbit”) ===== */
+const SECRET_RABBIT = "follow the white rabbit";
+function listenForPhrase(targetEl){
+  let buf = "";
+  const handler = (e)=>{
+    const t = (e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA')) ? String(e.key||"") : "";
+    if(!t || t.length>1) return;
+    buf = (buf + t).slice(-SECRET_RABBIT.length);
+    if(buf.toLowerCase() === SECRET_RABBIT){ triggerRabbit(); buf=""; }
+  };
+  document.addEventListener('keydown', handler);
+}
+function triggerRabbit(){
+  const r = document.createElement('div'); r.className='rabbit'; document.body.appendChild(r);
+  const portal = document.createElement('div'); portal.className='portal';
+  const msg = document.createElement('div'); msg.className='portal-msg';
+  msg.textContent = SPLASHES[Math.floor(Math.random()*SPLASHES.length)];
+  document.body.appendChild(portal);
+  setTimeout(()=> document.body.appendChild(msg), 450);
+  setTimeout(()=>{ portal.remove(); msg.remove(); }, 3200);
+  setTimeout(()=> r.remove(), 1700);
+}
+listenForPhrase(document);
 
-/* ===== Init ===== */
-(async function init(){
-  applyTheme('light-minimal');
-  if(themeSelect) themeSelect.value = 'light-minimal';
-  renderIntentGrid();
+/* ===== Corruption Easter Egg =====
+   Trigger by typing “corruption” in any input/textarea OR Ctrl/⌘+Alt+C
+*/
+const SECRET_CORR = "corruption";
+let corrBuf = "";
+document.addEventListener('keydown', (e)=>{
+  // Keyboard combo
+  if((e.ctrlKey||e.metaKey) && e.altKey && (e.key==='c' || e.key==='C')){ triggerCorruption(); return; }
+  // Typed phrase
+  const isField = (e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA'));
+  if(!isField) return;
+  const k = e.key || "";
+  if(k.length===1){ corrBuf = (corrBuf + k).slice(-SECRET_CORR.length); if(corrBuf.toLowerCase()===SECRET_CORR){ triggerCorruption(); corrBuf=""; } }
+});
 
-  try{
-    const h = await getJSON('/health');
-    CONF_THR = h.confidence_threshold || 0.55;
-    health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
-    SCHEMA = await getJSON('/schema');
-  }catch(e){ health.textContent = 'Server Not Reachable'; }
-})();
+async function triggerCorruption(){
+  // 1) Glitch phase
+  document.body.classList.add('corrupting');
+  if(document.body.dataset.theme !== 'cosmic') Starfield.stop();
+  await delay(1600);
+
+  // 2) Flash / blow up
+  flashEl.classList.add('show');
+  await delay(700);
+  flashEl.classList.remove('show');
+
+  // 3) Buffer screen
+  bufferEl.classList.add('show');
+  let pct = 0;
+  while(pct < 100){
+    pct += Math.max(1, Math.round(Math.random()*14));
+    pct = Math.min(pct, 100);
+    barFill.style.width = pct + '%';
+    barPct.textContent = pct + '%';
+    await delay(120 + Math.random()*200);
+  }
+  await delay(250);
+
+  // 4) Printer reload
+  bufferEl.classList.remove('show');
+  printMask.classList.add('show');
+  printLine.classList.add('show');
+  // Temporarily hide content, then reveal line-by-line feel
+  $$('.panel').forEach(p=> p.style.opacity = '0');
+  await delay(2600);
+  printMask.classList.remove('show');
+  printLine.classList.remove('show');
+  $$('.panel').forEach((p,i)=> setTimeout(()=> p.style.opacity = '1', 60*i));
+
+  // 5) Clean up
+  document.body.classList.remove('corrupting');
+  if(document.body.dataset.theme === 'cosmic') Starfield.start();
+}
+
+/* ===== Kick things off ===== */
+applyTheme('light-minimal'); // default
 </script>
 </body>
 </html>
