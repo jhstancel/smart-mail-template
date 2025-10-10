@@ -400,7 +400,6 @@
     <div class="inline">
       <h2 class="title" style="font-size:18px; margin:0">Fields</h2>
       <span class="subtitle" id="fieldsHint">(Select An Option Or Use Auto Detect)</span>
-      <span id="health" class="muted" style="margin-left:auto"></span>
     </div>
     <div id="fields" class="kvs"></div>
     <div class="inline" style="margin:8px 0">
@@ -590,12 +589,23 @@ async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{
   if(themeSelect) themeSelect.value = 'light-minimal';
   Starfield.stop(); // no stars in minimal by default
 
-  try{
-    const h = await getJSON('/health');
-    CONF_THR = h.confidence_threshold || 0.55;
-    health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
-    SCHEMA = await getJSON('/schema');
-  }catch(e){ health.textContent = 'Server Not Reachable'; }
+
+
+try{
+  const h = await getJSON('/health');
+  CONF_THR = h.confidence_threshold || 0.55;
+  if (health) health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
+  SCHEMA = await getJSON('/schema');
+}catch(e){
+  if (health) health.textContent = 'Server Not Reachable';
+}
+
+
+
+
+
+
+
 })();
 
 /* ===== Auto-detect ===== */
