@@ -972,6 +972,132 @@ applyTheme('light-minimal'); // default
 
 
 
+<script>
+/* === Live Auto-Detect on Hint typing (resilient + correct payload) === */
+(function(){
+  const $ = (s)=>document.querySelector(s);
+  const THR = (typeof window.CONF_THR === 'number' ? window.CONF_THR : 0.55);
+
+  let currentHintEl = null;
+  let debounceTimer = null;
+  let inflight = null; // AbortController for latest request
+
+  const els = {
+    to:         $('#to'),
+    subject:    $('#subject'),
+    predStatus: $('#predStatus'),
+    predInfo:   $('#predInfo'),
+    predIntent: $('#predIntent'),
+    predBadge:  $('#predBadge') || (function(){ const x=document.createElement('span'); x.id='predBadge'; x.className='pill'; $('#predInfo')?.appendChild(x); return x; })(),
+    predMsg:    $('#predMsg'),
+    topK:       $('#topK'),
+    btnPredict: $('#btnPredict')
+  };
+
+  const toNice = (s)=> (s||'').replaceAll('_',' ').split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+  function scoreBadgeHTML(score){ const pct = Math.round((score ?? 0)*100); return `<span class="pill">${pct}%</span>`; }
+  function setPredictStatus(msg){ if(els.predStatus) els.predStatus.textContent = msg || ''; }
+  function hidePredictInfo(){ if(els.predInfo) els.predInfo.style.display='none'; if(els.topK) els.topK.innerHTML=''; }
+
+  function updatePredictUI(data){
+    if(!data){ hidePredictInfo(); return; }
+    const { intent, confidence, top_k = [], message = '' } = data;
+
+    if(els.predIntent) els.predIntent.textContent = intent ? toNice(intent) : '—';
+    if(els.predBadge)  els.predBadge.innerHTML    = scoreBadgeHTML(confidence ?? 0);
+    if(els.predMsg)    els.predMsg.textContent    = message || '';
+
+    // top_k can be tuples [name, score] OR objects {label, score}
+    if(els.topK){
+      els.topK.innerHTML = '';
+      top_k.forEach(item=>{
+        const name = Array.isArray(item) ? item[0] : (item.label || item.intent || '');
+        const score = Array.isArray(item) ? item[1] : (item.score ?? 0);
+        const b = document.createElement('button');
+        b.className = 'btn secondary';
+        b.textContent = `${toNice(name)} (${Math.round((score??0)*100)}%)`;
+        b.addEventListener('click', ()=>{
+          document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+          const targetName = toNice(name);
+          [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===targetName)?.classList.add('active');
+          // Set the selected intent so Generate works immediately
+          if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(name);
+          window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
+        });
+        els.topK.appendChild(b);
+      });
+    }
+    if(els.predInfo) els.predInfo.style.display='flex';
+  }
+
+  async function predictNow(hintVal){
+    // Cancel previous request if still running
+    if(inflight){ try{ inflight.abort(); }catch{} }
+    inflight = new AbortController();
+
+    const payload = {
+      to: (els.to?.value || '').trim(),
+      subject: (els.subject?.value || '').trim(),
+      // ✅ correct key expected by backend:
+      body_hint: hintVal
+    };
+
+    setPredictStatus('Predicting…');
+    try{
+      const res = await fetch('/predict', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(payload),
+        signal: inflight.signal
+      });
+      const data = await res.json();
+      updatePredictUI(data);
+      setPredictStatus('');
+    }catch(err){
+      if(err?.name === 'AbortError') return; // superseded by a newer keystroke
+      setPredictStatus('Prediction failed.');
+      hidePredictInfo();
+    }
+  }
+
+  function onType(){
+    if(!currentHintEl) return;
+    const hint = (currentHintEl.value || '').trim();
+    if(!hint){ setPredictStatus(''); hidePredictInfo(); return; }
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(()=>predictNow(hint), 150);
+  }
+
+  function attachToHint(el){
+    if(currentHintEl === el) return;
+    if(currentHintEl) currentHintEl.removeEventListener('input', onType);
+    currentHintEl = el;
+    if(currentHintEl) currentHintEl.addEventListener('input', onType, {passive:true});
+  }
+
+  // Initial attach if present
+  attachToHint($('#hint'));
+
+  // Re-attach whenever DOM changes (e.g., auto-detect panel toggled/rerendered)
+  const mo = new MutationObserver(()=> attachToHint($('#hint')));
+  mo.observe(document.body, {childList:true, subtree:true});
+
+  // Make the existing button reuse the same logic
+  if(els.btnPredict){
+    els.btnPredict.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const el = $('#hint'); attachToHint(el);
+      const hint = (el?.value || '').trim();
+      if(!hint){ setPredictStatus(''); hidePredictInfo(); return; }
+      predictNow(hint);
+    });
+  }
+})();
+</script>
+
+
+
+
 
 
 
