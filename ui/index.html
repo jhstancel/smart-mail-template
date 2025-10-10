@@ -128,6 +128,31 @@
     box-shadow: 0 0 0 0 rgba(0,0,0,0);
     transition: box-shadow .25s ease, border-color .25s ease, background .25s ease, transform .25s ease;
   }
+
+  /* Native date input tweaks */
+  input[type="date"]{
+    width:100%; color:var(--ink);
+    background:color-mix(in srgb, var(--bg) 90%, black 10%);
+    border:1px solid var(--panel-border);
+    border-radius:12px; padding:12px 14px; outline:none;
+    box-shadow: 0 0 0 0 rgba(0,0,0,0);
+    transition: box-shadow .25s ease, border-color .25s ease, background .25s ease, transform .25s ease;
+    font:inherit;
+  }
+  input[type="date"]:focus{
+    border-color: var(--focus-border);
+    box-shadow: 0 0 0 6px var(--focus-ring);
+    background: color-mix(in srgb, var(--bg) 70%, white 30%);
+    transform: translateZ(0) scale(1.01);
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator{
+    cursor:pointer; opacity:.9;
+    filter: drop-shadow(0 0 0 rgba(0,0,0,0));
+  }
+  @-moz-document url-prefix(){
+    input[type="date"]{ padding-right: 12px; }
+  }
+
   input:focus, textarea:focus, select:focus{
     border-color: var(--focus-border); box-shadow: 0 0 0 6px var(--focus-ring); background: color-mix(in srgb, var(--bg) 70%, white 30%);
     transform: translateZ(0) scale(1.01);
@@ -270,7 +295,6 @@
   }
   .bar{ height:10px; border-radius:10px; background:color-mix(in srgb, var(--bg) 85%, white 15%); overflow:hidden; border:1px solid var(--panel-border); }
   .bar > i{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
-
   /* Printer reload effect */
   .print-mask{ position:fixed; inset:0; background:var(--bg); z-index:44; display:none; }
   .print-mask.show{ display:block; animation: printReveal 2.4s steps(24) forwards .2s; }
@@ -559,22 +583,97 @@ function renderIntentGrid(){
 }
 
 /* ===== Fields ===== */
+
+
+
+/* ===== Fields ===== */
+function isDateKey(key){
+  // normalize: camelCase -> snake_case, then lower
+  const k = String(key || '')
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    .replace(/[\s\-]+/g, '_')
+    .toLowerCase();
+
+  // obvious direct hits
+  if (/_date(?:_|$)/.test(k)) return true;       // ship_date, payment_date, etc.
+  if (/(^|_)date(_|$)/.test(k)) return true;     // …_date_…
+
+  // common “date-ish” patterns (deadline / due / eta / need_by / requested_by)
+  if (/(^|_)(deadline|due|eta|requested_by|need_by)(_|$)/.test(k)) return true;
+
+  // shipDate / deliveryDate / pickupDate / arrivalDate / invoiceDate / poDate / paymentDate
+  if (/(^|_)(ship|shipping|delivery|dispatch|pickup|arrival|invoice|po|payment)_?date$/.test(k)) return true;
+
+  return false;
+}
+
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
-  if(!intent || !SCHEMA[intent]){ fieldsHint.textContent = '(Select An Option Or Use Auto Detect)'; return; }
+  if(!intent || !SCHEMA[intent]){
+    fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
+    return;
+  }
   const req = SCHEMA[intent].required || [];
   const niceList = req.map(toTitle).join(', ');
   fieldsHint.textContent = req.length ? `Required Fields: ${niceList}` : 'No Required Fields';
 
   for(const key of req){
-    const wrap = document.createElement('div'); wrap.className = 'kv';
-    const label = document.createElement('label'); label.textContent = toTitle(key);
-    const input = document.createElement('input'); input.type = 'text'; input.id = `f_${key}`; input.placeholder = toTitle(key);
-    wrap.appendChild(label); wrap.appendChild(input); fieldsWrap.appendChild(wrap);
+    const wrap = document.createElement('div');
+    wrap.className = 'kv';
+    const label = document.createElement('label');
+    label.textContent = toTitle(key);
+
+    const input = document.createElement('input');
+    input.id = `f_${key}`;
+
+    if(isDateKey(key)){
+      input.type = 'date';
+      input.placeholder = '';
+      input.inputMode = 'none';
+    } else {
+      input.type = 'text';
+      input.placeholder = toTitle(key);
+    }
+
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    fieldsWrap.appendChild(wrap);
   }
 }
+
+function collectFields(intent){
+  const req = SCHEMA[intent]?.required || [];
+  const fields = {};
+  for(const key of req){
+    const el = document.getElementById(`f_${key}`);
+    fields[key] = el ? (el.value || '') : '';
+  }
+  return fields;
+}
+
+function setSelectedIntent(name){
+  SELECTED_INTENT = name || null;
+  renderFields(SELECTED_INTENT);
+}
+
+
+
+
 function collectFields(intent){ const req = SCHEMA[intent]?.required || []; const fields = {}; for(const key of req){ const el = document.getElementById(`f_${key}`); fields[key] = el ? (el.value || '') : ''; } return fields; }
 function setSelectedIntent(name){ SELECTED_INTENT = name || null; renderFields(SELECTED_INTENT); }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* ===== API ===== */
 async function getJSON(u){ const r = await fetch(u); return r.json(); }
@@ -588,29 +687,17 @@ async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{
   if(themeSelect) themeSelect.value = 'light-minimal';
   Starfield.stop(); // no stars in minimal by default
 
+  try{
+    const h = await getJSON('/health');
+    CONF_THR = h.confidence_threshold || 0.55;
+    if (health) health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
+    SCHEMA = await getJSON('/schema');
+  }catch(e){
+    if (health) health.textContent = 'Server Not Reachable';
+  }
+})();  /* <— removed stray 'i' and kept IIFE intact */
 
-
-try{
-  const h = await getJSON('/health');
-  CONF_THR = h.confidence_threshold || 0.55;
-  if (health) health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
-  SCHEMA = await getJSON('/schema');
-}catch(e){
-  if (health) health.textContent = 'Server Not Reachable';
-}
-
-
-
-
-
-
-
-})();
-
-
-
-
-
+/* Predict button (optional, only if present) */
 const btnPredict = $('#btnPredict');
 if (btnPredict){
   btnPredict.addEventListener('click', async ()=>{
@@ -635,13 +722,6 @@ if (btnPredict){
     });
   });
 }
-
-
-
-
-
-
-
 
 /* ===== Live typing animation ===== */
 function setTextInstant(el, text){ el.textContent = text || ''; el.classList.add('glow-in'); setTimeout(()=>el.classList.remove('glow-in'), 700); }
@@ -681,8 +761,8 @@ function flashToast(btn, text='Copied!'){
 
 /* ===== Clear ===== */
 function clearAll(){
-  // Clear all text/email inputs and textareas
-  document.querySelectorAll('input[type="text"], input[type="email"], textarea').forEach(el => el.value = '');
+  // Clear all text/email/date inputs and textareas
+  document.querySelectorAll('input[type="text"], input[type="email"], input[type="date"], textarea').forEach(el => el.value = '');
   // Clear outputs
   outSubject.textContent = '';
   outBody.textContent = '';
@@ -700,13 +780,9 @@ function clearAll(){
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
 $('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget, 'Copied'); });
 $('#copyBody').addEventListener('click',   (e)=>{ copyText(outBody.textContent);   flashToast(e.currentTarget, 'Copied'); });
-// Removed copyBoth handler
 
 // Clear button
 $('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget, 'Cleared'); });
-
-// Clear button
-//$('#btnClear').addEventListener('click', (e)=>{ clearAll(); flashToast(e.currentTarget); });
 
 /* ===== Theme switching ===== */
 function applyTheme(val){
@@ -765,9 +841,7 @@ listenForPhrase(document);
 const SECRET_CORR = "corruption";
 let corrBuf = "";
 document.addEventListener('keydown', (e)=>{
-  // Keyboard combo
   if((e.ctrlKey||e.metaKey) && e.altKey && (e.key==='c' || e.key==='C')){ triggerCorruption(); return; }
-  // Typed phrase
   const isField = (e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA'));
   if(!isField) return;
   const k = e.key || "";
@@ -775,17 +849,14 @@ document.addEventListener('keydown', (e)=>{
 });
 
 async function triggerCorruption(){
-  // 1) Glitch phase
   document.body.classList.add('corrupting');
   if(document.body.dataset.theme !== 'cosmic') Starfield.stop();
   await delay(1600);
 
-  // 2) Flash / blow up
   flashEl.classList.add('show');
   await delay(700);
   flashEl.classList.remove('show');
 
-  // 3) Buffer screen
   bufferEl.classList.add('show');
   let pct = 0;
   while(pct < 100){
@@ -797,40 +868,26 @@ async function triggerCorruption(){
   }
   await delay(250);
 
-  // 4) Printer reload
   bufferEl.classList.remove('show');
   printMask.classList.add('show');
   printLine.classList.add('show');
-  // Temporarily hide content, then reveal line-by-line feel
   $$('.panel').forEach(p=> p.style.opacity = '0');
   await delay(2600);
   printMask.classList.remove('show');
   printLine.classList.remove('show');
   $$('.panel').forEach((p,i)=> setTimeout(()=> p.style.opacity = '1', 60*i));
 
-  // 5) Clean up
   document.body.classList.remove('corrupting');
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 }
-
-/* ===== Kick things off ===== */
-applyTheme('light-minimal'); // default
 </script>
 <script>window.EVIL_LARRY_SRC = 'img/evil-larry.png';</script>
-
-
-
-
-
-
-
-
 
 <!-- 🐈 Evil Larry (R A I N  M O D E) -->
 <style>
   .evil-larry{
     position:fixed; left:0; top:0;
-    width:420px; height:420px; /* base size; each clone can scale */
+    width:420px; height:420px;
     z-index:9999;
     pointer-events:none; will-change:transform,opacity;
     transform:translate(-50%,-420px) rotate(0deg);
@@ -846,11 +903,7 @@ applyTheme('light-minimal'); // default
 </style>
 
 <script>
-/* Larry Storm: spawn 1 (Shift+L) or a rain of Larrys (type "larry")
-   - Uses window.EVIL_LARRY_SRC (e.g., 'img/evil-larry.png')
-   - runEvilLarry() -> single
-   - runEvilLarryRain(count=24) -> many
-*/
+/* Larry Storm: spawn 1 (Shift+L) or a rain of Larrys (type "larry") */
 (function(){
   const IMG_SRC = window.EVIL_LARRY_SRC || 'https://placekitten.com/256/256';
   const COOLDOWN_SINGLE_MS = 1500;
@@ -858,10 +911,8 @@ applyTheme('light-minimal'); // default
 
   let lastSingle = 0, lastRain = 0;
 
-  // Preload once so the first spawn is smooth
   (new Image()).src = IMG_SRC;
 
-  /** Sprite pool driven by a single RAF for performance */
   const sprites = new Set();
   let rafId = null;
 
@@ -874,21 +925,17 @@ applyTheme('light-minimal'); // default
     function frame(ts){
       if (sprites.size === 0){ rafId = null; return; }
       sprites.forEach(s => {
-        // physics
         s.vy += s.g;
         s.x  += s.vx;
         s.y  += s.vy;
         s.a  += s.spin;
 
-        // walls
         if (s.x <= 0){ s.x = 0; s.vx = Math.abs(s.vx); s.spin = -s.spin; }
         if (s.x >= W - s.size){ s.x = W - s.size; s.vx = -Math.abs(s.vx); s.spin = -s.spin; }
         if (s.y >= H - s.size){ s.y = H - s.size; s.vy = -Math.abs(s.vy) * s.damp; }
 
-        // render
         s.el.style.transform = `translate(${s.x}px,${s.y}px) rotate(${s.a}deg)`;
 
-        // lifetime → exit
         if (ts - s.t0 > s.life){
           s.el.style.transition = 'transform 1.1s cubic-bezier(.2,.8,.2,1), opacity .9s ease';
           s.el.style.opacity = '0';
@@ -907,22 +954,18 @@ applyTheme('light-minimal'); // default
     el.innerHTML = `<img alt="Evil Larry" referrerpolicy="no-referrer" src="${IMG_SRC}">`;
     document.body.appendChild(el);
 
-    // base measured size; apply scale for variety
     const base = el.getBoundingClientRect().width || 420;
-    const scale = opts.scale ?? (0.6 + Math.random()*0.9); // 0.6x – 1.5x
+    const scale = opts.scale ?? (0.6 + Math.random()*0.9);
     el.style.transformOrigin = 'center';
     el.style.width  = (base*scale) + 'px';
     el.style.height = (base*scale) + 'px';
 
-    // world
     const W = innerWidth, H = innerHeight;
     const size = base * scale;
 
-    // start position (top, random X)
     const x0 = Math.random() * Math.max(10, W - size - 10);
     const y0 = -size - 40 - Math.random()*120;
 
-    // velocity & spin
     const vx = (Math.random()<0.5?-1:1) * (2 + Math.random()*3);
     const vy = 2 + Math.random()*2;
     const g  = 0.16 + Math.random()*0.08;
@@ -940,42 +983,26 @@ applyTheme('light-minimal'); // default
     startLoop();
   }
 
-  /** Public API: single */
-  function runEvilLarry(){
-    const now = Date.now();
-    if (now - lastSingle < COOLDOWN_SINGLE_MS) return;
-    lastSingle = now;
-    spawnOne({ scale: 1 }); // big lad
-  }
-
-  /** Public API: rain */
+  function runEvilLarry(){ const now = Date.now(); if (now - lastSingle < COOLDOWN_SINGLE_MS) return; lastSingle = now; spawnOne({ scale: 1 }); }
   function runEvilLarryRain(count = 24){
-    const now = Date.now();
-    if (now - lastRain < COOLDOWN_RAIN_MS) return;
-    lastRain = now;
-
+    const now = Date.now(); if (now - lastRain < COOLDOWN_RAIN_MS) return; lastRain = now;
     const n = Math.max(4, Math.min(64, count));
     for (let i=0; i<n; i++){
       setTimeout(()=> spawnOne({
         scale: 0.6 + Math.random()*1.2,
         lifeMs: 4200 + Math.random()*3500
-      }), Math.random()*900); // stagger starts over ~0–900ms
+      }), Math.random()*900);
     }
   }
 
-  // Expose to window
   window.runEvilLarry = runEvilLarry;
   window.runEvilLarryRain = runEvilLarryRain;
 
-  /* -------- Triggers -------- */
-
-  // Shift+L → single
   document.addEventListener('keydown', (e)=>{
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     if ((e.key||'').toLowerCase() === 'l' && e.shiftKey) runEvilLarry();
   });
 
-  // Type "larry" (<=3s between letters) → rain
   const WORD = 'larry'; let seq = []; let lastTs = 0; const MAX_GAP_MS = 3000;
   document.addEventListener('keydown', (e)=>{
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -989,11 +1016,6 @@ applyTheme('light-minimal'); // default
 })();
 </script>
 
-
-
-
-
-
 <script>
 /* === Live Auto-Detect on Hint typing (resilient + correct payload) === */
 (function(){
@@ -1002,7 +1024,7 @@ applyTheme('light-minimal'); // default
 
   let currentHintEl = null;
   let debounceTimer = null;
-  let inflight = null; // AbortController for latest request
+  let inflight = null;
 
   const els = {
     to:         $('#to'),
@@ -1029,7 +1051,6 @@ applyTheme('light-minimal'); // default
     if(els.predBadge)  els.predBadge.innerHTML    = scoreBadgeHTML(confidence ?? 0);
     if(els.predMsg)    els.predMsg.textContent    = message || '';
 
-    // top_k can be tuples [name, score] OR objects {label, score}
     if(els.topK){
       els.topK.innerHTML = '';
       top_k.forEach(item=>{
@@ -1042,7 +1063,6 @@ applyTheme('light-minimal'); // default
           document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
           const targetName = toNice(name);
           [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===targetName)?.classList.add('active');
-          // Set the selected intent so Generate works immediately
           if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(name);
           window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
         });
@@ -1053,14 +1073,12 @@ applyTheme('light-minimal'); // default
   }
 
   async function predictNow(hintVal){
-    // Cancel previous request if still running
     if(inflight){ try{ inflight.abort(); }catch{} }
     inflight = new AbortController();
 
     const payload = {
       to: (els.to?.value || '').trim(),
       subject: (els.subject?.value || '').trim(),
-      // ✅ correct key expected by backend:
       body_hint: hintVal
     };
 
@@ -1076,7 +1094,7 @@ applyTheme('light-minimal'); // default
       updatePredictUI(data);
       setPredictStatus('');
     }catch(err){
-      if(err?.name === 'AbortError') return; // superseded by a newer keystroke
+      if(err?.name === 'AbortError') return;
       setPredictStatus('Prediction failed.');
       hidePredictInfo();
     }
@@ -1097,14 +1115,11 @@ applyTheme('light-minimal'); // default
     if(currentHintEl) currentHintEl.addEventListener('input', onType, {passive:true});
   }
 
-  // Initial attach if present
   attachToHint($('#hint'));
 
-  // Re-attach whenever DOM changes (e.g., auto-detect panel toggled/rerendered)
   const mo = new MutationObserver(()=> attachToHint($('#hint')));
   mo.observe(document.body, {childList:true, subtree:true});
 
-  // Make the existing button reuse the same logic
   if(els.btnPredict){
     els.btnPredict.addEventListener('click', (e)=>{
       e.preventDefault();
@@ -1116,16 +1131,6 @@ applyTheme('light-minimal'); // default
   }
 })();
 </script>
-
-
-
-
-
-
-
-
-
-
 </body>
 </html>
 
