@@ -1,6 +1,60 @@
 {
-  "quote_request": ["quote", "pricing", "rfq", "estimate", "quote request"],
-  "order_confirmation": ["po", "order confirmed", "order confirmation", "thank you for your order"],
-  "delay_notice": ["delay", "backorder", "lead time change", "pushed", "slipped", "new ship date"]
+  "quote_request": [
+    "quote",
+    "pricing",
+    "rfq",
+    "estimate",
+    "quote request"
+  ],
+  "order_confirmation": [
+    "po",
+    "order confirmed",
+    "order confirmation",
+    "thank you for your order"
+  ],
+  "delay_notice": [
+    "delay",
+    "backorder",
+    "lead time change",
+    "pushed",
+    "slipped",
+    "new ship date"
+  ],
+  "shipment_update": [
+    "shipped",
+    "tracking",
+    "carrier",
+    "transit",
+    "out for delivery",
+    "shipment update"
+  ],
+  "invoice_payment": [
+    "invoice",
+    "payment",
+    "paid",
+    "remit",
+    "bill",
+    "net 30"
+  ],
+  "packing_slip_docs": [
+    "packing slip",
+    "documents",
+    "docs attached",
+    "commercial invoice",
+    "po paperwork"
+  ],
+  "followup": [
+    "following up",
+    "circling back",
+    "touching base",
+    "any update",
+    "checking in"
+  ],
+  "_autodetect": {
+    "enabled": true,
+    "threshold": 0.62,
+    "low_threshold": 0.45,
+    "fallback": true
+  }
 }
 

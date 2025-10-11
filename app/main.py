@@ -14,61 +14,113 @@ from pydantic import BaseModel, Field
 
 from app.preprocess import clean_subject_body
 
+
 # --------------------------------------------------------------------------------------
-# Paths
+# Utility helpers
+# --------------------------------------------------------------------------------------
+def softmax(values: np.ndarray) -> np.ndarray:
+    values = values - np.max(values)
+    exp_values = np.exp(values)
+    return exp_values / (np.sum(exp_values) + 1e-9)
+
+
+def normalize_probs(probabilities: Dict[str, float]) -> Dict[str, float]:
+    total = sum(probabilities.values())
+    if total <= 0:
+        return {}
+    return {key: value / total for key, value in probabilities.items()}
+
+
+def split_subject_body(rendered: str) -> Tuple[str, str]:
+    """Split the first 'Subject:' line from a rendered Jinja2 template."""
+    lines = [line.rstrip() for line in rendered.splitlines()]
+    if lines and lines[0].lower().startswith("subject:"):
+        subject = lines[0].split(":", 1)[1].strip()
+        body = "\n".join(lines[1:]).lstrip()
+        return subject, body
+    return "", rendered.strip()
+
+
+# --------------------------------------------------------------------------------------
+# App setup
+# --------------------------------------------------------------------------------------
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount UI directory if it exists
+ui_directory = Path(__file__).resolve().parent.parent / "ui"
+if ui_directory.exists():
+    app.mount("/ui", StaticFiles(directory=str(ui_directory), html=True), name="ui")
+
+
+# --------------------------------------------------------------------------------------
+# Paths and configuration
 # --------------------------------------------------------------------------------------
 ROOT = Path(__file__).resolve().parent.parent
-ART = ROOT / "model_artifacts"  # project-level artifacts
+ARTIFACTS = ROOT / "model_artifacts"
 CONFIGS = ROOT / "configs"
 TEMPLATES = ROOT / "templates"
-UI_DIR = ROOT / "ui"
 
-# --------------------------------------------------------------------------------------
-# Guardrail thresholds
-# --------------------------------------------------------------------------------------
-# If top prediction < this, we won't auto-suggest; we'll ask the user to confirm.
+# Default thresholds (can be overwritten by config)
 CONFIDENCE_THRESHOLD = 0.65
-# If < this, we’ll explicitly warn that the model is guessing.
 LOW_CONFIDENCE_THRESHOLD = 0.45
+FALLBACK_ENABLED = True
 
 # --------------------------------------------------------------------------------------
-# Jinja / Config
+# Jinja / Config loading
 # --------------------------------------------------------------------------------------
-env = Environment(
+jinja_env = Environment(
     loader=FileSystemLoader(str(TEMPLATES)),
     autoescape=select_autoescape(enabled_extensions=("j2",)),
 )
 
-with open(CONFIGS / "intents.json", "r") as f:
-    INTENTS: Dict[str, Dict[str, Any]] = json.load(f)
+with open(CONFIGS / "intents.json", "r") as file:
+    INTENTS: Dict[str, Dict[str, Any]] = json.load(file)
+
+with open(CONFIGS / "rules.json", "r") as file:
+    RULES: Dict[str, List[str] | Dict[str, Any]] = json.load(file)
+
+autodetect_settings = RULES.get("_autodetect", {})
+CONFIDENCE_THRESHOLD = float(autodetect_settings.get("threshold", CONFIDENCE_THRESHOLD))
+LOW_CONFIDENCE_THRESHOLD = float(
+    autodetect_settings.get("low_threshold", LOW_CONFIDENCE_THRESHOLD)
+)
+FALLBACK_ENABLED = bool(autodetect_settings.get("fallback", FALLBACK_ENABLED))
 
 
-# Resolve artifact files (optional = None)
-def _maybe(p: Path) -> Path | None:
-    return p if p.exists() else None
-
-
-VEC_PATH = _maybe(ART / "vectorizer.pkl")
-CLF_PATH = _maybe(ART / "clf.pkl")
-PRIOR_RECIP_PATH = _maybe(ART / "recipient_prior.pkl")
-PRIOR_DOMAIN_PATH = _maybe(ART / "domain_prior.pkl")
-
+# --------------------------------------------------------------------------------------
 # Load artifacts
-print("[DEBUG] Loading artifacts from:", ART.resolve())
-vec = joblib.load(VEC_PATH) if VEC_PATH else None
-clf = joblib.load(CLF_PATH) if CLF_PATH else None
+# --------------------------------------------------------------------------------------
+def optional_path(path: Path) -> Path | None:
+    return path if path.exists() else None
+
+
+VEC_PATH = optional_path(ARTIFACTS / "vectorizer.pkl")
+CLF_PATH = optional_path(ARTIFACTS / "clf.pkl")
+PRIOR_RECIPIENT_PATH = optional_path(ARTIFACTS / "recipient_prior.pkl")
+PRIOR_DOMAIN_PATH = optional_path(ARTIFACTS / "domain_prior.pkl")
+
+print("[DEBUG] Loading artifacts from:", ARTIFACTS.resolve())
+vectorizer = joblib.load(VEC_PATH) if VEC_PATH else None
+classifier = joblib.load(CLF_PATH) if CLF_PATH else None
 prior_recipient: Dict[str, Dict[str, float]] = (
-    joblib.load(PRIOR_RECIP_PATH) if PRIOR_RECIP_PATH else {}
+    joblib.load(PRIOR_RECIPIENT_PATH) if PRIOR_RECIPIENT_PATH else {}
 )
 prior_domain: Dict[str, Dict[str, float]] = (
     joblib.load(PRIOR_DOMAIN_PATH) if PRIOR_DOMAIN_PATH else {}
 )
 
-if clf is not None:
+if classifier is not None:
     try:
-        print("[DEBUG] Model classes:", list(getattr(clf, "classes_", [])))
-    except Exception as e:
-        print("[DEBUG] Could not read model classes:", e)
+        _ = classifier.classes_
+    except Exception:
+        raise RuntimeError("Classifier missing classes_ attribute")
 
 
 # --------------------------------------------------------------------------------------
@@ -77,7 +129,7 @@ if clf is not None:
 class PredictReq(BaseModel):
     to: str = Field(..., description="Recipient email, e.g. buyer@vendor.com")
     subject: str = ""
-    body_hint: str = ""  # optional context you might type
+    body_hint: str = ""
 
 
 class PredictResp(BaseModel):
@@ -91,7 +143,7 @@ class PredictResp(BaseModel):
 
 class GenerateReq(BaseModel):
     intent: str
-    fields: Dict[str, Any]
+    fields: Dict[str, Any] = {}
 
 
 class GenerateResp(BaseModel):
@@ -101,65 +153,17 @@ class GenerateResp(BaseModel):
 
 
 # --------------------------------------------------------------------------------------
-# App
-# --------------------------------------------------------------------------------------
-app = FastAPI(title="ops-mail-studio", version="0.6.0")
-
-# CORS (loose for local dev; tighten for deployment)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Serve static UI if present at /ui
-if UI_DIR.is_dir():
-    app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
-
-
-# --------------------------------------------------------------------------------------
-# Helpers
-# --------------------------------------------------------------------------------------
-def softmax(z: np.ndarray) -> np.ndarray:
-    z = z - np.max(z)
-    e = np.exp(z)
-    return e / e.sum()
-
-
-def split_subject_body(rendered: str) -> Tuple[str, str]:
-    lines = (rendered or "").strip().splitlines()
-    if lines and lines[0].lower().startswith("subject:"):
-        subject = lines[0].split(":", 1)[1].strip()
-        body = "\n".join(lines[1:]).lstrip()
-        return subject, body
-    return "", (rendered or "").strip()
-
-
-def normalize_probs(d: Dict[str, float]) -> Dict[str, float]:
-    s = float(sum(d.values())) or 0.0
-    return {k: v / s for k, v in d.items()} if s else {}
-
-
-# --------------------------------------------------------------------------------------
-# Endpoints
+# Health / schema
 # --------------------------------------------------------------------------------------
 @app.get("/health")
 def health():
-    model_classes = []
-    try:
-        model_classes = list(getattr(clf, "classes_", [])) if clf else []
-    except Exception:
-        model_classes = []
+    model_loaded = bool(classifier is not None and vectorizer is not None)
+    model_classes = list(getattr(classifier, "classes_", [])) if model_loaded else []
     return {
-        "vectorizer_loaded": bool(vec),
-        "classifier_loaded": bool(clf),
-        "recipient_prior_loaded": bool(prior_recipient),
-        "domain_prior_loaded": bool(prior_domain),
-        "config_intents": list(INTENTS.keys()),  # what /generate supports
-        "model_classes": model_classes,  # what /predict can output
-        "artifacts_path": str(ART.resolve()),
+        "ok": True,
+        "model_loaded": model_loaded,
+        "model_classes": model_classes,
+        "artifacts_path": str(ARTIFACTS.resolve()),
         "confidence_threshold": CONFIDENCE_THRESHOLD,
     }
 
@@ -170,58 +174,73 @@ def schema():
     return INTENTS
 
 
+# --------------------------------------------------------------------------------------
+# Predict (Auto-detect intent)
+# --------------------------------------------------------------------------------------
 @app.post("/predict", response_model=PredictResp)
 def predict(req: PredictReq):
-    # Clean subject/body_hint same as training
-    subj_clean, body_clean = clean_subject_body(
-        req.subject, req.body_hint, is_html=False
+    subject_clean, body_clean = clean_subject_body(
+        req.subject or "", req.body_hint or ""
     )
-    text = (subj_clean + " || " + body_clean).lower().strip()
+    text = f"{subject_clean} {body_clean}".strip()
 
-    # Model probability (if artifacts exist and there is text)
+    # Model probabilities
     model_probs: Dict[str, float] = {}
-    if vec and clf and text:
-        X = vec.transform([text])
-        if hasattr(clf, "decision_function"):
-            z = clf.decision_function(X).ravel()
-            labels = clf.classes_
-            P = softmax(z)
-            model_probs = {lbl: float(p) for lbl, p in zip(labels, P)}
+    if vectorizer is not None and classifier is not None and text:
+        features = vectorizer.transform([text])
+        if hasattr(classifier, "predict_proba"):
+            probabilities = classifier.predict_proba(features).ravel()
         else:
-            proba = getattr(clf, "predict_proba")(X).ravel()
-            labels = clf.classes_
-            model_probs = {lbl: float(p) for lbl, p in zip(labels, proba)}
+            decision_values = classifier.decision_function(features).ravel()
+            probabilities = softmax(decision_values)
+        labels = classifier.classes_
+        model_probs = {
+            label_name: float(prob) for label_name, prob in zip(labels, probabilities)
+        }
 
     # Recipient/domain priors
-    recip = (req.to or "").lower()
-    rec_probs = normalize_probs(prior_recipient.get(recip, {}))
-    dom_probs = {}
-    if not rec_probs and "@" in recip:
-        dom = recip.split("@", 1)[1]
-        dom_probs = normalize_probs(prior_domain.get(dom, {}))
+    recipient = (req.to or "").lower()
+    recipient_probs = normalize_probs(prior_recipient.get(recipient, {}))
+    domain_probs: Dict[str, float] = {}
+    if not recipient_probs and "@" in recipient:
+        domain = recipient.split("@", 1)[1]
+        domain_probs = normalize_probs(prior_domain.get(domain, {}))
 
-    # Weights: favor model when present, otherwise lean on priors
-    alpha = 0.7 if model_probs else 0.0  # model
-    beta = 0.2 if (not rec_probs and dom_probs) else 0.0  # domain prior
-    gamma = max(0.0, 1.0 - alpha - beta)  # recipient prior
+    # Weighting
+    alpha = 0.7 if model_probs else 0.0
+    beta = 0.2 if (not recipient_probs and domain_probs) else 0.0
+    gamma = max(0.0, 1.0 - alpha - beta)
 
-    intents = set(INTENTS.keys()) | set(model_probs) | set(rec_probs) | set(dom_probs)
-    combined: List[Tuple[str, float]] = []
-    for i in intents:
-        p_model = model_probs.get(i, 0.0)
-        p_rec = rec_probs.get(i, 0.0)
-        p_dom = dom_probs.get(i, 0.0)
-        score = alpha * p_model + gamma * p_rec + beta * p_dom
-        combined.append((i, float(score)))
+    all_intents = (
+        set(INTENTS.keys())
+        | set(model_probs.keys())
+        | set(recipient_probs.keys())
+        | set(domain_probs.keys())
+    )
 
-    combined.sort(key=lambda x: x[1], reverse=True)
+    combined_scores: List[Tuple[str, float]] = []
+    for intent_name in all_intents:
+        p_model = model_probs.get(intent_name, 0.0)
+        p_rec = recipient_probs.get(intent_name, 0.0)
+        p_dom = domain_probs.get(intent_name, 0.0)
+        total_score = alpha * p_model + gamma * p_rec + beta * p_dom
+        combined_scores.append((intent_name, float(total_score)))
+
+    combined_scores.sort(key=lambda item: item[1], reverse=True)
     top_intent, top_score = ("", 0.0)
-    if combined:
-        top_intent, top_score = combined[0]
+    if combined_scores:
+        top_intent, top_score = combined_scores[0]
 
-    # -------------------
-    # Guardrail decision
-    # -------------------
+    # Keyword fallback
+    if (not top_intent or top_score < CONFIDENCE_THRESHOLD) and FALLBACK_ENABLED:
+        text_lower = text.lower()
+        for intent_name, keywords in RULES.items():
+            if isinstance(keywords, list) and not intent_name.startswith("_"):
+                if any(keyword.lower() in text_lower for keyword in keywords):
+                    top_intent = intent_name
+                    top_score = max(top_score, CONFIDENCE_THRESHOLD)
+                    break
+
     auto_suggest = bool(top_score >= CONFIDENCE_THRESHOLD)
     if top_score < LOW_CONFIDENCE_THRESHOLD:
         message = "Low confidence — choose from top_k or provide more context."
@@ -233,22 +252,31 @@ def predict(req: PredictReq):
     return {
         "intent": top_intent,
         "confidence": float(top_score),
-        "top_k": [(i, float(s)) for i, s in combined[:5]],
+        "top_k": [
+            (intent_name, float(score)) for intent_name, score in combined_scores[:5]
+        ],
         "auto_suggest": auto_suggest,
         "threshold": CONFIDENCE_THRESHOLD,
         "message": message,
     }
 
 
+# --------------------------------------------------------------------------------------
+# Generate
+# --------------------------------------------------------------------------------------
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq):
     if req.intent not in INTENTS:
         raise HTTPException(status_code=400, detail=f"Unknown intent: {req.intent}")
-    meta = INTENTS[req.intent]
-    tmpl_name = meta["template"]
-    required = meta.get("required", [])
-    missing = [k for k in required if not str(req.fields.get(k, "")).strip()]
-    template = env.get_template(tmpl_name)
+
+    metadata = INTENTS[req.intent]
+    template_name = metadata["template"]
+    required_fields = metadata.get("required", [])
+    missing_fields = [
+        field for field in required_fields if not str(req.fields.get(field, "")).strip()
+    ]
+    template = jinja_env.get_template(template_name)
     rendered = template.render(**req.fields)
     subject, body = split_subject_body(rendered)
-    return {"subject": subject, "body": body, "missing": missing}
+
+    return {"subject": subject, "body": body, "missing": missing_fields}
