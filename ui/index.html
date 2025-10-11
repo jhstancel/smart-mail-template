@@ -1003,6 +1003,21 @@ if (livePreviewEl){
 
 
 
+
+// Hide or show Generate button based on Live Preview toggle
+const btnGenerate = document.getElementById('btnGenerate');
+if (livePreviewEl && btnGenerate) {
+  const updateGenerateVisibility = () => {
+    btnGenerate.style.display = livePreviewEl.checked ? 'none' : '';
+  };
+  livePreviewEl.addEventListener('change', updateGenerateVisibility);
+  updateGenerateVisibility(); // run once on load
+}
+
+
+
+
+
 /* ===== Gear splash tooltip (Minecraft messages) ===== */
 let splashTimer=null;
 settingsBtn.addEventListener('mouseenter', ()=>{
