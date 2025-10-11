@@ -1296,6 +1296,11 @@ async function triggerCorruption(){
       });
     }
     if(els.predInfo) els.predInfo.style.display='flex';
+// Auto-generate fields for predicted intent
+if (data?.intent && typeof window.setSelectedIntent === 'function') {
+  window.setSelectedIntent(data.intent);
+}
+
   }
 
   async function predictNow(hintVal){
