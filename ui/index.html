@@ -436,10 +436,21 @@
       <span class="subtitle" id="fieldsHint">(Select An Option Or Use Auto Detect)</span>
     </div>
     <div id="fields" class="kvs"></div>
-    <div class="inline" style="margin:8px 0">
-      <button id="btnGenerate" class="btn">Generate</button>
-      <span id="missing" class="muted"></span>
-    </div>
+
+
+
+
+
+
+<div class="inline" style="margin:8px 0">
+  <button id="btnGenerate" class="btn">Generate</button>
+</div>
+
+
+
+
+
+
   </div>
 
   <!-- Output -->
@@ -911,7 +922,6 @@ async function runLiveGenerate(){
   try{
     const res = await postJSON('/generate', { intent: SELECTED_INTENT, fields });
     const missing = (res.missing && res.missing.length) ? res.missing.map(toTitle).join(', ') : '';
-    $('#missing').textContent = missing ? `Missing: ${missing}` : '';
     await typeSubjectAndBody(res.subject||'', res.body||'');
   }catch(_){}
 }
@@ -922,17 +932,14 @@ function scheduleLiveGenerate(){
 }
 
 
-
-
 /* ===== Generate ===== */
 $('#btnGenerate').addEventListener('click', async ()=>{
-  if(!SELECTED_INTENT){ $('#missing').textContent = 'Select An Option (Or Auto Detect) First.'; return; }
+  if (!SELECTED_INTENT) return;
   const fields = collectFields(SELECTED_INTENT);
   const res = await postJSON('/generate', { intent: SELECTED_INTENT, fields });
-  const missing = (res.missing && res.missing.length) ? res.missing.map(toTitle).join(', ') : '';
-  $('#missing').textContent = missing ? `Missing: ${missing}` : '';
-  await typeSubjectAndBody(res.subject||'', res.body||'');
+  await typeSubjectAndBody(res.subject || '', res.body || '');
 });
+
 
 /* ===== Toast helper ===== */
 function flashToast(btn, text='Copied!'){
