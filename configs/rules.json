@@ -52,8 +52,8 @@
   ],
   "_autodetect": {
     "enabled": true,
-    "threshold": 0.62,
-    "low_threshold": 0.45,
+    "threshold": 0.55,
+    "low_threshold": 0.40,
     "fallback": true
   }
 }
