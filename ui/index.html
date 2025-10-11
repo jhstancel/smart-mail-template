@@ -771,8 +771,10 @@ function extractFirstDateISO(text){
   return `${yyyy}-${mm}-${dd}`; // input[type=date] expects ISO YYYY-MM-DD
 }
 function extractRecipientName(text){
-  const m = text.match(/\bto\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b/);
-  return m ? m[1] : '';
+  const m = text.match(/\bto\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}|[a-z]+(?:\s+[a-z]+){0,2})\b/);
+  if(!m) return '';
+  // Title-case it
+  return m[1].split(/\s+/).map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
 }
 function extractQuantity(text){
   const m = text.match(/\b(?:qty|quantity|x)\s*[:#-]?\s*(\d{1,6})\b/i);
@@ -821,6 +823,142 @@ function existingFieldIdFor(cands){
   }
   return null;
 }
+function chooseDateFieldId(hint){
+  const lower = (hint||'').toLowerCase();
+
+  const map = {
+    ship:  ['ship_date','shipOn','shipDate','shippingDate','dispatch_date','dispatchDate'],
+    deliv: ['delivery_date','deliverBy','deliveryBy','deliveryDate','arrive_by','arrival_date','arrivalDate'],
+    due:   ['due_date','needBy','requested_by','requestedBy','deadline','dueDate']
+  };
+
+  const shipHit  = /(ship|dispatch|send|outbound|ship\s*on|ship\s*by)/.test(lower);
+  const delivHit = /(deliver|delivery|arrive|arrival|eta|edd)/.test(lower);
+  const dueHit   = /\b(due|deadline|need\s*by|requested\s*by|eod|cob)\b/.test(lower);
+
+  if(shipHit){ const id = existingFieldIdFor(map.ship);  if(id) return id; }
+  if(delivHit){ const id = existingFieldIdFor(map.deliv); if(id) return id; }
+  if(dueHit){ const id = existingFieldIdFor(map.due);    if(id) return id; }
+
+  // fallback: whichever exists in this order
+  return existingFieldIdFor([...map.ship, ...map.deliv, ...map.due]);
+}
+
+
+
+
+
+
+// ---- Date helpers ----
+const MONTHS = ["january","february","march","april","may","june","july","august","september","october","november","december"];
+const WKD = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+
+function pad2(n){ return String(n).padStart(2,'0'); }
+function toISO(y,m,d){ return `${y}-${pad2(m)}-${pad2(d)}`; }
+
+function nextWeekdayISO(targetIdx){ // 0=Sun ... 6=Sat
+  const now = new Date();
+  const day = now.getDay();
+  let add = (targetIdx - day + 7) % 7;
+  if(add === 0) add = 7; // next, not today
+  const dt = new Date(now.getFullYear(), now.getMonth(), now.getDate() + add);
+  return toISO(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+}
+
+function extractNaturalDateISO(text){
+  if(!text) return '';
+  const t = text.toLowerCase();
+
+  // today / tomorrow
+  if(/\btoday\b/.test(t)){
+    const dt = new Date(); return toISO(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+  }
+  if(/\b(tomorrow|tmr|tmrw)\b/.test(t)){
+    const dt = new Date(); dt.setDate(dt.getDate()+1);
+    return toISO(dt.getFullYear(), dt.getMonth()+1, dt.getDate());
+  }
+
+  // next <weekday>
+  for(let i=0;i<7;i++){
+    if(t.includes(`next ${WKD[i]}`)) return nextWeekdayISO(i);
+  }
+
+  // Month-name dates (Oct 6, Oct 6 2025, October 6th, 2025)
+  const m = t.match(new RegExp(`\\b(${MONTHS.join('|')})\\s+(\\d{1,2})(?:st|nd|rd|th)?(?:,?\\s*(\\d{4}|\\'\\d{2}|\\d{2}))?\\b`, 'i'));
+  if(m){
+    const mm = MONTHS.indexOf(m[1].toLowerCase())+1;
+    const dd = parseInt(m[2],10);
+    let yyyy = (m[3] ? String(m[3]).replace(/[^0-9]/g,'') : '');
+    if(!yyyy){ yyyy = String(new Date().getFullYear()); }
+    else if(yyyy.length===2){ yyyy = String(2000 + parseInt(yyyy,10)); }
+    return toISO(+yyyy, mm, dd);
+  }
+
+  // EOD/COB <date> → just treat like the date
+  // handled by numeric extractors below
+  return '';
+}
+
+// Broadened numeric date extractor: 10/6, 10-06-25, 2025-10-06
+function extractAnyNumericDateISO(text){
+  if(!text) return '';
+  // YYYY-MM-DD
+  let m = text.match(/\b(20\d{2})[\/\-\.](\d{1,2})[\/\-\.](\d{1,2})\b/);
+  if(m){ return toISO(+m[1], +m[2], +m[3]); }
+  // MM/DD[/YY(YY)] or MM-DD[-YY(YY)] or M.D.YY
+  m = text.match(/\b(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{2,4}))?\b/);
+  if(m){
+    const mm = +m[1], dd = +m[2];
+    let yyyy = m[3];
+    if(!yyyy){ yyyy = String(new Date().getFullYear()); }
+    else { yyyy = (String(yyyy).length===2) ? (2000+parseInt(yyyy,10)) : +yyyy; }
+    return toISO(+yyyy, mm, dd);
+  }
+  return '';
+}
+
+// Single API: try natural, then numeric
+function extractSmartDateISO(text){
+  return extractNaturalDateISO(text) || extractAnyNumericDateISO(text) || '';
+}
+
+// ---- Other extractors ----
+function extractEmail(text){
+  if(!text) return '';
+  const m = text.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+  return m ? m[0] : '';
+}
+
+function extractOrg(text){
+  if(!text) return '';
+  // "... to Skylar at Acme Aerospace", "... for Acme"
+  const m = text.match(/\b(?:at|for)\s+([A-Z][\w&.\- ]{2,})\b/);
+  return m ? m[1].trim().replace(/[.,]$/,'') : '';
+}
+
+function extractService(text){
+  if(!text) return '';
+  const m = text.match(/\b(overnight|next\s*day|2[-\s]*day|two[-\s]*day|ground|priority|express|saver)\b/i);
+  return m ? m[1] : '';
+}
+
+// More IDs
+function extractOrderNumber(text){
+  const m = text.match(/\b(?:order|so|sales\s*order)\s*(?:no|#|number)?\s*[:\-]?\s*([A-Za-z0-9\-]{3,})\b/i);
+  return m ? m[1] : '';
+}
+function extractQuoteNumber(text){
+  const m = text.match(/\b(?:quote|quotation|qte)\s*(?:no|#|number)?\s*[:\-]?\s*([A-Za-z0-9\-]{3,})\b/i);
+  return m ? m[1] : '';
+}
+function extractRMANumber(text){
+  const m = text.match(/\b(?:rma|return\s*auth(?:orization)?)\s*(?:no|#|number)?\s*[:\-]?\s*([A-Za-z0-9\-]{3,})\b/i);
+  return m ? m[1] : '';
+}
+
+
+
+
 
 
 
@@ -828,43 +966,70 @@ function existingFieldIdFor(cands){
 function autoPopulateFields(intent, hint){
   if(!intent || !SCHEMA[intent] || !hint) return;
 
-  const trySet = (key, val, isDate=false)=>{
-    if(!key || !val) return;
-    const el = document.getElementById(`f_${key}`);
+  // don't overwrite user-entered values
+  const trySet = (fieldId, val, isDate=false)=>{
+    if(!fieldId || !val) return;
+    const el = document.getElementById(`f_${fieldId}`);
     if(!el || el.value) return;
     el.value = isDate ? val : val;
   };
 
+  // candidates now include camelCase + snake_case variants
   const CANDIDATES = {
-    name: ['name','contact','contact_name','recipient','recipient_name','to_name','customer','customer_name','buyer','buyer_name','recipientName','customerName','buyerName','toName'],
-    date: ['date','ship_date','delivery_date','due_date','requested_by','need_by','invoice_date','po_date','payment_date','arrival_date','shipDate','deliveryDate','dueDate','invoiceDate','poDate','paymentDate','arrivalDate','needBy','requestedBy'],
-    qty:  ['qty','quantity','units','count','amount'],
-    pn:   ['pn','part','part_number','partno','item','item_number','partNumber','itemNumber'],
+    name: ['name','contact','contact_name','recipient','recipient_name','to_name','customer','customer_name','buyer','buyer_name','recipientName','customerName','buyerName','toName','client','client_name','clientName'],
+    email:['email','recipient_email','to_email','customer_email','emailAddress','recipientEmail','toEmail','customerEmail'],
+    org:  ['company','org','organization','customer_company','customer_org','companyName','organizationName','orgName'],
+    qty:  ['qty','quantity','units','count','amount','qtyOrdered','quantityOrdered'],
+    pn:   ['pn','part','part_number','partno','item','item_number','partNumber','itemNumber','sku','sku_number','skuNumber'],
     trk:  ['tracking','tracking_number','trk','waybill','trackingNumber'],
-    car:  ['carrier','ship_via','shipper','service','shipVia'],
+    car:  ['carrier','ship_via','shipper','service','shipVia','shippingService'],
+    svc:  ['service_level','serviceLevel','ship_service','shipService'],
     po:   ['po','po_number','purchase_order','poNumber','purchaseOrder'],
-    inv:  ['invoice','invoice_number','inv','inv_number','invoiceNumber']
+    so:   ['order','order_number','sales_order','salesOrder','orderNumber'],
+    quote:['quote','quote_number','quotation','quoteNumber','quotationNumber'],
+    rma:  ['rma','rma_number','return_auth','return_authorization','rmaNumber'],
+    inv:  ['invoice','invoice_number','inv','inv_number','invoiceNumber'],
+    url:  ['link','url','document_link','documentUrl']
   };
 
-  const iso = extractFirstDateISO(hint);
+  // ---- Extract values from hint ----
+  const iso = extractSmartDateISO(hint);
   const who = extractRecipientName(hint);
+  const email = extractEmail(hint);
+  const org = extractOrg(hint);
   const qty = extractQuantity(hint);
   const pn  = extractPartNumber(hint);
   const trk = extractTracking(hint);
   const car = extractCarrier(hint);
+  const svc = extractService(hint);
   const po  = extractPONumber(hint);
+  const so  = extractOrderNumber(hint);
+  const qn  = extractQuoteNumber(hint);
+  const rma = extractRMANumber(hint);
   const inv = extractInvoiceNumber(hint);
 
-  // Pick the first *existing* field id for each group using normalized matching
+  // ---- Resolve actual field ids present in DOM (normalized) ----
   const nameKey = existingFieldIdFor(CANDIDATES.name); if (nameKey && who) trySet(nameKey, who);
-  const dateKey = existingFieldIdFor(CANDIDATES.date); if (dateKey && iso) trySet(dateKey, iso, true);
+  const emailKey= existingFieldIdFor(CANDIDATES.email);if (emailKey && email) trySet(emailKey, email);
+  const orgKey  = existingFieldIdFor(CANDIDATES.org);  if (orgKey && org) trySet(orgKey, org);
   const qtyKey  = existingFieldIdFor(CANDIDATES.qty);  if (qtyKey && qty) trySet(qtyKey, qty);
   const pnKey   = existingFieldIdFor(CANDIDATES.pn);   if (pnKey  && pn)  trySet(pnKey, pn);
   const trkKey  = existingFieldIdFor(CANDIDATES.trk);  if (trkKey && trk) trySet(trkKey, trk);
   const carKey  = existingFieldIdFor(CANDIDATES.car);  if (carKey && car) trySet(carKey, car);
+  const svcKey  = existingFieldIdFor(CANDIDATES.svc);  if (svcKey && svc) trySet(svcKey, svc);
   const poKey   = existingFieldIdFor(CANDIDATES.po);   if (poKey  && po)  trySet(poKey, po);
+  const soKey   = existingFieldIdFor(CANDIDATES.so);   if (soKey  && so)  trySet(soKey, so);
+  const qnKey   = existingFieldIdFor(CANDIDATES.quote);if (qnKey  && qn)  trySet(qnKey, qn);
+  const rmaKey  = existingFieldIdFor(CANDIDATES.rma);  if (rmaKey && rma) trySet(rmaKey, rma);
   const invKey  = existingFieldIdFor(CANDIDATES.inv);  if (invKey && inv) trySet(invKey, inv);
+
+  // Date: choose the most appropriate date field based on wording
+  if (iso){
+    const dateFieldId = chooseDateFieldId(hint);
+    if (dateFieldId) trySet(dateFieldId, iso, true);
+  }
 }
+
 
 window.autoPopulateFields = autoPopulateFields;
 
