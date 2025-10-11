@@ -355,6 +355,17 @@
       <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
     </div>
     <div id="subTyping" class="settings-subpanel">
+<!-- inside: <div id="subTyping" class="settings-subpanel"> -->
+<div class="settings-row" style="justify-content:space-between; margin:8px 0">
+  <div>
+    <div class="label">Live Output Preview</div>
+    <div class="hint">Auto-fill subject &amp; body while typing</div>
+  </div>
+  <label class="toggle" aria-label="Enable Live Output Preview">
+    <input id="livePreview" type="checkbox" /> Live Preview
+  </label>
+</div>
+
       <label class="toggle" for="liveCompose" style="margin-top:2px">
         <input id="liveCompose" type="checkbox" checked /> Compose Live
       </label>
@@ -519,6 +530,7 @@ const outSubject = $('#outSubject');
 const outBody = $('#outBody');
 const health = $('#health');
 const themeSelect = $('#themeSelect');
+const livePreviewEl = document.getElementById('livePreview');
 
 const splashTip = $('#splashTip');
 const settingsBtn = $('#settingsBtn');
@@ -785,17 +797,16 @@ function collectFields(intent){
 
 
 
+
+
+
+
+
 function setSelectedIntent(name){
   SELECTED_INTENT = name || null;
   renderFields(SELECTED_INTENT);
+  scheduleLiveGenerate(); // <— new: run once when intent changes (if enabled)
 }
-
-
-
-
-
-
-
 
 
 
@@ -888,6 +899,31 @@ async function typeSubjectAndBody(newSubject, newBody){
   prevSubject = newSubject; prevBody = newBody;
 }
 
+
+
+/* ===== Live Output Preview (debounced) ===== */
+let liveTimer = null;
+async function runLiveGenerate(){
+  if (!SELECTED_INTENT) return;
+  if (!livePreviewEl || !livePreviewEl.checked) return;
+
+  const fields = collectFields(SELECTED_INTENT);
+  try{
+    const res = await postJSON('/generate', { intent: SELECTED_INTENT, fields });
+    const missing = (res.missing && res.missing.length) ? res.missing.map(toTitle).join(', ') : '';
+    $('#missing').textContent = missing ? `Missing: ${missing}` : '';
+    await typeSubjectAndBody(res.subject||'', res.body||'');
+  }catch(_){}
+}
+function scheduleLiveGenerate(){
+  if (!livePreviewEl || !livePreviewEl.checked) return;
+  clearTimeout(liveTimer);
+  liveTimer = setTimeout(runLiveGenerate, 180);
+}
+
+
+
+
 /* ===== Generate ===== */
 $('#btnGenerate').addEventListener('click', async ()=>{
   if(!SELECTED_INTENT){ $('#missing').textContent = 'Select An Option (Or Auto Detect) First.'; return; }
@@ -924,6 +960,17 @@ function clearAll(){
   renderFields(null);
 }
 
+
+
+
+// Delegate: any change in Fields triggers live preview (when enabled)
+fieldsWrap.addEventListener('input', scheduleLiveGenerate, { passive:true });
+fieldsWrap.addEventListener('change', scheduleLiveGenerate, { passive:true });
+
+
+
+
+
 /* ===== Copy ===== */
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
 $('#copySubject').addEventListener('click', (e)=>{ copyText(outSubject.textContent); flashToast(e.currentTarget, 'Copied'); });
@@ -946,6 +993,15 @@ settingsBtn.addEventListener('click', ()=>{ const isOpen = settingsMenu.classLis
 itemTheme.addEventListener('click', ()=> openOnly(subTheme, itemTheme.querySelector('.chev')));
 itemTyping.addEventListener('click', ()=> openOnly(subTyping, itemTyping.querySelector('.chev')));
 window.addEventListener('click', (e)=>{ if(!settingsMenu.contains(e.target) && !settingsBtn.contains(e.target)){ settingsMenu.classList.remove('open'); settingsBtn.setAttribute('aria-expanded','false'); closeAllSubs(); }});
+
+// Live Output Preview toggle: when turned on, run once immediately
+if (livePreviewEl){
+  livePreviewEl.addEventListener('change', ()=>{
+    if (livePreviewEl.checked) scheduleLiveGenerate();
+  });
+}
+
+
 
 /* ===== Gear splash tooltip (Minecraft messages) ===== */
 let splashTimer=null;
