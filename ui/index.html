@@ -726,8 +726,7 @@ function renderFields(intent){
     return;
   }
   const req = SCHEMA[intent].required || [];
-  const niceList = req.map(toTitle).join(', ');
-  fieldsHint.textContent = req.length ? `Required Fields: ${niceList}` : 'No Required Fields';
+  fieldsHint.textContent = '';
 
   for(const key of req){
     const wrap = document.createElement('div');
