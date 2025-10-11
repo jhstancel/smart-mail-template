@@ -432,28 +432,14 @@
   <!-- Fields -->
   <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
-
-
-<h2 id="fieldsTitle" class="title" style="font-size:18px; margin:0">Fields</h2>
-
+      <h2 id="fieldsTitle" class="title" style="font-size:18px; margin:0">Fields</h2>
       <span class="subtitle" id="fieldsHint">(Select An Option Or Use Auto Detect)</span>
     </div>
     <div id="fields" class="kvs"></div>
 
-
-
-
-
-
-<div class="inline" style="margin:8px 0">
-  <button id="btnGenerate" class="btn">Generate</button>
-</div>
-
-
-
-
-
-
+    <div class="inline" style="margin:8px 0">
+      <button id="btnGenerate" class="btn">Generate</button>
+    </div>
   </div>
 
   <!-- Output -->
@@ -516,7 +502,6 @@ const toTitle = (key) => key.replace(/[\-_]+/g,' ').replace(/([a-z])([A-Z])/g,'$
 function badge(score, thr=0.55){ const pct = Math.round(score*100); let cls='pill'; if(score>=thr) cls+=' ok'; else if(score>=0.45) cls+=' warn'; else cls+=' bad'; return `<span class="${cls}">${pct}%</span>`; }
 function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
-
 // Format date as MM/DD or MM/DD/YYYY if year differs
 function asShortDate(iso){
   if(!iso || typeof iso !== 'string' || iso.length < 10) return '';
@@ -526,9 +511,6 @@ function asShortDate(iso){
   const currentYr = new Date().getFullYear().toString();
   return (yr === currentYr) ? `${m}/${d}` : `${m}/${d}/${yr}`;
 }
-
-
-
 
 /* ===== Elements & state ===== */
 const intentGrid = $('#intentGrid');
@@ -623,66 +605,38 @@ function renderIntentGrid(){
   intentGrid.appendChild(auto);
 }
 
-
-
-
 /* ===== Fields ===== */
 function isDateKey(key){
-  // normalize: camelCase -> snake_case, then lower
   const k = String(key || '')
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .replace(/[\s\-]+/g, '_')
     .toLowerCase();
 
-  // obvious direct hits
-  if (/_date(?:_|$)/.test(k)) return true;       // ship_date, payment_date, etc.
-  if (/(^|_)date(_|$)/.test(k)) return true;     // …_date_…
-
-  // common “date-ish” patterns (deadline / due / eta / need_by / requested_by)
+  if (/_date(?:_|$)/.test(k)) return true;
+  if (/(^|_)date(_|$)/.test(k)) return true;
   if (/(^|_)(deadline|due|eta|requested_by|need_by)(_|$)/.test(k)) return true;
-
-  // shipDate / deliveryDate / pickupDate / arrivalDate / invoiceDate / poDate / paymentDate
   if (/(^|_)(ship|shipping|delivery|dispatch|pickup|arrival|invoice|po|payment)_?date$/.test(k)) return true;
 
   return false;
 }
-
-
-
 
 // Global override list you can extend anytime (optional)
 window.DATE_FIELD_KEYS = new Set([
   // add custom one-offs here if needed, e.g. 'net_terms_until'
 ]);
 
-
-
-
-
-
-
 function normalizeKey(key){
   return String(key || '')
-    // camelCase → snake_case
     .replace(/([a-z])([A-Z])/g, '$1_$2')
-    // replace common punctuation and separators with underscores
     .replace(/[()\[\]{}\/\\|.,;:#@!?\s\-]+/g, '_')
-    // drop trailing numeric tags like date1/date_2
     .replace(/_\d+$/,'')
-    // collapse multiple underscores
     .replace(/_{2,}/g, '_')
-    // trim edge underscores
     .replace(/^_+|_+$/g, '')
     .toLowerCase();
 }
 
-
-
-
-
 /* ===== Date Field Overrides ===== */
 window.DATE_FIELD_KEYS = new Set([
-  // add any weird keys once and forget them:
   'good_til',
   'good_till',
   'good_thru',
@@ -694,20 +648,13 @@ window.DATE_FIELD_KEYS = new Set([
   'availability_end'
 ]);
 
-
-
 /**
  * Returns: 'date' | 'text'
- * Priority:
- *   1) Backend hints (field_types / fields[key].type / fields[key].format)
- *   2) Global overrides (window.DATE_FIELD_KEYS)
- *   3) Heuristics on normalized key
  */
 function getFieldType(intent, key){
   const raw = String(key || '');
   const k = normalizeKey(raw);
 
-  // 1) Backend hints (various schemas supported)
   const ftMap     = SCHEMA[intent]?.field_types || SCHEMA[intent]?.fieldTypes || null;
   const fieldsObj = SCHEMA[intent]?.fields || null;
 
@@ -721,29 +668,20 @@ function getFieldType(intent, key){
     if (/(^|[^a-z])(date|datetime|time|iso8601)([^a-z]|$)/.test(t)) return 'date';
   }
 
-  // 2) Global overrides (you can push into this at runtime)
   if (window.DATE_FIELD_KEYS?.has?.(raw) || window.DATE_FIELD_KEYS?.has?.(k)) return 'date';
 
-  // 3) Heuristics (very broad)
-  // 3a. obvious direct matches
-  if (/(^|_)date(_|$)/.test(k)) return 'date';                 // contains "date"
+  if (/(^|_)date(_|$)/.test(k)) return 'date';
   if (/_(on|by|until|thru|through)$/.test(k) && /(ship|delivery|dispatch|pickup|arrival|invoice|po|payment|billing|return|refund|install|start|end|close|opening|closing|effective|expiration|expire|valid|availability|available)/.test(k)) return 'date';
-
-  // 3b. common synonyms/abbrevs
-  if (/(^|_)(eta|etd|ets|edd)(_|$)/.test(k)) return 'date';    // ETA/ETD/ETS/EDD
+  if (/(^|_)(eta|etd|ets|edd)(_|$)/.test(k)) return 'date';
   if (/(^|_)(deadline|due|need_by|requested_by|request_by|required_by|target|promised|promised_on|planned|schedule|scheduled)(_|$)/.test(k)) return 'date';
   if (/(^|_)(ship|shipping|deliver|delivery|dispatch|pickup|arrival|arrive|dropoff|handoff|book|booking)(_)?(date|on|by)?$/.test(k)) return 'date';
   if (/(^|_)(invoice|po|payment|billing|bill|debit|credit|refund|return)(_)?(date|on|by)?$/.test(k)) return 'date';
   if (/(^|_)(valid|validity|expire|expiration|effective|start|end|close|closing|opening|available|availability)(_)?(date|on|by|until|thru|through)?$/.test(k)) return 'date';
   if (/(^|_)(good|good_til|good_till|good_until|good_thru|good_through)(_|$)/.test(k)) return 'date';
-
-  // 3c. pairs like start/end, from/to often imply date; if name ends with _start|_end|_from|_to → treat as date
   if (/(_start|_end|_from|_to)$/.test(k)) return 'date';
 
   return 'text';
 }
-
-
 
 function renderFields(intent){
   const fieldsTitle = document.getElementById('fieldsTitle');
@@ -772,34 +710,21 @@ function renderFields(intent){
     const input = document.createElement('input');
     input.id = `f_${key}`;
 
-
-
-
-
-if (getFieldType(intent, key) === 'date'){
-  input.type = 'date';
-  input.placeholder = '';
-  input.inputMode = 'none';
-  // (optional) make browsers suggest a calendar, not text:
-  input.autocomplete = 'off';
-} else {
-  input.type = 'text';
-  input.placeholder = toTitle(key);
-}
-
-
-
-
+    if (getFieldType(intent, key) === 'date'){
+      input.type = 'date';
+      input.placeholder = '';
+      input.inputMode = 'none';
+      input.autocomplete = 'off';
+    } else {
+      input.type = 'text';
+      input.placeholder = toTitle(key);
+    }
 
     wrap.appendChild(label);
     wrap.appendChild(input);
     fieldsWrap.appendChild(wrap);
   }
 }
-
-
-
-
 
 function collectFields(intent){
   const req = SCHEMA[intent]?.required || [];
@@ -815,34 +740,133 @@ function collectFields(intent){
   return fields;
 }
 
-
-
-
-
-
-
-
-
-
-
 function setSelectedIntent(name){
   SELECTED_INTENT = name || null;
   renderFields(SELECTED_INTENT);
-  scheduleLiveGenerate(); // <— new: run once when intent changes (if enabled)
+  scheduleLiveGenerate(); // run once when intent changes (if enabled)
 }
-
-
-
-
-
-
-
-
-
 
 /* ===== API ===== */
 async function getJSON(u){ const r = await fetch(u); return r.json(); }
 async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(d)}); return r.json(); }
+
+/* ===== Hint Extractors (simple v1) ===== */
+function extractFirstDateISO(text){
+  if(!text) return '';
+  const m = text.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+  if(!m) return '';
+  let [ , mm, dd, yy ] = m;
+  mm = String(mm).padStart(2,'0'); dd = String(dd).padStart(2,'0');
+  let yyyy;
+  if(!yy){ yyyy = String(new Date().getFullYear()); }
+  else{
+    yy = String(yy);
+    if(yy.length === 2){
+      const base = 2000 + parseInt(yy,10);
+      yyyy = String(base);
+    }else{
+      yyyy = yy;
+    }
+  }
+  return `${yyyy}-${mm}-${dd}`; // input[type=date] expects ISO YYYY-MM-DD
+}
+function extractRecipientName(text){
+  const m = text.match(/\bto\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})\b/);
+  return m ? m[1] : '';
+}
+function extractQuantity(text){
+  const m = text.match(/\b(?:qty|quantity|x)\s*[:#-]?\s*(\d{1,6})\b/i);
+  return m ? m[1] : '';
+}
+function extractPartNumber(text){
+  const m = text.match(/\b(?:pn|part(?:\s*number)?)\s*[:#-]?\s*([A-Za-z0-9\-]+)\b/i);
+  return m ? m[1] : '';
+}
+function extractTracking(text){
+  if(!text) return '';
+  // Accept common labels and short placeholders (>=3 chars), trim trailing punctuation
+  const m = text.match(/\b(?:tracking(?:\s*(?:no|num|number))?|trk|tn)\s*[:#\-]?\s*([A-Za-z0-9][A-Za-z0-9\-]{2,})\b/i);
+  if (m) return m[1].replace(/[.,)\]]*$/, '');
+  // Fallback: UPS-style starting with 1Z even if short placeholder
+  const u = text.match(/\b(1Z[0-9A-Z\-]{1,})\b/i);
+  return u ? u[1].replace(/[.,)\]]*$/, '') : '';
+}
+function extractCarrier(text){
+  const m = text.match(/\b(UPS|FedEx|USPS|DHL)\b/i);
+  return m ? (m[1]||'') : '';
+}
+function extractPONumber(text){
+  const m = text.match(/\b(?:po|po#|po_number)\s*[:#-]?\s*([A-Za-z0-9\-]+)\b/i);
+  return m ? m[1] : '';
+}
+function extractInvoiceNumber(text){
+  const m = text.match(/\b(?:inv|invoice|invoice#)\s*[:#-]?\s*([A-Za-z0-9\-]+)\b/i);
+  return m ? m[1] : '';
+}
+
+
+function existingFieldIdFor(cands){
+  // Build a map of existing input ids (f_<key>) in both raw and normalized forms
+  const inputs = [...fieldsWrap.querySelectorAll('input[id^="f_"]')];
+  const map = new Map();
+  for (const n of inputs){
+    const raw = n.id.slice(2); // remove "f_"
+    map.set(raw, raw);
+    map.set(normalizeKey(raw), raw);
+  }
+  for (const c of (cands||[])){
+    if (map.has(c)) return map.get(c);
+    const nc = normalizeKey(c);
+    if (map.has(nc)) return map.get(nc);
+  }
+  return null;
+}
+
+
+
+/* ===== Auto-populate from Body Hint ===== */
+function autoPopulateFields(intent, hint){
+  if(!intent || !SCHEMA[intent] || !hint) return;
+
+  const trySet = (key, val, isDate=false)=>{
+    if(!key || !val) return;
+    const el = document.getElementById(`f_${key}`);
+    if(!el || el.value) return;
+    el.value = isDate ? val : val;
+  };
+
+  const CANDIDATES = {
+    name: ['name','contact','contact_name','recipient','recipient_name','to_name','customer','customer_name','buyer','buyer_name','recipientName','customerName','buyerName','toName'],
+    date: ['date','ship_date','delivery_date','due_date','requested_by','need_by','invoice_date','po_date','payment_date','arrival_date','shipDate','deliveryDate','dueDate','invoiceDate','poDate','paymentDate','arrivalDate','needBy','requestedBy'],
+    qty:  ['qty','quantity','units','count','amount'],
+    pn:   ['pn','part','part_number','partno','item','item_number','partNumber','itemNumber'],
+    trk:  ['tracking','tracking_number','trk','waybill','trackingNumber'],
+    car:  ['carrier','ship_via','shipper','service','shipVia'],
+    po:   ['po','po_number','purchase_order','poNumber','purchaseOrder'],
+    inv:  ['invoice','invoice_number','inv','inv_number','invoiceNumber']
+  };
+
+  const iso = extractFirstDateISO(hint);
+  const who = extractRecipientName(hint);
+  const qty = extractQuantity(hint);
+  const pn  = extractPartNumber(hint);
+  const trk = extractTracking(hint);
+  const car = extractCarrier(hint);
+  const po  = extractPONumber(hint);
+  const inv = extractInvoiceNumber(hint);
+
+  // Pick the first *existing* field id for each group using normalized matching
+  const nameKey = existingFieldIdFor(CANDIDATES.name); if (nameKey && who) trySet(nameKey, who);
+  const dateKey = existingFieldIdFor(CANDIDATES.date); if (dateKey && iso) trySet(dateKey, iso, true);
+  const qtyKey  = existingFieldIdFor(CANDIDATES.qty);  if (qtyKey && qty) trySet(qtyKey, qty);
+  const pnKey   = existingFieldIdFor(CANDIDATES.pn);   if (pnKey  && pn)  trySet(pnKey, pn);
+  const trkKey  = existingFieldIdFor(CANDIDATES.trk);  if (trkKey && trk) trySet(trkKey, trk);
+  const carKey  = existingFieldIdFor(CANDIDATES.car);  if (carKey && car) trySet(carKey, car);
+  const poKey   = existingFieldIdFor(CANDIDATES.po);   if (poKey  && po)  trySet(poKey, po);
+  const invKey  = existingFieldIdFor(CANDIDATES.inv);  if (invKey && inv) trySet(invKey, inv);
+}
+
+window.autoPopulateFields = autoPopulateFields;
 
 /* ===== Init ===== */
 (async function init(){
@@ -857,23 +881,22 @@ async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{
     CONF_THR = h.confidence_threshold || 0.55;
     if (health) health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
     SCHEMA = await getJSON('/schema')
-// After: SCHEMA = await getJSON('/schema');
-try{
-  for (const intent of Object.keys(SCHEMA || {})){
-    const req = SCHEMA[intent]?.required || [];
-    const all = new Set(req);
-    // include optional if present
-    (SCHEMA[intent]?.optional || []).forEach(k => all.add(k));
-    all.forEach((key)=>{
-      const k = normalizeKey(key);
-      if (/(^|_)date(_|$)|(^|_)(eta|etd|edd|deadline|due|need_by|requested_by)(_|$)/.test(k)) {
-        window.DATE_FIELD_KEYS.add(key);
-        window.DATE_FIELD_KEYS.add(k);
+    // After: SCHEMA = await getJSON('/schema');
+    try{
+      for (const intent of Object.keys(SCHEMA || {})){
+        const req = SCHEMA[intent]?.required || [];
+        const all = new Set(req);
+        (SCHEMA[intent]?.optional || []).forEach(k => all.add(k));
+        all.forEach((key)=>{
+          const k = normalizeKey(key);
+          if (/(^|_)date(_|$)|(^|_)(eta|etd|edd|deadline|due|need_by|requested_by)(_|$)/.test(k)) {
+            window.DATE_FIELD_KEYS.add(key);
+            window.DATE_FIELD_KEYS.add(k);
+          }
+        });
       }
-    });
-  }
-}catch(_){}
-;
+    }catch(_){}
+    ;
   }catch(e){
     if (health) health.textContent = 'Server Not Reachable';
   }
@@ -898,6 +921,14 @@ if (btnPredict){
         document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
         [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===toTitle(name.replaceAll('_',' ')))?.classList.add('active');
         setSelectedIntent(name);
+
+        // Auto-populate from current hint and refresh preview
+        setTimeout(()=>{
+          const hintNow = (document.getElementById('hint')?.value || '').trim();
+          if (hintNow) window.autoPopulateFields?.(name, hintNow);
+          window.scheduleLiveGenerate?.();
+        }, 60);
+
         window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
       });
       topK.appendChild(b);
@@ -922,8 +953,6 @@ async function typeSubjectAndBody(newSubject, newBody){
   prevSubject = newSubject; prevBody = newBody;
 }
 
-
-
 /* ===== Live Output Preview (debounced) ===== */
 let liveTimer = null;
 async function runLiveGenerate(){
@@ -942,7 +971,7 @@ function scheduleLiveGenerate(){
   clearTimeout(liveTimer);
   liveTimer = setTimeout(runLiveGenerate, 180);
 }
-
+window.scheduleLiveGenerate = scheduleLiveGenerate;
 
 /* ===== Generate ===== */
 $('#btnGenerate').addEventListener('click', async ()=>{
@@ -951,7 +980,6 @@ $('#btnGenerate').addEventListener('click', async ()=>{
   const res = await postJSON('/generate', { intent: SELECTED_INTENT, fields });
   await typeSubjectAndBody(res.subject || '', res.body || '');
 });
-
 
 /* ===== Toast helper ===== */
 function flashToast(btn, text='Copied!'){
@@ -964,31 +992,20 @@ function flashToast(btn, text='Copied!'){
 
 /* ===== Clear ===== */
 function clearAll(){
-  // Clear all text/email/date inputs and textareas
   document.querySelectorAll('input[type="text"], input[type="email"], input[type="date"], textarea').forEach(el => el.value = '');
-  // Clear outputs
   outSubject.textContent = '';
   outBody.textContent = '';
-  // Reset prediction UI
   predStatus.textContent = '';
   predInfo.style.display = 'none';
   topK.innerHTML = '';
-  // Deselect intents and reset fields
   document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
   SELECTED_INTENT = null;
   renderFields(null);
 }
 
-
-
-
 // Delegate: any change in Fields triggers live preview (when enabled)
 fieldsWrap.addEventListener('input', scheduleLiveGenerate, { passive:true });
 fieldsWrap.addEventListener('change', scheduleLiveGenerate, { passive:true });
-
-
-
-
 
 /* ===== Copy ===== */
 async function copyText(t){ try{ await navigator.clipboard.writeText(t); }catch(e){} }
@@ -1020,9 +1037,6 @@ if (livePreviewEl){
   });
 }
 
-
-
-
 // Hide or show Generate button based on Live Preview toggle
 const btnGenerate = document.getElementById('btnGenerate');
 if (livePreviewEl && btnGenerate) {
@@ -1032,10 +1046,6 @@ if (livePreviewEl && btnGenerate) {
   livePreviewEl.addEventListener('change', updateGenerateVisibility);
   updateGenerateVisibility(); // run once on load
 }
-
-
-
-
 
 /* ===== Gear splash tooltip (Minecraft messages) ===== */
 let splashTimer=null;
@@ -1302,17 +1312,32 @@ async function triggerCorruption(){
           const targetName = toNice(name);
           [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===targetName)?.classList.add('active');
           if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(name);
+
+          // After selecting via Top-K: auto-populate and trigger preview
+          setTimeout(()=>{
+            const hintNow = (document.getElementById('hint')?.value || '').trim();
+            if (hintNow) window.autoPopulateFields?.(name, hintNow);
+            window.scheduleLiveGenerate?.();
+          }, 60);
+
           window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
         });
         els.topK.appendChild(b);
       });
     }
     if(els.predInfo) els.predInfo.style.display='flex';
-// Auto-generate fields for predicted intent
-if (data?.intent && typeof window.setSelectedIntent === 'function') {
-  window.setSelectedIntent(data.intent);
-}
 
+    // Auto-generate fields for predicted intent
+    if (data?.intent && typeof window.setSelectedIntent === 'function') {
+      window.setSelectedIntent(data.intent);
+
+      // After selecting the predicted intent, auto-populate fields from the hint and kick preview
+      setTimeout(()=>{
+        const hintNow = (document.getElementById('hint')?.value || '').trim();
+        if (hintNow) window.autoPopulateFields?.(data.intent, hintNow);
+        window.scheduleLiveGenerate?.();
+      }, 60);
+    }
   }
 
   async function predictNow(hintVal){
