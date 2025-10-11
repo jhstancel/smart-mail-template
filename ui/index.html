@@ -432,7 +432,10 @@
   <!-- Fields -->
   <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
-      <h2 class="title" style="font-size:18px; margin:0">Fields</h2>
+
+
+<h2 id="fieldsTitle" class="title" style="font-size:18px; margin:0">Fields</h2>
+
       <span class="subtitle" id="fieldsHint">(Select An Option Or Use Auto Detect)</span>
     </div>
     <div id="fields" class="kvs"></div>
@@ -542,6 +545,7 @@ const outBody = $('#outBody');
 const health = $('#health');
 const themeSelect = $('#themeSelect');
 const livePreviewEl = document.getElementById('livePreview');
+const fieldsTitle = document.getElementById('fieldsTitle');
 
 const splashTip = $('#splashTip');
 const settingsBtn = $('#settingsBtn');
@@ -741,15 +745,23 @@ function getFieldType(intent, key){
 
 
 
-
 function renderFields(intent){
-  fieldsWrap.innerHTML = '';
-  if(!intent || !SCHEMA[intent]){
-    fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
-    return;
+  const fieldsTitle = document.getElementById('fieldsTitle');
+  if (fieldsTitle) {
+    fieldsTitle.textContent = intent
+      ? `Fields - ${toTitle(intent.replaceAll('_',' '))}`
+      : 'Fields';
   }
+
+  fieldsWrap.innerHTML = '';
+
+  fieldsHint.textContent = intent
+    ? ''
+    : '(Select An Option Or Use Auto Detect)';
+
+  if(!intent || !SCHEMA[intent]) return;
+
   const req = SCHEMA[intent].required || [];
-  fieldsHint.textContent = '';
 
   for(const key of req){
     const wrap = document.createElement('div');
