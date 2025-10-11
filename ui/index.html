@@ -491,6 +491,20 @@ const toTitle = (key) => key.replace(/[\-_]+/g,' ').replace(/([a-z])([A-Z])/g,'$
 function badge(score, thr=0.55){ const pct = Math.round(score*100); let cls='pill'; if(score>=thr) cls+=' ok'; else if(score>=0.45) cls+=' warn'; else cls+=' bad'; return `<span class="${cls}">${pct}%</span>`; }
 function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
 
+
+// Format date as MM/DD or MM/DD/YYYY if year differs
+function asShortDate(iso){
+  if(!iso || typeof iso !== 'string' || iso.length < 10) return '';
+  const yr = iso.slice(0,4);
+  const m  = iso.slice(5,7);
+  const d  = iso.slice(8,10);
+  const currentYr = new Date().getFullYear().toString();
+  return (yr === currentYr) ? `${m}/${d}` : `${m}/${d}/${yr}`;
+}
+
+
+
+
 /* ===== Elements & state ===== */
 const intentGrid = $('#intentGrid');
 const autoStage = $('#autoStage');
@@ -582,7 +596,6 @@ function renderIntentGrid(){
   intentGrid.appendChild(auto);
 }
 
-/* ===== Fields ===== */
 
 
 
@@ -607,6 +620,105 @@ function isDateKey(key){
   return false;
 }
 
+
+
+
+// Global override list you can extend anytime (optional)
+window.DATE_FIELD_KEYS = new Set([
+  // add custom one-offs here if needed, e.g. 'net_terms_until'
+]);
+
+
+
+
+
+
+
+function normalizeKey(key){
+  return String(key || '')
+    // camelCase → snake_case
+    .replace(/([a-z])([A-Z])/g, '$1_$2')
+    // replace common punctuation and separators with underscores
+    .replace(/[()\[\]{}\/\\|.,;:#@!?\s\-]+/g, '_')
+    // drop trailing numeric tags like date1/date_2
+    .replace(/_\d+$/,'')
+    // collapse multiple underscores
+    .replace(/_{2,}/g, '_')
+    // trim edge underscores
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase();
+}
+
+
+
+
+
+/* ===== Date Field Overrides ===== */
+window.DATE_FIELD_KEYS = new Set([
+  // add any weird keys once and forget them:
+  'good_til',
+  'good_till',
+  'good_thru',
+  'good_through',
+  'promised_on',
+  'revised_eta',
+  'revised_etd',
+  'availability_start',
+  'availability_end'
+]);
+
+
+
+/**
+ * Returns: 'date' | 'text'
+ * Priority:
+ *   1) Backend hints (field_types / fields[key].type / fields[key].format)
+ *   2) Global overrides (window.DATE_FIELD_KEYS)
+ *   3) Heuristics on normalized key
+ */
+function getFieldType(intent, key){
+  const raw = String(key || '');
+  const k = normalizeKey(raw);
+
+  // 1) Backend hints (various schemas supported)
+  const ftMap     = SCHEMA[intent]?.field_types || SCHEMA[intent]?.fieldTypes || null;
+  const fieldsObj = SCHEMA[intent]?.fields || null;
+
+  let hinted = null;
+  if (ftMap && (ftMap[raw] || ftMap[k])) hinted = ftMap[raw] || ftMap[k];
+  if (!hinted && fieldsObj && (fieldsObj[raw]?.type || fieldsObj[raw]?.format)) hinted = fieldsObj[raw].type || fieldsObj[raw].format;
+  if (!hinted && fieldsObj && (fieldsObj[k]?.type   || fieldsObj[k]?.format))  hinted = fieldsObj[k].type   || fieldsObj[k].format;
+
+  if (hinted){
+    const t = String(hinted).toLowerCase();
+    if (/(^|[^a-z])(date|datetime|time|iso8601)([^a-z]|$)/.test(t)) return 'date';
+  }
+
+  // 2) Global overrides (you can push into this at runtime)
+  if (window.DATE_FIELD_KEYS?.has?.(raw) || window.DATE_FIELD_KEYS?.has?.(k)) return 'date';
+
+  // 3) Heuristics (very broad)
+  // 3a. obvious direct matches
+  if (/(^|_)date(_|$)/.test(k)) return 'date';                 // contains "date"
+  if (/_(on|by|until|thru|through)$/.test(k) && /(ship|delivery|dispatch|pickup|arrival|invoice|po|payment|billing|return|refund|install|start|end|close|opening|closing|effective|expiration|expire|valid|availability|available)/.test(k)) return 'date';
+
+  // 3b. common synonyms/abbrevs
+  if (/(^|_)(eta|etd|ets|edd)(_|$)/.test(k)) return 'date';    // ETA/ETD/ETS/EDD
+  if (/(^|_)(deadline|due|need_by|requested_by|request_by|required_by|target|promised|promised_on|planned|schedule|scheduled)(_|$)/.test(k)) return 'date';
+  if (/(^|_)(ship|shipping|deliver|delivery|dispatch|pickup|arrival|arrive|dropoff|handoff|book|booking)(_)?(date|on|by)?$/.test(k)) return 'date';
+  if (/(^|_)(invoice|po|payment|billing|bill|debit|credit|refund|return)(_)?(date|on|by)?$/.test(k)) return 'date';
+  if (/(^|_)(valid|validity|expire|expiration|effective|start|end|close|closing|opening|available|availability)(_)?(date|on|by|until|thru|through)?$/.test(k)) return 'date';
+  if (/(^|_)(good|good_til|good_till|good_until|good_thru|good_through)(_|$)/.test(k)) return 'date';
+
+  // 3c. pairs like start/end, from/to often imply date; if name ends with _start|_end|_from|_to → treat as date
+  if (/(_start|_end|_from|_to)$/.test(k)) return 'date';
+
+  return 'text';
+}
+
+
+
+
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
   if(!intent || !SCHEMA[intent]){
@@ -626,14 +738,24 @@ function renderFields(intent){
     const input = document.createElement('input');
     input.id = `f_${key}`;
 
-    if(isDateKey(key)){
-      input.type = 'date';
-      input.placeholder = '';
-      input.inputMode = 'none';
-    } else {
-      input.type = 'text';
-      input.placeholder = toTitle(key);
-    }
+
+
+
+
+if (getFieldType(intent, key) === 'date'){
+  input.type = 'date';
+  input.placeholder = '';
+  input.inputMode = 'none';
+  // (optional) make browsers suggest a calendar, not text:
+  input.autocomplete = 'off';
+} else {
+  input.type = 'text';
+  input.placeholder = toTitle(key);
+}
+
+
+
+
 
     wrap.appendChild(label);
     wrap.appendChild(input);
@@ -641,15 +763,28 @@ function renderFields(intent){
   }
 }
 
+
+
+
+
 function collectFields(intent){
   const req = SCHEMA[intent]?.required || [];
   const fields = {};
   for(const key of req){
     const el = document.getElementById(`f_${key}`);
-    fields[key] = el ? (el.value || '') : '';
+    let val = el ? (el.value || '') : '';
+    if (getFieldType(intent, key) === 'date'){
+      val = asShortDate(val);
+    }
+    fields[key] = val;
   }
   return fields;
 }
+
+
+
+
+
 
 function setSelectedIntent(name){
   SELECTED_INTENT = name || null;
@@ -658,9 +793,6 @@ function setSelectedIntent(name){
 
 
 
-
-function collectFields(intent){ const req = SCHEMA[intent]?.required || []; const fields = {}; for(const key of req){ const el = document.getElementById(`f_${key}`); fields[key] = el ? (el.value || '') : ''; } return fields; }
-function setSelectedIntent(name){ SELECTED_INTENT = name || null; renderFields(SELECTED_INTENT); }
 
 
 
@@ -691,7 +823,24 @@ async function postJSON(u,d){ const r = await fetch(u, {method:'POST', headers:{
     const h = await getJSON('/health');
     CONF_THR = h.confidence_threshold || 0.55;
     if (health) health.textContent = `Model: ${(h.model_classes||[]).length} intents • Threshold ${Math.round(CONF_THR*100)}%`;
-    SCHEMA = await getJSON('/schema');
+    SCHEMA = await getJSON('/schema')
+// After: SCHEMA = await getJSON('/schema');
+try{
+  for (const intent of Object.keys(SCHEMA || {})){
+    const req = SCHEMA[intent]?.required || [];
+    const all = new Set(req);
+    // include optional if present
+    (SCHEMA[intent]?.optional || []).forEach(k => all.add(k));
+    all.forEach((key)=>{
+      const k = normalizeKey(key);
+      if (/(^|_)date(_|$)|(^|_)(eta|etd|edd|deadline|due|need_by|requested_by)(_|$)/.test(k)) {
+        window.DATE_FIELD_KEYS.add(key);
+        window.DATE_FIELD_KEYS.add(k);
+      }
+    });
+  }
+}catch(_){}
+;
   }catch(e){
     if (health) health.textContent = 'Server Not Reachable';
   }
