@@ -4,7 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import joblib
 import numpy as np
@@ -20,20 +20,20 @@ ART = Path("model_artifacts")
 def read_labeled(path: Path) -> Tuple[List[str], List[str]]:
     X, y = [], []
     with path.open(newline="") as f:
-        r = csv.DictReader(f)
-        for row in r:
-            text = f"{row.get('subject','')} {row.get('body','')}".strip()
-            lab = row.get("intent")
-            if text and lab:
+        reader = csv.DictReader(f)
+        for row in reader:
+            text = f"{row.get('subject', '')} {row.get('body', '')}".strip()
+            label = row.get("intent")
+            if text and label:
                 X.append(text)
-                y.append(lab)
+                y.append(label)
     return X, y
 
 
-def softmax(z: np.ndarray) -> np.ndarray:
-    z = z - np.max(z)
-    ez = np.exp(z)
-    return ez / (np.sum(ez) + 1e-9)
+def softmax(values: np.ndarray) -> np.ndarray:
+    values = values - np.max(values)
+    exp_values = np.exp(values)
+    return exp_values / (np.sum(exp_values) + 1e-9)
 
 
 def load_artifacts():
@@ -47,11 +47,9 @@ def predict_proba(vec, clf, texts: List[str]) -> np.ndarray:
     X = vec.transform(texts)
     if hasattr(clf, "predict_proba"):
         return clf.predict_proba(X)
-    # Calibrate decision_function via softmax if predict_proba not available
     z = clf.decision_function(X)
     if z.ndim == 1:
         z = z[:, None]
-    # LinearSVC binary case returns shape (n_samples,)
     if z.shape[1] == 1:
         z = np.concatenate([-z, z], axis=1)
     out = np.vstack([softmax(row) for row in z])
@@ -61,24 +59,20 @@ def predict_proba(vec, clf, texts: List[str]) -> np.ndarray:
 def suggest_threshold(
     y_true: List[str], proba: np.ndarray, classes: List[str]
 ) -> float:
-    # One-vs-rest micro PR sweep to maximize F1
     class_to_idx = {c: i for i, c in enumerate(classes)}
     y_bin = np.zeros((len(y_true), len(classes)))
     for i, lab in enumerate(y_true):
         y_bin[i, class_to_idx[lab]] = 1.0
 
-    # Concatenate all class PR points
-    prs: List[Tuple[float, float, float]] = []  # (precision, recall, threshold)
+    prs: List[Tuple[float, float, float]] = []
     for j in range(len(classes)):
         p, r, t = precision_recall_curve(y_bin[:, j], proba[:, j])
-        # precision_recall_curve returns len(t)+1 points; skip p[0], r[0] (no threshold)
         for pj, rj, tj in zip(p[1:], r[1:], t):
             prs.append((float(pj), float(rj), float(tj)))
 
     if not prs:
         return 0.62
 
-    # Choose threshold that maximizes F1
     best_f1, best_thr = -1.0, 0.62
     for p, r, t in prs:
         denom = p + r
@@ -97,35 +91,54 @@ def top_confusions(
         for j, pred_c in enumerate(classes):
             if i == j:
                 continue
-            cnt = int(cm[i, j])
-            if cnt > 0:
-                pairs.append((true_c, pred_c, cnt))
+            count = int(cm[i, j])
+            if count > 0:
+                pairs.append((true_c, pred_c, count))
     pairs.sort(key=lambda x: x[2], reverse=True)
     return pairs[:k]
 
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--labeled", default="data/emails.labeled.csv")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--labeled", default="data/emails.labeled.csv")
+    args = parser.parse_args()
 
     vec, clf, classes = load_artifacts()
-    X, y = read_labeled(Path(args.labeled))
+    X_raw, y_raw = read_labeled(Path(args.labeled))
+
+    # Filter out labels not in the trained model
+    class_set = set(classes)
+    X, y = [], []
+    dropped_counts: Dict[str, int] = {}
+    for text, label in zip(X_raw, y_raw):
+        if label in class_set:
+            X.append(text)
+            y.append(label)
+        else:
+            dropped_counts[label] = dropped_counts.get(label, 0) + 1
+
+    if dropped_counts:
+        print("=== Info: Dropped labels not in model classes ===")
+        for lab, cnt in sorted(dropped_counts.items(), key=lambda x: -x[1]):
+            print(f"  {lab}: {cnt} rows (not in {classes})")
+        print("→ Retrain with these labels or map them to an existing intent.\n")
 
     if not X:
-        print(f"[eval] No rows in {args.labeled}")
+        print(
+            f"[eval] No usable rows after filtering. Check labels vs model classes: {classes}"
+        )
         return
 
     proba = predict_proba(vec, clf, X)
     y_pred_idx = np.argmax(proba, axis=1)
     y_pred = [classes[i] for i in y_pred_idx]
 
-    print("=== Classification Report ===")
+    print("=== Classification Report (filtered to model classes) ===")
     print(classification_report(y, y_pred, digits=3, labels=classes))
 
     print("\n=== Top Confusions (true → predicted) ===")
-    for t, p, n in top_confusions(y, y_pred, classes):
-        print(f"{t:>20} → {p:<20}  {n}")
+    for true_label, pred_label, count in top_confusions(y, y_pred, classes):
+        print(f"{true_label:>20} → {pred_label:<20}  {count}")
 
     thr = suggest_threshold(y, proba, classes)
     print(f"\nSuggested global threshold: {thr:.2f}")

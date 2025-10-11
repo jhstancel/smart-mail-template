@@ -58,7 +58,7 @@ def main():
         print(f"[mine] No rows in {args.unlabeled}")
         return
 
-    texts = [f"{r.get('subject','')} {r.get('body','')}".strip() for r in rows]
+    texts = [f"{r.get('subject', '')} {r.get('body', '')}".strip() for r in rows]
     proba = predict_proba(vec, clf, texts)
 
     selected = []
