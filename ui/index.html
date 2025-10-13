@@ -551,17 +551,8 @@ let CONF_THR = 0.55;
 let prevSubject = '';
 let prevBody = '';
 
-/* ===== Intent descriptions ===== */
-const INTENT_DESCS = {
-  quote_request: "Ask For Pricing Or Lead Time.",
-  shipment_update: "Send Tracking, Carrier, Ship Date.",
-  order_confirmation: "Acknowledge Or Confirm A PO.",
-  invoice_payment: "Payment Or Invoice Notice.",
-  delay_notice: "Notify A Date Change Or Backorder.",
-  packing_slip_docs: "Send Documents: Packing Slip, COO, SDS.",
-  followup: "Polite Nudge Or Status Check.",
-  auto_detect: "Let The System Read Your Draft And Suggest An Intent."
-};
+/* ===== Intent data (from backend) ===== */
+let INTENTS = []; // [{ name, label, description, required }]
 
 /* ===== Minecraft splashes (curated set) ===== */
 const SPLASHES = [
@@ -577,32 +568,78 @@ const SPLASHES = [
   "Remember your bed!", "Set your spawn!", "Hiss-terical!", "Powered rails zoom!"
 ];
 
-/* ===== Intent grid ===== */
-function intentCard(name){
+/* ===== Intent grid (loaded from backend) ===== */
+function makeIntentCard(item){
+  // item: { name, label, description, required }
   const div = document.createElement('div');
   div.className = 'intent-card';
-  const label = (name==='auto_detect') ? 'Auto Detect' : toTitle(name.replaceAll('_',' '));
+
+  const label = item.label || toTitle(item.name.replaceAll('_',' '));
+  const desc  = item.description || '';
+
   div.innerHTML = `
     <div class="intent-name">${label}</div>
-    <div class="intent-desc">${INTENT_DESCS[name]||''}</div>
+    <div class="intent-desc">${desc}</div>
   `;
+
+  div.dataset.intent = item.name;
+
   div.addEventListener('click', ()=>{
     const isActive = div.classList.contains('active');
     document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
-    if(isActive){ SELECTED_INTENT = null; renderFields(null); autoStage.classList.add('hidden'); return; }
+
+    if(isActive){
+      // deselect
+      SELECTED_INTENT = null;
+      renderFields(null);
+      autoStage.classList.add('hidden');
+      return;
+    }
+
     div.classList.add('active');
-    if(name==='auto_detect'){ autoStage.classList.remove('hidden'); setSelectedIntent(null); }
-    else { autoStage.classList.add('hidden'); setSelectedIntent(name); }
+
+    if(item.name === 'auto_detect'){
+      autoStage.classList.remove('hidden');
+      setSelectedIntent(null);
+    } else {
+      autoStage.classList.add('hidden');
+      setSelectedIntent(item.name);
+    }
   });
+
   return div;
 }
-function renderIntentGrid(){
+
+function renderIntentGridFromData(list){
   intentGrid.innerHTML = '';
-  const order = ["quote_request","shipment_update","order_confirmation","invoice_payment","delay_notice","packing_slip_docs","followup"];
-  order.forEach(i => intentGrid.appendChild(intentCard(i)));
-  const auto = intentCard('auto_detect');
-  auto.style.background = 'linear-gradient(180deg, var(--card-bg1), var(--card-bg2))';
-  intentGrid.appendChild(auto);
+
+  // Render normal intents first (everything except auto_detect)
+  list.filter(x => x.name !== 'auto_detect').forEach(x=>{
+    intentGrid.appendChild(makeIntentCard(x));
+  });
+
+  // Append auto_detect at the end if present
+  const auto = list.find(x => x.name === 'auto_detect');
+  if(auto){
+    const node = makeIntentCard(auto);
+    node.style.background = 'linear-gradient(180deg, var(--card-bg1), var(--card-bg2))';
+    intentGrid.appendChild(node);
+  }
+}
+
+/* Fetch intents from backend */
+async function loadIntents(){
+  try{
+    const res = await fetch('/intents');
+    if(!res.ok) throw new Error('Failed to fetch /intents');
+    const data = await res.json();
+    INTENTS = Array.isArray(data) ? data : [];
+    renderIntentGridFromData(INTENTS);
+  }catch(err){
+    console.error('Error loading intents:', err);
+    // Fallback: no buttons
+    intentGrid.innerHTML = '';
+  }
 }
 
 /* ===== Fields ===== */
@@ -1035,7 +1072,7 @@ window.autoPopulateFields = autoPopulateFields;
 
 /* ===== Init ===== */
 (async function init(){
-  renderIntentGrid();
+  await loadIntents();
   // Default theme
   document.body.setAttribute('data-theme', 'light-minimal');
   if(themeSelect) themeSelect.value = 'light-minimal';
