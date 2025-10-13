@@ -6,24 +6,60 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import RedirectResponse
 
 # --------------------------------------------------------------------------------------
-# Local modules
-# --------------------------------------------------------------------------------------
-# INTENTS_META: list[dict] with keys like: name, label, description, order, hidden
-# SCHEMA: { intent_name: { "required": [...], "optional": [...] } }
-from .intents_registry import INTENTS_META  # type: ignore
-from .schema import SCHEMA  # type: ignore
-
-# --------------------------------------------------------------------------------------
-# App
+# App instance (must be named "app" for `uvicorn app.main:app`)
 # --------------------------------------------------------------------------------------
 app = FastAPI(title="Smart Mail Template API")
 
 # --------------------------------------------------------------------------------------
-# Templates (auto-discovery)
+# Paths: templates/ and ui/
 # --------------------------------------------------------------------------------------
+# main.py is at repo/app/main.py  ->  project root is parent of app/
+ROOT_DIR = Path(__file__).resolve().parent.parent
+TEMPLATES_DIR = (ROOT_DIR / "templates").resolve()
+UI_DIR        = (ROOT_DIR / "ui").resolve()
+
+if not TEMPLATES_DIR.exists():
+    print(f"[WARN] templates directory not found at: {TEMPLATES_DIR}")
+if not UI_DIR.exists():
+    print(f"[WARN] ui directory not found at: {UI_DIR}")
+
+# --------------------------------------------------------------------------------------
+# Static UI: serve /ui/ -> ui/index.html, and redirect / -> /ui/
+# --------------------------------------------------------------------------------------
+app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+
+@app.get("/")
+def root() -> RedirectResponse:
+    return RedirectResponse(url="/ui/")
+
+# --------------------------------------------------------------------------------------
+# Safe imports for registry/schema
+# --------------------------------------------------------------------------------------
+# If these fail, we keep running with empty defaults (UI will show fewer intents, but server boots)
+try:
+    from .intents_registry import INTENTS_META  # type: ignore
+except Exception as e:  # noqa: BLE001
+    print(f"[WARN] Failed to import intents_registry: {e}")
+    INTENTS_META: List[Dict[str, Any]] = []
+
+try:
+    from .schema import SCHEMA  # type: ignore
+except Exception as e:  # noqa: BLE001
+    print(f"[WARN] Failed to import schema: {e}")
+    SCHEMA: Dict[str, Dict[str, Any]] = {}
+
+# --------------------------------------------------------------------------------------
+# Templates (auto-discovery; robust if folder missing)
+# --------------------------------------------------------------------------------------
+# main.py is at repo/app/main.py -> templates live at repo/templates
 TEMPLATES_DIR = (Path(__file__).resolve().parent.parent / "templates").resolve()
+
+if not TEMPLATES_DIR.exists():
+    print(f"[WARN] templates directory not found at: {TEMPLATES_DIR}")
 
 env = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
@@ -31,29 +67,25 @@ env = Environment(
 )
 
 def list_available_templates() -> Set[str]:
-    """
-    Returns the set of template 'stems' available, e.g. {'order_confirmation', 'tax_exemption'}
-    for files like templates/order_confirmation.j2, templates/tax_exemption.j2.
-    """
+    """Return stems of all available .j2 templates (robust if folder missing)."""
+    if not TEMPLATES_DIR.exists():
+        return set()
     return {p.stem for p in TEMPLATES_DIR.glob("*.j2")}
 
-# UI intent name -> canonical template name (without .j2)
+# UI intent name -> template stem (without .j2)
 ALIASES: Dict[str, str] = {
-    # keep this in sync as you rename things
     "tax_exempt_certificate": "tax_exemption",
-    # add more aliases here if needed
+    # Add more aliases here if UI names differ from file stems:
+    # "invoice_followup": "invoice_po_followup",
 }
 
 def canonicalize_intent(name: str) -> str:
-    """Map a UI name to the actual template stem."""
-    if not name:
-        return name
-    return ALIASES.get(name, name)
+    return ALIASES.get(name, name).strip() if name else name
 
 def split_subject_body(rendered: str) -> Tuple[str, str]:
     """
     If first line starts with 'Subject:', treat it as subject and the rest as body.
-    Otherwise subject='', body=rendered.
+    Otherwise subject='', body=rendered unchanged.
     """
     first, _, rest = rendered.partition("\n")
     if first.lower().startswith("subject:"):
@@ -62,8 +94,18 @@ def split_subject_body(rendered: str) -> Tuple[str, str]:
         return subject, body
     return "", rendered
 
+
+
+# UI (static) directory
+UI_DIR = (Path(__file__).resolve().parent.parent / "ui").resolve()
+if not UI_DIR.exists():
+    print(f"[WARN] ui directory not found at: {UI_DIR}")
+
+
+
+
 # --------------------------------------------------------------------------------------
-# Pydantic models
+# Models
 # --------------------------------------------------------------------------------------
 class PredictReq(BaseModel):
     to: Optional[str] = None
@@ -88,84 +130,79 @@ class GenerateResp(BaseModel):
     missing: List[str] = Field(default_factory=list)
 
 # --------------------------------------------------------------------------------------
-# Intents (only show ones that have templates, plus auto_detect)
+# Routes
 # --------------------------------------------------------------------------------------
+@app.get("/health")
+def health() -> Dict[str, str]:
+    return {"status": "ok"}
+
 @app.get("/intents")
 def get_intents() -> List[Dict[str, Any]]:
     """
-    Returns available intents for the UI:
-      - includes only those that have a matching .j2 template (by name or alias)
-      - always includes 'auto_detect' if present in INTENTS_META
-      - merges required fields from SCHEMA
+    Return UI intents:
+      • include only intents that have a matching template on disk (by name or alias)
+      • always include 'auto_detect' if present in INTENTS_META
+      • merge required fields from SCHEMA (by raw name)
     """
     available = list_available_templates()
     out: List[Dict[str, Any]] = []
 
     for item in INTENTS_META:
-        raw = item.get("name", "")
+        raw = (item.get("name") or "").strip()
         if not raw:
             continue
+
         canonical = canonicalize_intent(raw)
 
-        # Allow 'auto_detect' to pass through; filter others to known templates
+        # allow auto_detect through; otherwise require a template file
         if raw != "auto_detect" and canonical not in available:
-            # silently skip intents with no template on disk
+            # silently skip intents that don't have a template on disk
             continue
 
         schema_entry = SCHEMA.get(raw, {}) if isinstance(SCHEMA, dict) else {}
         required = list(schema_entry.get("required", []))
 
-        out.append(
-            {
-                "name": raw,
-                "label": item.get("label", raw),
-                "description": item.get("description", ""),
-                "required": required,
-                "order": item.get("order"),
-                "hidden": item.get("hidden", False),
-            }
-        )
+        out.append({
+            "name": raw,
+            "label": item.get("label", raw),
+            "description": item.get("description", ""),
+            "required": required,
+            "order": item.get("order"),
+            "hidden": item.get("hidden", False),
+        })
 
     return out
 
-# --------------------------------------------------------------------------------------
-# Predict (minimal, non-breaking placeholder)
-# --------------------------------------------------------------------------------------
 @app.post("/predict", response_model=PredictResp)
 def predict(_: PredictReq) -> PredictResp:
     """
-    Minimal placeholder so the UI never breaks. Replace with your real model as needed.
+    Minimal placeholder to keep the UI happy.
+    Replace this with your real intent classifier when ready.
     """
     return PredictResp()
 
-# --------------------------------------------------------------------------------------
-# Generate
-# --------------------------------------------------------------------------------------
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
     """
     Render an intent template with provided fields.
 
     - Intent is canonicalized (aliases supported).
-    - We verify the template exists.
-    - 'Missing' is computed from SCHEMA[req.intent]['required'] (UI can ignore this text).
+    - Verifies the template exists.
+    - 'missing' is computed from SCHEMA[raw]['required'] (front-end can hide it from workers).
     """
-    name = (req.intent or "").strip()
-    if not name:
+    raw_name = (req.intent or "").strip()
+    if not raw_name:
         raise HTTPException(status_code=400, detail="Missing 'intent'")
 
-    canonical = canonicalize_intent(name)
+    canonical = canonicalize_intent(raw_name)
     available = list_available_templates()
-
     if canonical not in available:
-        # Tell the caller the *requested* (raw) name, not the canonical
-        raise HTTPException(status_code=400, detail=f"Unknown intent: {name}")
+        raise HTTPException(status_code=400, detail=f"Unknown intent: {raw_name}")
 
-    # Required fields are keyed by the *raw* name used in SCHEMA
-    schema_entry = SCHEMA.get(name, {}) if isinstance(SCHEMA, dict) else {}
+    # Compute missing from SCHEMA using the *raw* name
+    schema_entry = SCHEMA.get(raw_name, {}) if isinstance(SCHEMA, dict) else {}
     required_fields: List[str] = list(schema_entry.get("required", []))
-
-    missing_fields = [
+    missing: List[str] = [
         k for k in required_fields
         if not str(req.fields.get(k, "")).strip()
     ]
@@ -174,5 +211,5 @@ def generate(req: GenerateReq) -> GenerateResp:
     rendered = template.render(**(req.fields or {}))
     subject, body = split_subject_body(rendered)
 
-    return GenerateResp(subject=subject, body=body, missing=missing_fields)
+    return GenerateResp(subject=subject, body=body, missing=missing)
 
