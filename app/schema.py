@@ -13,6 +13,10 @@ SCHEMA = {
         "required": ["trackingNumber", "carrier", "shipDate"],
         "optional": ["estimatedArrival", "orderNumber", "notes"],
     },
+    "qb_order": {
+        "description": "QuickBooks order request — ask to process and confirm shipping date.",
+        "required": ["recipientName", "senderName"],
+    },
     "order_confirmation": {
         "required": ["orderNumber", "companyName", "deliveryDate"],
         "optional": ["items", "trackingNumber", "notes"],
@@ -40,11 +44,11 @@ SCHEMA = {
     },
     "invoice_po_followup": {
         "required": ["buyerName", "invoiceNumber", "poNumber", "dueDate"],
-        "optional": ["attachments", "senderName", "notes"],
+        "optional": ["attachments", "notes"],  # senderName removed
     },
     "tax_exemption": {
         "required": [],
-        "optional": ["senderName", "notes"],
+        "optional": ["notes"],  # senderName removed
     },
 }
 

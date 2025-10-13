@@ -22,6 +22,13 @@ INTENTS_META = [
         "description": "Payment or invoice notice.",
     },
     {
+        "name": "qb_order",
+        "label": "QB Order",
+        "description": "QuickBooks order request — politely ask the recipient to process the order and confirm the expected ship date.",
+        "order": 65,
+        "hidden": False,
+    },
+    {
         "name": "delay_notice",
         "label": "Delay Notice",
         "description": "Notify a date change or backorder.",
