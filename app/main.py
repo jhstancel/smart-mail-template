@@ -13,6 +13,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, Field
 
 from app.preprocess import clean_subject_body
+from .schema import SCHEMA
+from .intents_registry import INTENTS_META
+
 
 # --------------------------------------------------------------------------------------
 # Utility helpers
@@ -60,6 +63,28 @@ app.add_middleware(
 ui_directory = Path(__file__).resolve().parent.parent / "ui"
 if ui_directory.exists():
     app.mount("/ui", StaticFiles(directory=str(ui_directory), html=True), name="ui")
+
+
+@app.get("/intents")
+def list_intents():
+    """Return intents with name/label/description and any required fields from SCHEMA."""
+    out = []
+    for item in INTENTS_META:
+        name = item.get("name")
+        required = []
+        try:
+            required = (SCHEMA.get(name, {}) or {}).get("required", [])  # keep using your existing SCHEMA
+        except Exception:
+            required = []
+        out.append({
+            "name": name,
+            "label": item.get("label") or name,
+            "description": item.get("description") or "",
+            "required": required,
+        })
+    return out
+
+
 
 
 # --------------------------------------------------------------------------------------
@@ -263,6 +288,7 @@ def predict(req: PredictReq):
         "message": message,
     }
 
+
 @app.get("/intents")
 def list_intents() -> List[Dict[str, Any]]:
     """
@@ -283,6 +309,7 @@ def list_intents() -> List[Dict[str, Any]]:
             }
         )
     return enriched
+
 
 # --------------------------------------------------------------------------------------
 # Generate
