@@ -52,14 +52,14 @@ def _label_for(intent: str) -> str:
             return m.get("label") or intent
     return intent
 
-def _env() -> Environment:
-    return Environment(
-        loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
-        autoescape=False,
-        undefined=StrictUndefined,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
+ def _env() -> Environment:
+     return Environment(
+         loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
+         autoescape=False,
+         undefined=Undefined,
+         trim_blocks=True,
+         lstrip_blocks=True,
+     )
 
 # ---------- Routes ----------
 @app.get("/health")
