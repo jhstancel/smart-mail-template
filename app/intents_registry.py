@@ -24,7 +24,7 @@ INTENTS_META = [
     {
         "name": "qb_order",
         "label": "QB Order",
-        "description": "QuickBooks order request — politely ask the recipient to process the order and confirm the expected ship date.",
+        "description": "QuickBooks order request.",
         "order": 65,
         "hidden": False,
     },
