@@ -14,7 +14,6 @@ from pydantic import BaseModel, Field
 
 from app.preprocess import clean_subject_body
 
-
 # --------------------------------------------------------------------------------------
 # Utility helpers
 # --------------------------------------------------------------------------------------
@@ -44,11 +43,15 @@ def split_subject_body(rendered: str) -> Tuple[str, str]:
 # --------------------------------------------------------------------------------------
 # App setup
 # --------------------------------------------------------------------------------------
+from .schema import SCHEMA  # ensure SCHEMA has required fields per intent
+from .intents_registry import INTENTS_META
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # tighten as needed
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -260,6 +263,26 @@ def predict(req: PredictReq):
         "message": message,
     }
 
+@app.get("/intents")
+def list_intents() -> List[Dict[str, Any]]:
+    """
+    Returns the available intents with a name, label, description,
+    and any `required` fields found in SCHEMA (if present).
+    """
+    enriched = []
+    for item in INTENTS_META:
+        name = item.get("name")
+        schema_entry = SCHEMA.get(name, {}) if isinstance(SCHEMA, dict) else {}
+        required = schema_entry.get("required", [])
+        enriched.append(
+            {
+                "name": name,
+                "label": item.get("label", name),
+                "description": item.get("description", ""),
+                "required": required,
+            }
+        )
+    return enriched
 
 # --------------------------------------------------------------------------------------
 # Generate
