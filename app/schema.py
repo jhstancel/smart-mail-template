@@ -38,6 +38,10 @@ SCHEMA = {
         "required": [],
         "optional": [],
     },
+    "invoice_po_followup": {
+        "required": ["buyerName", "invoiceNumber", "poNumber", "dueDate"],
+        "optional": ["attachments", "senderName", "notes"],
+}
 }
 
 # Optional: for reference or validation
