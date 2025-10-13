@@ -160,19 +160,18 @@ def health() -> Dict[str, Any]:
 @app.get("/schema")
 def get_schema() -> Dict[str, Any]:
     """
-    Return the SCHEMA but only for intents that are actually renderable:
-      - include auto_detect
-      - include intents that have a matching template on disk (after aliasing)
-    This keeps tests (which iterate over /schema) from calling /generate with unknown intents.
+    Return SCHEMA only for intents that can be rendered (exclude auto_detect):
+      • include intents that have a matching template on disk (after aliasing)
+      • exclude 'auto_detect' so tests don't try to /generate it
     """
     available = list_available_templates()
     filtered: Dict[str, Any] = {}
     for name, entry in (SCHEMA or {}).items():
         raw = (name or "").strip()
-        if not raw:
+        if not raw or raw == "auto_detect":
             continue
         canonical = canonicalize_intent(raw)
-        if raw == "auto_detect" or canonical in available:
+        if canonical in available:
             filtered[raw] = entry
     return filtered
 
