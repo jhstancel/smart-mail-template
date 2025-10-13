@@ -84,20 +84,23 @@ if ui_directory.exists():
 
 @app.get("/intents")
 def list_intents():
-    """Return intents with name/label/description and any required fields from SCHEMA."""
     out = []
     for item in INTENTS_META:
         name = item.get("name")
-        required = []
+        schema_required = []
         try:
-            required = (SCHEMA.get(name, {}) or {}).get("required", [])  # keep using your existing SCHEMA
+            schema_required = (SCHEMA.get(name, {}) or {}).get("required", [])
         except Exception:
-            required = []
+            schema_required = []
+
         out.append({
             "name": name,
             "label": item.get("label") or name,
             "description": item.get("description") or "",
-            "required": required,
+            "required": schema_required,
+            # pass-through (optional)
+            "order": item.get("order", 1_000_000),  # large default so unspecified appear after numbered
+            "hidden": bool(item.get("hidden", False)),
         })
     return out
 

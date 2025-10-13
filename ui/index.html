@@ -613,14 +613,26 @@ function makeIntentCard(item){
 function renderIntentGridFromData(list){
   intentGrid.innerHTML = '';
 
-  // Render normal intents first (everything except auto_detect)
-  list.filter(x => x.name !== 'auto_detect').forEach(x=>{
-    intentGrid.appendChild(makeIntentCard(x));
-  });
+  // hide flagged items (but never hide auto_detect, unless explicitly requested)
+  const visible = list.filter(x => x.name === 'auto_detect' ? !x.hidden : !x.hidden);
 
-  // Append auto_detect at the end if present
-  const auto = list.find(x => x.name === 'auto_detect');
-  if(auto){
+  // normal intents first (not auto_detect), sorted by 'order' then label
+  const normals = visible
+    .filter(x => x.name !== 'auto_detect')
+    .sort((a, b) => {
+      const ao = typeof a.order === 'number' ? a.order : 1_000_000;
+      const bo = typeof b.order === 'number' ? b.order : 1_000_000;
+      if (ao !== bo) return ao - bo;
+      const al = (a.label || a.name).toLowerCase();
+      const bl = (b.label || b.name).toLowerCase();
+      return al.localeCompare(bl);
+    });
+
+  normals.forEach(x => intentGrid.appendChild(makeIntentCard(x)));
+
+  // auto_detect last if present
+  const auto = visible.find(x => x.name === 'auto_detect');
+  if (auto) {
     const node = makeIntentCard(auto);
     node.style.background = 'linear-gradient(180deg, var(--card-bg1), var(--card-bg2))';
     intentGrid.appendChild(node);
