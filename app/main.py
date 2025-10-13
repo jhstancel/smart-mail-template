@@ -5,8 +5,7 @@ from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from jinja2 import Environment, FileSystemLoader, StrictUndefined, TemplateNotFound
-
+from jinja2 import Environment, FileSystemLoader, Undefined, TemplateNotFound
 # App
 app = FastAPI(title="Smart Mail Template API")
 
