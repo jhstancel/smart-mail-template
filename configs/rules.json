@@ -13,6 +13,13 @@
     "sales order",
     "thank you for your order"
   ],
+  "qb_order": [
+    "qb order", 
+    "quickbooks order", 
+    "process order",
+    "confirm shipment", 
+    "order ready"
+],
   "quote_request": [
     "rfq",
     "request for quote",
