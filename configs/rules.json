@@ -7,10 +7,29 @@
     "quote request"
   ],
   "order_confirmation": [
-    "po",
-    "order confirmed",
+    "po ",
+    "po#",
+    "purchase order",
+    "new order",
     "order confirmation",
+    "order confirmed",
+    "attached po",
+    "please find po",
     "thank you for your order"
+  ],
+  "shipment_update": [
+    "order update",
+    "status update",
+    "any update on the order",
+    "tracking",
+    "tracking number",
+    "shipped",
+    "in transit",
+    "eta",
+    "delivery date",
+    "lead time",
+    "backorder",
+    "new ship date"
   ],
   "delay_notice": [
     "delay",
@@ -19,14 +38,6 @@
     "pushed",
     "slipped",
     "new ship date"
-  ],
-  "shipment_update": [
-    "shipped",
-    "tracking",
-    "carrier",
-    "transit",
-    "out for delivery",
-    "shipment update"
   ],
   "invoice_payment": [
     "invoice",
