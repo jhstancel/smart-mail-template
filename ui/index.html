@@ -809,6 +809,84 @@ async function runCorruption(){
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 }
 
+
+/* ========================================================================================
+ * SETTINGS MENU (gear icon) — open/close + one-sub-open behavior
+ * - Works with either IDs (#settingsBtn, #settingsMenu) or classes (.settings-btn, .settings-menu)
+ * - Sub-sections use IDs (e.g., #subTheme, #subTyping) and toggled via [data-open-sub="<id>"]
+ * =======================================================================================*/
+(function wireSettings(){
+  // --- elements (try multiple selectors so we don't depend on one exact ID/class)
+  const settingsBtn  = document.getElementById('settingsBtn')  || document.querySelector('.settings-btn')  || document.getElementById('btnSettings');
+  const settingsMenu = document.getElementById('settingsMenu') || document.querySelector('.settings-menu') || document.querySelector('#settings');
+
+  // optional sub-sections (OK if missing)
+  const subTheme  = document.getElementById('subTheme');
+  const subTyping = document.getElementById('subTyping');
+
+  if(!settingsBtn || !settingsMenu){
+    // Nothing to wire; keep going without throwing.
+    return;
+  }
+
+  function closeAllSubs(){
+    [subTheme, subTyping].forEach(s => s && s.classList.remove('open'));
+    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+  }
+
+  function toggleMenu(){
+    const opening = !settingsMenu.classList.contains('open');
+    settingsMenu.classList.toggle('open', opening);
+    if(!opening) closeAllSubs();
+  }
+
+  function openOnly(id){
+    // Collapse all others, then open just the requested one
+    closeAllSubs();
+    const el = document.getElementById(id);
+    if(el){ el.classList.add('open'); }
+    // rotate chevron on the matching control if present
+    document.querySelectorAll(`[data-open-sub]`).forEach(btn=>{
+      const chev = btn.querySelector('.chev');
+      if(!chev) return;
+      chev.classList.toggle('rot90', btn.getAttribute('data-open-sub') === id);
+    });
+  }
+
+  // --- open/close the whole menu
+  settingsBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  // --- open a sub-section when a control is clicked
+  settingsMenu.addEventListener('click', (e)=>{
+    const opener = e.target.closest('[data-open-sub]');
+    if(!opener) return;
+    const id = opener.getAttribute('data-open-sub');
+    if(!id) return;
+    openOnly(id);
+  });
+
+  // --- click outside to close
+  document.addEventListener('click', (e)=>{
+    if(!settingsMenu.classList.contains('open')) return;
+    const clickedInsideMenu = settingsMenu.contains(e.target);
+    const clickedBtn = settingsBtn.contains(e.target);
+    if(!clickedInsideMenu && !clickedBtn){
+      settingsMenu.classList.remove('open');
+      closeAllSubs();
+    }
+  });
+
+  // expose helpers (optional; keeps backward compat if you used these names elsewhere)
+  window.closeAllSubs = closeAllSubs;
+  window.openOnly = openOnly;
+})();
+
+
+
+
 /* =========================================================================================
  * Init
  * =======================================================================================*/
