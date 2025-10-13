@@ -724,6 +724,16 @@ function listMissing(intentName, fieldsObj){
   return req.filter(k => !fieldsObj[k] || String(fieldsObj[k]).trim()==='');
 }
 
+function highlightMissing(keys){
+  (keys || []).forEach(k=>{
+    const el = document.getElementById(`f_${k}`);
+    if(el && !el.value){
+      el.style.boxShadow = '0 0 0 6px rgba(255,100,100,.12)';
+      el.style.borderColor = 'rgba(255,100,100,.55)';
+      setTimeout(()=>{ el.style.boxShadow=''; el.style.borderColor=''; }, 1200);
+    }
+  });
+}
 
 
 
@@ -746,10 +756,10 @@ async function doGenerate(){
     const fields = usingAuto ? {} : collectFields(intent);
     const payload = { intent, fields };
     const missing = listMissing(intent, fields);
-    if(missing.length && fieldsHint){
-    const nice = missing.map(toTitle).join(', ');
-    fieldsHint.textContent = `Missing: ${nice}`;
-    }
+if(missing.length){
+  console.warn('[Missing required fields]', missing);
+  highlightMissing(missing);
+}
 
     // POST to backend
     const res = await fetch('/generate', {
@@ -772,10 +782,10 @@ async function doGenerate(){
       if(data){
         if(outSubject) outSubject.textContent = data.subject || '';
         if(outBody)    outBody.textContent    = data.body || '';
-        if(Array.isArray(data.missing) && data.missing.length){
-          const nice = data.missing.map(toTitle).join(', ');
-          if(fieldsHint) fieldsHint.textContent = `Missing: ${nice}`;
-        }
+	if(Array.isArray(data.missing) && data.missing.length){
+        console.warn('[Missing required fields]', data.missing);
+        highlightMissing(data.missing);
+      }
       }
       return;
     }
@@ -791,12 +801,12 @@ if(liveState.compose){
   if(outSubject) outSubject.textContent = subject || '';
   if(outBody)    outBody.textContent    = body || '';
 }
-    if(Array.isArray(data?.missing) && data.missing.length){
-      const nice = data.missing.map(toTitle).join(', ');
-      if(fieldsHint) fieldsHint.textContent = `Missing: ${nice}`;
-    } else if(fieldsHint && intent !== 'auto_detect'){
-      fieldsHint.textContent = 'All required fields present.';
-    }
+if(Array.isArray(data?.missing) && data.missing.length){
+  console.warn('[Missing required fields]', data.missing);
+  highlightMissing(data.missing);
+} else if(fieldsHint && intent !== 'auto_detect'){
+  fieldsHint.textContent = ''; // keep workers’ UI clean
+}
 
   }catch(err){
     console.error('Generate crashed:', err);
@@ -820,6 +830,35 @@ document.getElementById('fields')?.addEventListener('keydown', (e)=>{
   }
 });
 
+// --- live toggles state + helpers ---
+const liveState = {
+  compose: false,   // #liveCompose
+  preview: false,   // #livePreview
+  tId: null         // debounce timer for auto-generate
+};
+
+function setLiveCompose(v){ liveState.compose = !!v; localStorage.setItem('sm_live_compose', liveState.compose ? '1':'0'); }
+function setLivePreview(v){ liveState.preview = !!v; localStorage.setItem('sm_live_preview', liveState.preview ? '1':'0'); }
+
+// simple typewriter effect for Output panel
+async function typeInto(el, text){
+  if(!el){ return; }
+  el.textContent = ''; // clear first
+  const CHUNK = 3;     // speed
+  for(let i=0;i<=text.length;i+=CHUNK){
+    el.textContent = text.slice(0, i);
+    await new Promise(r=>setTimeout(r, 8)); // adjust to taste
+  }
+}
+
+function scheduleLiveGenerate(delayMs=200){
+  if(!liveState.preview) return;        // gate on toggle
+  clearTimeout(liveState.tId);
+  liveState.tId = setTimeout(()=> doGenerate(), delayMs);
+}
+
+// expose for predict code path that already calls these
+window.scheduleLiveGenerate = scheduleLiveGenerate;
 
 
 
@@ -988,38 +1027,6 @@ async function runCorruption(){
 })();
 
 
-
-
-
-// --- live toggles state + helpers ---
-const liveState = {
-  compose: false,   // #liveCompose
-  preview: false,   // #livePreview
-  tId: null         // debounce timer for auto-generate
-};
-
-function setLiveCompose(v){ liveState.compose = !!v; localStorage.setItem('sm_live_compose', liveState.compose ? '1':'0'); }
-function setLivePreview(v){ liveState.preview = !!v; localStorage.setItem('sm_live_preview', liveState.preview ? '1':'0'); }
-
-// simple typewriter effect for Output panel
-async function typeInto(el, text){
-  if(!el){ return; }
-  el.textContent = ''; // clear first
-  const CHUNK = 3;     // speed
-  for(let i=0;i<=text.length;i+=CHUNK){
-    el.textContent = text.slice(0, i);
-    await new Promise(r=>setTimeout(r, 8)); // adjust to taste
-  }
-}
-
-function scheduleLiveGenerate(delayMs=200){
-  if(!liveState.preview) return;        // gate on toggle
-  clearTimeout(liveState.tId);
-  liveState.tId = setTimeout(()=> doGenerate(), delayMs);
-}
-
-// expose for predict code path that already calls these
-window.scheduleLiveGenerate = scheduleLiveGenerate;
 
 
 
