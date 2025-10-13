@@ -566,7 +566,7 @@ function renderFieldsFor(intentName, requiredList){
   const req = Array.isArray(requiredList) ? requiredList : [];
 
   const nice = req.map(toTitle).join(', ');
-  fieldsHint.textContent = req.length ? `Required Fields: ${nice}` : 'No Required Fields';
+  fieldsHint.textContent = '';
 
   for(const key of req){
     const wrap = document.createElement('div');

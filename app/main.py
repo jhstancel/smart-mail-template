@@ -95,7 +95,7 @@ def split_subject_body(rendered: str) -> Tuple[str, str]:
     """
     first, _, rest = rendered.partition("\n")
     if first.lower().startswith("subject:"):
-        subject = first[len("Subject:") :].strip()
+        subject = first.split(":", 1)[1].strip()
         body = rest.lstrip()
         return subject, body
     return "", rendered
@@ -157,6 +157,7 @@ def health() -> Dict[str, Any]:
             names.append(raw)
     return {"status": "ok", "intents_list": names}
 
+
 @app.get("/schema")
 def get_schema() -> Dict[str, Any]:
     """
@@ -174,6 +175,7 @@ def get_schema() -> Dict[str, Any]:
         if canonical in available:
             filtered[raw] = entry
     return filtered
+
 
 @app.get("/intents")
 def get_intents() -> List[Dict[str, Any]]:

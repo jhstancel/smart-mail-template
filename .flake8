@@ -3,7 +3,7 @@
 max-line-length = 120
 
 # Temporarily ignore multiple-import style warnings; tighten later.
-extend-ignore = E401
+extend-ignore = E401, E203, W503
 
 # Targeted exceptions for known cases; remove these over time.
 per-file-ignores =
