@@ -10,5 +10,7 @@ INTENTS_META = [
     {"name": "followup",           "label": "Follow-Up",          "description": "Polite nudge or status check."},
     {"name": "auto_detect",        "label": "Auto Detect",        "description": "Let the system read your draft and suggest an intent."},
     {"name": "invoice_po_followup", "label": "Invoice/PO Follow-Up", "description": "Follow up on invoice/PO status and payment timeline.", "order": 75, "hidden": False},
+    {"name": "tax_exempt_certificate", "label": "Tax-Exempt Certificate","description": "Reply with the tax-exempt certificate attached.","order": 85, "hidden": False},
+
 ]
 
