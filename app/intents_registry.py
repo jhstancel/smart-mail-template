@@ -63,3 +63,12 @@ INTENTS_META = [
         "hidden": False,
     },
 ]
+# --- Subject registry (safe init) ---
+try:
+    SUBJECTS  # type: ignore[name-defined]
+except NameError:
+    SUBJECTS = {}
+
+# Ensure qb_order has a subject
+SUBJECTS.setdefault("qb_order", "Order Processing Request")
+
