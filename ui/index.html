@@ -584,7 +584,7 @@ function makeIntentCard(item){
 
   div.dataset.intent = item.name;
 
-div.addEventListener('click', ()=>{
+  div.addEventListener('click', ()=>{
   const isActive = div.classList.contains('active');
   document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
 
@@ -610,10 +610,6 @@ div.addEventListener('click', ()=>{
     if (typeof setSelectedIntent === 'function') setSelectedIntent(item.name);
   }
 });
-
-
-
-
 
   return div;
 }
