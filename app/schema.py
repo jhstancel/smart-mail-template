@@ -41,6 +41,10 @@ SCHEMA = {
     "invoice_po_followup": {
         "required": ["buyerName", "invoiceNumber", "poNumber", "dueDate"],
         "optional": ["attachments", "senderName", "notes"],
+    },
+    "tax_exempt_certificate": {
+        "required": [],
+        "optional": ["senderName", "notes"],
 }
 }
 
