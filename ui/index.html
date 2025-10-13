@@ -355,16 +355,15 @@
       <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
     </div>
     <div id="subTyping" class="settings-subpanel">
-<!-- inside: <div id="subTyping" class="settings-subpanel"> -->
-<div class="settings-row" style="justify-content:space-between; margin:8px 0">
-  <div>
-    <div class="label">Live Output Preview</div>
-    <div class="hint">Auto-fill subject &amp; body while typing</div>
-  </div>
-  <label class="toggle" aria-label="Enable Live Output Preview">
-    <input id="livePreview" type="checkbox" /> Live Preview
-  </label>
-</div>
+      <div class="settings-row" style="justify-content:space-between; margin:8px 0">
+        <div>
+          <div class="label">Live Output Preview</div>
+          <div class="hint">Auto-fill subject &amp; body while typing</div>
+        </div>
+        <label class="toggle" aria-label="Enable Live Output Preview">
+          <input id="livePreview" type="checkbox" /> Live Preview
+        </label>
+      </div>
 
       <label class="toggle" for="liveCompose" style="margin-top:2px">
         <input id="liveCompose" type="checkbox" checked /> Compose Live
@@ -438,7 +437,7 @@
     <div id="fields" class="kvs"></div>
 
     <div class="inline" style="margin:8px 0">
-      <button id="btnGenerate" class="btn">Generate</button>
+      <button id="btnGenerate" class="btn" type="button">Generate</button>
     </div>
   </div>
 
@@ -461,7 +460,6 @@
         <div id="outBody" class="out"></div>
         <div class="inline" style="margin-top:8px">
           <button id="copyBody" class="btn secondary">Copy Body</button>
-          <!-- Copy Both removed -->
           <button id="btnClear" class="btn secondary">Clear</button>
         </div>
       </div>
@@ -469,19 +467,9 @@
   </div>
 </div>
 
-
-
-
-
 <script>
 /* =========================================================================================
  * Smart Mail Template — Frontend Script (clean + documented)
- * -----------------------------------------------------------------------------------------
- * Changes vs old block (ONLY):
- *   1) Intents are loaded from /intents (no hardcoded list).
- *   2) Field rendering is robust; uses required list passed from backend or falls back.
- *   3) Intent click passes item.required to renderer.
- * All other UI behavior (starfield, corruption animation, generate, etc.) is preserved.
  * =======================================================================================*/
 
 /* ===== Canvas: Starfield (subtle) ===== */
@@ -517,30 +505,23 @@ const Starfield = (function(){
 /* ===== Tiny helpers ===== */
 const $  = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
-
+const on = (el,ev,fn,opts)=> el && el.addEventListener(ev,fn,opts||false);
 function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
 
-/* ===== DOM refs (must match your HTML IDs/classes) ===== */
-const intentGrid   = document.getElementById('intentGrid');   // cards container (correct ID)
-const fieldsWrap   = document.getElementById('fields');       // inputs mount here (correct ID)
-const fieldsHint   = document.getElementById('fieldsHint');   // hint text
-const autoStage    = document.getElementById('autoStage');    // auto-detect area
-const btnGenerate  = document.getElementById('btnGenerate');  // Generate button
-
-// Draft inputs (auto-detect section)
-const subjectDraft = document.getElementById('subject');      // <input id="subject"> in Auto Detect
-
-// Output panel targets
-const outSubject   = document.getElementById('outSubject');   // <div id="outSubject">
-const outBody      = document.getElementById('outBody');      // <div id="outBody">
+/* ===== DOM refs ===== */
+const intentGrid   = document.getElementById('intentGrid') || document.getElementById('intentButtons') || document.querySelector('.intent-grid');
+const fieldsWrap   = document.getElementById('fields')     || document.getElementById('fieldsWrap')    || document.querySelector('.kvs');
+const fieldsHint   = document.getElementById('fieldsHint') || document.querySelector('#fieldsTitle + .subtitle');
+const autoStage    = document.getElementById('autoStage');
+const btnGenerate  = document.getElementById('btnGenerate');
+const outSubject   = document.getElementById('outSubject');
+const outBody      = document.getElementById('outBody');
 
 /* ===== App state ===== */
 let INTENTS = [];            // from /intents
-let SELECTED_INTENT = '';    // name; '' or null means auto-detect
+let SELECTED_INTENT = '';    // '' or 'auto_detect' means auto-mode
 
-/* =========================================================================================
- * Title case helper
- * =======================================================================================*/
+/* ===== Title helper ===== */
 function toTitle(s){
   return (s || '')
     .replace(/([A-Z])/g, ' $1')
@@ -550,9 +531,7 @@ function toTitle(s){
     .replace(/^./, c=>c.toUpperCase());
 }
 
-/* =========================================================================================
- * Networking
- * =======================================================================================*/
+/* ===== Networking ===== */
 async function postJSON(url, data){
   const res = await fetch(url, {
     method: 'POST',
@@ -563,20 +542,12 @@ async function postJSON(url, data){
   return res.json();
 }
 
-
-
-
-
-
-// --- date helpers ---
+/* ===== Date helpers ===== */
 const DATE_KEYS = new Set([
   'dueDate','deliveryDate','shipDate','estimatedArrival','newDate',
   'pickupDate','dropoffDate','scheduleDate'
 ]);
-
 function isDateKey(k){ return DATE_KEYS.has((k||'').toString()); }
-
-// Format to "MM/DD" unless year differs from current, then "MM/DD/YYYY"
 function formatDateForOutput(yyyy_mm_dd){
   if(!yyyy_mm_dd) return '';
   const [y,m,d] = yyyy_mm_dd.split('-').map(x=>parseInt(x,10));
@@ -587,14 +558,8 @@ function formatDateForOutput(yyyy_mm_dd){
   return (y === nowY) ? `${mm}/${dd}` : `${mm}/${dd}/${y}`;
 }
 
-
-
-
-
-
-
 /* =========================================================================================
- * Field rendering (robust)
+ * Field rendering
  * =======================================================================================*/
 function renderFieldsFor(intentName, requiredList){
   fieldsWrap.innerHTML = '';
@@ -605,22 +570,18 @@ function renderFieldsFor(intentName, requiredList){
 
   for(const key of req){
     const wrap = document.createElement('div');
-    wrap.className = 'kv'; // keep your layout class
+    wrap.className = 'kv kv-inline';
 
     const label = document.createElement('label');
     label.textContent = toTitle(key);
 
     const input = document.createElement('input');
     input.id = `f_${key}`;
+    input.className = 'nice-input';
 
-    // style hooks you already use in CSS (keeps it pretty)
-    input.className = 'nice-input';     // <-- use your input style class if you had one
-    wrap.classList.add('kv-inline');    // <-- optional: if you have a grid/inline style
-
-    // calendar + placeholders
     if (isDateKey(key)) {
-      input.type = 'date';              // native popup calendar
-      input.placeholder = 'MM/DD';      // visual hint (value formatted on submit)
+      input.type = 'date';
+      input.placeholder = 'MM/DD';
     } else {
       input.type = 'text';
       input.placeholder = toTitle(key);
@@ -630,9 +591,12 @@ function renderFieldsFor(intentName, requiredList){
     wrap.appendChild(input);
     fieldsWrap.appendChild(wrap);
   }
+
+  // Focus first field for speed
+  const first = fieldsWrap.querySelector('input');
+  if(first) first.focus();
 }
 
-// Back-compat if only name is given
 function renderFields(intentName){
   if(!intentName){
     fieldsWrap.innerHTML = '';
@@ -666,29 +630,32 @@ function makeIntentCard(item){
     <div class="intent-desc">${desc}</div>
   `;
 
-  div.addEventListener('click', ()=>{
-    const isActive = div.classList.contains('active');
-    $$('.intent-card').forEach(x=>x.classList.remove('active'));
+div.addEventListener('click', ()=>{
+  const isActive = div.classList.contains('active');
+  document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
 
-    if(isActive){
-      SELECTED_INTENT = '';
-      renderFields(null);
-      if (autoStage) autoStage.classList.add('hidden');
-      return;
-    }
+  if(isActive){
+    SELECTED_INTENT = '';
+    renderFields(null);
+    if (autoStage) autoStage.classList.add('hidden');
+    return;
+  }
 
-    div.classList.add('active');
+  div.classList.add('active');
 
-    if(item.name === 'auto_detect'){
-      if (autoStage) autoStage.classList.remove('hidden');
-      renderFields(null); // clear manual fields
-      if (typeof setSelectedIntent === 'function') setSelectedIntent(null);
-    } else {
-      if (autoStage) autoStage.classList.add('hidden');
-      selectIntent(item.name, item.required || []); // ✅ pass required
-      if (typeof setSelectedIntent === 'function') setSelectedIntent(item.name);
-    }
-  });
+  if(item.name === 'auto_detect'){
+    if (autoStage) autoStage.classList.remove('hidden');
+    renderFields(null); // clear manual fields
+    if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(null);
+  } else {
+    if (autoStage) autoStage.classList.add('hidden');
+    // Primary: use backend-provided required list
+    selectIntent(item.name, Array.isArray(item.required) ? item.required : undefined);
+    // Safety net: also render via INTENTS lookup in case required wasn't present
+    renderFields(item.name);
+    if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(item.name);
+  }
+});
 
   return div;
 }
@@ -734,7 +701,7 @@ async function loadIntents(){
 }
 
 /* =========================================================================================
- * Generate flow (unchanged behavior)
+ * Generate flow
  * =======================================================================================*/
 function collectFields(intentName){
   const found = INTENTS.find(i => i.name === intentName) || { required: [] };
@@ -743,42 +710,215 @@ function collectFields(intentName){
   for(const k of keys){
     const el = document.getElementById(`f_${k}`);
     if(!el) continue;
-
     let v = el.value || '';
-
-    // If it's a date input, normalize to mm/dd (or mm/dd/yyyy if year changed)
-    if (isDateKey(k) && el.type === 'date') {
-      v = formatDateForOutput(v);
-    }
-
+    if (isDateKey(k) && el.type === 'date') v = formatDateForOutput(v);
     out[k] = v;
   }
   return out;
 }
 
+
+function listMissing(intentName, fieldsObj){
+  const found = INTENTS.find(i=>i.name===intentName);
+  const req = found && Array.isArray(found.required) ? found.required : [];
+  return req.filter(k => !fieldsObj[k] || String(fieldsObj[k]).trim()==='');
+}
+
+
+
+
 async function doGenerate(){
+  const btn = btnGenerate;
+  const wasText = btn ? btn.textContent : '';
+
   try{
+    if(btn){ btn.disabled = true; btn.textContent = 'Generating…'; }
+
     const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
-    const intent = usingAuto ? null : SELECTED_INTENT;
-    const fields = usingAuto ? {} : collectFields(SELECTED_INTENT);
 
-    const payload = { intent, fields };
-    const res = await postJSON('/generate', payload);
-
-    if(outSubject) outSubject.textContent = res.subject || '';
-    if(outBody)    outBody.textContent    = res.body || '';
-
-    if(res.missing && res.missing.length){
-      const nice = res.missing.map(toTitle).join(', ');
-      if (fieldsHint) fieldsHint.textContent = `Missing: ${nice}`;
+    // Build payload: ALWAYS send a string intent
+    const intent = usingAuto ? 'auto_detect' : SELECTED_INTENT;
+    if(!intent){
+      if(fieldsHint) fieldsHint.textContent = 'Pick an intent first, or use Auto Detect.';
+      return;
     }
+
+    const fields = usingAuto ? {} : collectFields(intent);
+    const payload = { intent, fields };
+    const missing = listMissing(intent, fields);
+    if(missing.length && fieldsHint){
+    const nice = missing.map(toTitle).join(', ');
+    fieldsHint.textContent = `Missing: ${nice}`;
+    }
+
+    // POST to backend
+    const res = await fetch('/generate', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // Try to parse JSON even on non-2xx
+    let data = null;
+    try { data = await res.json(); } catch { /* ignore parse errors */ }
+
+    if(!res.ok){
+      // Surface helpful message if backend returns one
+      const msg = (data && (data.detail || data.message)) ? `: ${data.detail || data.message}` : '';
+      console.error('Generate failed:', res.status, data);
+      if(fieldsHint) fieldsHint.textContent = `Generate failed (${res.status})${msg}`;
+
+      // Show partial subject/body if they exist
+      if(data){
+        if(outSubject) outSubject.textContent = data.subject || '';
+        if(outBody)    outBody.textContent    = data.body || '';
+        if(Array.isArray(data.missing) && data.missing.length){
+          const nice = data.missing.map(toTitle).join(', ');
+          if(fieldsHint) fieldsHint.textContent = `Missing: ${nice}`;
+        }
+      }
+      return;
+    }
+
+    // Success
+    const subject = data?.subject || '';
+    const body    = data?.body || '';
+
+    if(outSubject) outSubject.textContent = subject;
+    if(outBody)    outBody.textContent    = body;
+
+    if(Array.isArray(data?.missing) && data.missing.length){
+      const nice = data.missing.map(toTitle).join(', ');
+      if(fieldsHint) fieldsHint.textContent = `Missing: ${nice}`;
+    } else if(fieldsHint && intent !== 'auto_detect'){
+      fieldsHint.textContent = 'All required fields present.';
+    }
+
   }catch(err){
-    console.error('Generate failed:', err);
+    console.error('Generate crashed:', err);
+    if(fieldsHint) fieldsHint.textContent = 'Generate crashed — see console.';
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = wasText || 'Generate'; }
   }
 }
 
-if(btnGenerate) btnGenerate.addEventListener('click', doGenerate);
 
+
+
+on(btnGenerate, 'click', doGenerate);
+
+
+
+document.getElementById('fields')?.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    doGenerate();
+  }
+});
+
+
+
+
+/* =========================================================================================
+ * Settings menu + Theme + Typing toggles + Copy/Clear
+ * =======================================================================================*/
+(function wireUI(){
+  const settingsBtn  = document.querySelector('.settings-btn');
+  const settingsMenu = document.querySelector('.settings-menu');
+  const subTheme     = document.getElementById('subTheme');
+  const subTyping    = document.getElementById('subTyping');
+  const themeSelect  = document.getElementById('themeSelect');
+
+  function closeAllSubs(){
+    [subTheme, subTyping].forEach(el => el && el.classList.remove('open'));
+    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+  }
+  function toggleMenu(){
+    const willOpen = !settingsMenu.classList.contains('open');
+    settingsMenu.classList.toggle('open', willOpen);
+    if(!willOpen) closeAllSubs();
+  }
+  function openOnly(which){
+    closeAllSubs();
+    if(which==='theme' && subTheme){ subTheme.classList.add('open'); }
+    if(which==='typing' && subTyping){ subTyping.classList.add('open'); }
+    document.querySelectorAll('.settings-item').forEach(row=>{
+      const chev = row.querySelector('.chev');
+      if(!chev) return;
+      chev.classList.toggle('rot90', row.getAttribute('data-item')===which);
+    });
+  }
+
+  on(settingsBtn,'click', (e)=>{ e.stopPropagation(); toggleMenu(); });
+  on(settingsMenu,'click', (e)=>{
+    const row = e.target.closest('.settings-item');
+    if(!row) return;
+    const which = row.getAttribute('data-item');
+    if(which) openOnly(which);
+  });
+  on(document,'click', (e)=>{
+    if(!settingsMenu.classList.contains('open')) return;
+    const inside = settingsMenu.contains(e.target);
+    const onBtn  = settingsBtn.contains(e.target);
+    if(!inside && !onBtn){ settingsMenu.classList.remove('open'); closeAllSubs(); }
+  });
+
+  // Theme switching (persist in localStorage)
+  const THEME_KEY = 'sm_theme';
+  const saved = localStorage.getItem(THEME_KEY);
+  if(saved){ document.body.dataset.theme = saved; }
+  if(themeSelect){ themeSelect.value = document.body.dataset.theme || 'light-minimal'; }
+  on(themeSelect, 'change', ()=>{
+    const val = themeSelect.value || 'light-minimal';
+    document.body.dataset.theme = val;
+    localStorage.setItem(THEME_KEY, val);
+    if(val==='cosmic') Starfield.start(); else Starfield.stop();
+  });
+
+// --- Copy + Clear buttons (message + restore) ---
+const copySubjectBtn = document.getElementById('copySubject');
+const copyBodyBtn    = document.getElementById('copyBody');
+const clearBtn       = document.getElementById('btnClear');
+
+async function copyText(txt){
+  try{ await navigator.clipboard.writeText(txt); }catch(e){ console.warn('Clipboard error', e); }
+}
+function flashBtn(btn, msg){
+  if(!btn) return;
+  const old = btn.textContent;
+  btn.textContent = msg;
+  btn.classList.add('toast');
+  setTimeout(()=>{
+    btn.classList.remove('toast');
+    btn.textContent = old;
+  }, 900);
+}
+
+if(copySubjectBtn){
+  copySubjectBtn.addEventListener('click', ()=>{
+    const txt = (outSubject?.textContent || '').trim();
+    if(!txt){ flashBtn(copySubjectBtn, 'Copied'); return; } // keeps UX consistent
+    copyText(txt);
+    flashBtn(copySubjectBtn, 'Copied');
+  });
+}
+if(copyBodyBtn){
+  copyBodyBtn.addEventListener('click', ()=>{
+    const txt = (outBody?.textContent || '').trim();
+    if(!txt){ flashBtn(copyBodyBtn, 'Copied'); return; }
+    copyText(txt);
+    flashBtn(copyBodyBtn, 'Copied');
+  });
+}
+if(clearBtn){
+  clearBtn.addEventListener('click', ()=>{
+    if(outSubject) outSubject.textContent = '';
+    if(outBody)    outBody.textContent = '';
+    document.querySelectorAll('#fields input').forEach(i=> i.value = '');
+    flashBtn(clearBtn, 'Cleared');
+  });
+}
+})();
 /* =========================================================================================
  * Corruption / “printer reload” easter egg (preserved)
  * =======================================================================================*/
@@ -809,91 +949,11 @@ async function runCorruption(){
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 }
 
-
-/* ========================================================================================
- * SETTINGS MENU (gear icon) — open/close + one-sub-open behavior
- * - Works with either IDs (#settingsBtn, #settingsMenu) or classes (.settings-btn, .settings-menu)
- * - Sub-sections use IDs (e.g., #subTheme, #subTyping) and toggled via [data-open-sub="<id>"]
- * =======================================================================================*/
-(function wireSettings(){
-  // --- elements (try multiple selectors so we don't depend on one exact ID/class)
-  const settingsBtn  = document.getElementById('settingsBtn')  || document.querySelector('.settings-btn')  || document.getElementById('btnSettings');
-  const settingsMenu = document.getElementById('settingsMenu') || document.querySelector('.settings-menu') || document.querySelector('#settings');
-
-  // optional sub-sections (OK if missing)
-  const subTheme  = document.getElementById('subTheme');
-  const subTyping = document.getElementById('subTyping');
-
-  if(!settingsBtn || !settingsMenu){
-    // Nothing to wire; keep going without throwing.
-    return;
-  }
-
-  function closeAllSubs(){
-    [subTheme, subTyping].forEach(s => s && s.classList.remove('open'));
-    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
-  }
-
-  function toggleMenu(){
-    const opening = !settingsMenu.classList.contains('open');
-    settingsMenu.classList.toggle('open', opening);
-    if(!opening) closeAllSubs();
-  }
-
-  function openOnly(id){
-    // Collapse all others, then open just the requested one
-    closeAllSubs();
-    const el = document.getElementById(id);
-    if(el){ el.classList.add('open'); }
-    // rotate chevron on the matching control if present
-    document.querySelectorAll(`[data-open-sub]`).forEach(btn=>{
-      const chev = btn.querySelector('.chev');
-      if(!chev) return;
-      chev.classList.toggle('rot90', btn.getAttribute('data-open-sub') === id);
-    });
-  }
-
-  // --- open/close the whole menu
-  settingsBtn.addEventListener('click', (e)=>{
-    e.stopPropagation();
-    toggleMenu();
-  });
-
-  // --- open a sub-section when a control is clicked
-  settingsMenu.addEventListener('click', (e)=>{
-    const opener = e.target.closest('[data-open-sub]');
-    if(!opener) return;
-    const id = opener.getAttribute('data-open-sub');
-    if(!id) return;
-    openOnly(id);
-  });
-
-  // --- click outside to close
-  document.addEventListener('click', (e)=>{
-    if(!settingsMenu.classList.contains('open')) return;
-    const clickedInsideMenu = settingsMenu.contains(e.target);
-    const clickedBtn = settingsBtn.contains(e.target);
-    if(!clickedInsideMenu && !clickedBtn){
-      settingsMenu.classList.remove('open');
-      closeAllSubs();
-    }
-  });
-
-  // expose helpers (optional; keeps backward compat if you used these names elsewhere)
-  window.closeAllSubs = closeAllSubs;
-  window.openOnly = openOnly;
-})();
-
-
-
-
 /* =========================================================================================
  * Init
  * =======================================================================================*/
 (async function init(){
-  // Theme default (keep existing)
   document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') || 'light-minimal');
-
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
   await loadIntents();
@@ -901,13 +961,6 @@ async function runCorruption(){
   if(fieldsHint) fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
 })();
 </script>
-
-
-
-
-
-
-
 
 <script>window.EVIL_LARRY_SRC = 'img/evil-larry.png';</script>
 
@@ -1093,7 +1146,6 @@ async function runCorruption(){
           [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===targetName)?.classList.add('active');
           if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(name);
 
-          // After selecting via Top-K: auto-populate and trigger preview
           setTimeout(()=>{
             const hintNow = (document.getElementById('hint')?.value || '').trim();
             if (hintNow) window.autoPopulateFields?.(name, hintNow);
@@ -1107,11 +1159,8 @@ async function runCorruption(){
     }
     if(els.predInfo) els.predInfo.style.display='flex';
 
-    // Auto-generate fields for predicted intent
     if (data?.intent && typeof window.setSelectedIntent === 'function') {
       window.setSelectedIntent(data.intent);
-
-      // After selecting the predicted intent, auto-populate fields from the hint and kick preview
       setTimeout(()=>{
         const hintNow = (document.getElementById('hint')?.value || '').trim();
         if (hintNow) window.autoPopulateFields?.(data.intent, hintNow);
@@ -1164,7 +1213,6 @@ async function runCorruption(){
   }
 
   attachToHint($('#hint'));
-
   const mo = new MutationObserver(()=> attachToHint($('#hint')));
   mo.observe(document.body, {childList:true, subtree:true});
 
