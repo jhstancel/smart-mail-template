@@ -9,5 +9,6 @@ INTENTS_META = [
     {"name": "packing_slip_docs",  "label": "Docs / Packing Slip","description": "Send packing slip, COO, SDS."},
     {"name": "followup",           "label": "Follow-Up",          "description": "Polite nudge or status check."},
     {"name": "auto_detect",        "label": "Auto Detect",        "description": "Let the system read your draft and suggest an intent."},
+    {"name": "invoice_po_followup", "label": "Invoice/PO Follow-Up", "description": "Follow up on invoice/PO status and payment timeline.", "order": 75, "hidden": False},
 ]
 
