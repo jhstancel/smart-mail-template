@@ -42,7 +42,7 @@ SCHEMA = {
         "required": ["buyerName", "invoiceNumber", "poNumber", "dueDate"],
         "optional": ["attachments", "senderName", "notes"],
     },
-    "tax_exempt_certificate": {
+    "tax_exemption": {
         "required": [],
         "optional": ["senderName", "notes"],
 }

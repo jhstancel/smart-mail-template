@@ -784,9 +784,13 @@ async function doGenerate(){
     const subject = data?.subject || '';
     const body    = data?.body || '';
 
-    if(outSubject) outSubject.textContent = subject;
-    if(outBody)    outBody.textContent    = body;
-
+if(liveState.compose){
+  await typeInto(outSubject, subject || '');
+  await typeInto(outBody,    body || '');
+} else {
+  if(outSubject) outSubject.textContent = subject || '';
+  if(outBody)    outBody.textContent    = body || '';
+}
     if(Array.isArray(data?.missing) && data.missing.length){
       const nice = data.missing.map(toTitle).join(', ');
       if(fieldsHint) fieldsHint.textContent = `Missing: ${nice}`;
@@ -823,6 +827,28 @@ document.getElementById('fields')?.addEventListener('keydown', (e)=>{
  * Settings menu + Theme + Typing toggles + Copy/Clear
  * =======================================================================================*/
 (function wireUI(){
+  const liveComposeCb = document.getElementById('liveCompose');
+  const livePreviewCb = document.getElementById('livePreview');
+
+  // restore saved state
+  const savedCompose = localStorage.getItem('sm_live_compose') === '1';
+  const savedPreview = localStorage.getItem('sm_live_preview') === '1';
+  if(liveComposeCb){ liveComposeCb.checked = savedCompose; setLiveCompose(savedCompose); }
+  if(livePreviewCb){ livePreviewCb.checked = savedPreview; setLivePreview(savedPreview); }
+
+  // wire toggles
+  if(liveComposeCb){ liveComposeCb.addEventListener('change', e=> setLiveCompose(e.target.checked)); }
+  if(livePreviewCb){ livePreviewCb.addEventListener('change', e=> setLivePreview(e.target.checked)); }
+
+  // auto-generate when fields change (gated by livePreview)
+  document.getElementById('fields')?.addEventListener('input', ()=>{
+    scheduleLiveGenerate(250);
+  });
+
+  // also auto-generate if you’re in Auto Detect draft area and they type
+  document.getElementById('subject')?.addEventListener('input', ()=> scheduleLiveGenerate(300));
+  document.getElementById('hint')?.addEventListener('input',    ()=> scheduleLiveGenerate(300));
+
   const settingsBtn  = document.querySelector('.settings-btn');
   const settingsMenu = document.querySelector('.settings-menu');
   const subTheme     = document.getElementById('subTheme');
@@ -960,6 +986,44 @@ async function runCorruption(){
 
   if(fieldsHint) fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
 })();
+
+
+
+
+
+// --- live toggles state + helpers ---
+const liveState = {
+  compose: false,   // #liveCompose
+  preview: false,   // #livePreview
+  tId: null         // debounce timer for auto-generate
+};
+
+function setLiveCompose(v){ liveState.compose = !!v; localStorage.setItem('sm_live_compose', liveState.compose ? '1':'0'); }
+function setLivePreview(v){ liveState.preview = !!v; localStorage.setItem('sm_live_preview', liveState.preview ? '1':'0'); }
+
+// simple typewriter effect for Output panel
+async function typeInto(el, text){
+  if(!el){ return; }
+  el.textContent = ''; // clear first
+  const CHUNK = 3;     // speed
+  for(let i=0;i<=text.length;i+=CHUNK){
+    el.textContent = text.slice(0, i);
+    await new Promise(r=>setTimeout(r, 8)); // adjust to taste
+  }
+}
+
+function scheduleLiveGenerate(delayMs=200){
+  if(!liveState.preview) return;        // gate on toggle
+  clearTimeout(liveState.tId);
+  liveState.tId = setTimeout(()=> doGenerate(), delayMs);
+}
+
+// expose for predict code path that already calls these
+window.scheduleLiveGenerate = scheduleLiveGenerate;
+
+
+
+
 </script>
 
 <script>window.EVIL_LARRY_SRC = 'img/evil-larry.png';</script>
