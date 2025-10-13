@@ -521,13 +521,18 @@ const $$ = sel => Array.from(document.querySelectorAll(sel));
 function delay(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 /* ===== DOM refs (must match your HTML IDs/classes) ===== */
-const intentGrid  = document.getElementById('intentButtons'); // buttons/cards container
-const fieldsWrap  = document.getElementById('fieldsWrap');    // inputs mount here
-const fieldsHint  = document.getElementById('fieldsHint');    // hint text
-const autoStage   = document.getElementById('autoStage');     // auto-detect area (if present)
-const btnGenerate = document.getElementById('btnGenerate');   // Generate button
-const subjectEl   = document.getElementById('subject');       // subject output element
-const bodyEl      = document.getElementById('body');          // body output element
+const intentGrid   = document.getElementById('intentGrid');   // cards container (correct ID)
+const fieldsWrap   = document.getElementById('fields');       // inputs mount here (correct ID)
+const fieldsHint   = document.getElementById('fieldsHint');   // hint text
+const autoStage    = document.getElementById('autoStage');    // auto-detect area
+const btnGenerate  = document.getElementById('btnGenerate');  // Generate button
+
+// Draft inputs (auto-detect section)
+const subjectDraft = document.getElementById('subject');      // <input id="subject"> in Auto Detect
+
+// Output panel targets
+const outSubject   = document.getElementById('outSubject');   // <div id="outSubject">
+const outBody      = document.getElementById('outBody');      // <div id="outBody">
 
 /* ===== App state ===== */
 let INTENTS = [];            // from /intents
@@ -709,8 +714,8 @@ async function doGenerate(){
     const payload = { intent, fields };
     const res = await postJSON('/generate', payload);
 
-    if(subjectEl) subjectEl.value = res.subject || '';
-    if(bodyEl)    bodyEl.value    = res.body || '';
+    if(outSubject) outSubject.textContent = res.subject || '';
+    if(outBody)    outBody.textContent    = res.body || '';
 
     if(res.missing && res.missing.length){
       const nice = res.missing.map(toTitle).join(', ');
