@@ -6,10 +6,10 @@ from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from jinja2 import Environment, FileSystemLoader, Undefined, TemplateNotFound
-# App
+
 app = FastAPI(title="Smart Mail Template API")
 
-# Optional static UI mount (safe no-op if /ui missing)
+# Try to mount static UI if present (safe no-op otherwise)
 try:
     from fastapi.staticfiles import StaticFiles
     UI_DIR = Path(__file__).resolve().parent.parent / "ui"
@@ -18,7 +18,7 @@ try:
 except Exception:
     pass
 
-# Imports that may fail early — keep server booting gracefully
+# Safe imports with fallbacks so the app can still boot for tests
 try:
     from .schema import SCHEMA  # type: ignore
 except Exception:
@@ -29,13 +29,12 @@ try:
 except Exception:
     INTENTS_META: List[Dict] = []
 
-# Subject registry is optional; initialize empty if not provided
 try:
     from .intents_registry import SUBJECTS  # type: ignore
 except Exception:
     SUBJECTS: Dict[str, str] = {}
 
-# ---------- Models ----------
+# ---------------- Models ----------------
 class GenerateReq(BaseModel):
     intent: str
     fields: Dict[str, str] = {}
@@ -45,23 +44,23 @@ class GenerateResp(BaseModel):
     body: str
     missing: List[str] = []
 
-# ---------- Helpers ----------
+# ---------------- Helpers ----------------
 def _label_for(intent: str) -> str:
     for m in INTENTS_META:
         if m.get("name") == intent:
             return m.get("label") or intent
     return intent
 
- def _env() -> Environment:
-     return Environment(
-         loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
-         autoescape=False,
-         undefined=Undefined,
-         trim_blocks=True,
-         lstrip_blocks=True,
-     )
+def _env() -> Environment:
+    return Environment(
+        loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
+        autoescape=False,
+        undefined=Undefined,  # allow missing optional vars to render as empty strings
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
 
-# ---------- Routes ----------
+# ---------------- Routes ----------------
 @app.get("/health")
 def health():
     return {
@@ -72,7 +71,7 @@ def health():
 
 @app.get("/schema")
 def get_schema():
-    # return a shallow copy to avoid mutation during tests
+    # shallow copy to avoid accidental mutation in tests
     return {k: dict(v) if isinstance(v, dict) else v for k, v in SCHEMA.items()}
 
 @app.get("/intents")
@@ -88,7 +87,7 @@ def generate(req: GenerateReq) -> GenerateResp:
     if intent not in SCHEMA:
         raise HTTPException(status_code=400, detail=f"Unknown intent: {intent}")
 
-    # 2) Determine required fields & missing
+    # 2) Required/missing fields via schema
     meta = SCHEMA.get(intent, {})
     required = meta.get("required", []) if isinstance(meta, dict) else []
     missing = [k for k in required if not str(fields.get(k, "")).strip()]
@@ -106,7 +105,6 @@ def generate(req: GenerateReq) -> GenerateResp:
     # 4) Resolve subject with robust fallbacks
     subject: Optional[str] = SUBJECTS.get(intent, "")
     if not subject or not str(subject).strip():
-        # Optional dynamic subject for qb_order if orderNumber present
         if intent == "qb_order" and fields.get("orderNumber"):
             subject = f"Order Processing Request — {fields['orderNumber']}"
         else:
