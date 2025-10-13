@@ -1,21 +1,41 @@
 {
-  "quote_request": [
-    "quote",
-    "pricing",
-    "rfq",
-    "estimate",
-    "quote request"
-  ],
   "order_confirmation": [
+    "purchase order",
     "po ",
     "po#",
-    "purchase order",
+    "po# ",
+    "attached po",
+    "please find po",
+    "our po",
     "new order",
     "order confirmation",
     "order confirmed",
-    "attached po",
-    "please find po",
+    "sales order",
     "thank you for your order"
+  ],
+  "quote_request": [
+    "rfq",
+    "request for quote",
+    "quote request",
+    "can you quote",
+    "pricing request",
+    "need pricing",
+    "what is your price",
+    "need a quote",
+    "estimate"
+  ],
+  "followup": [
+    "re:",
+    "following up",
+    "circling back",
+    "touching base",
+    "any update",
+    "any updates",
+    "checking in",
+    "just checking",
+    "please advise",
+    "status?",
+    "?"
   ],
   "shipment_update": [
     "order update",
@@ -53,13 +73,6 @@
     "docs attached",
     "commercial invoice",
     "po paperwork"
-  ],
-  "followup": [
-    "following up",
-    "circling back",
-    "touching base",
-    "any update",
-    "checking in"
   ],
   "_autodetect": {
     "enabled": true,
