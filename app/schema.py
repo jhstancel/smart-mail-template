@@ -45,9 +45,8 @@ SCHEMA = {
     "tax_exemption": {
         "required": [],
         "optional": ["senderName", "notes"],
-}
+    },
 }
 
 # Optional: for reference or validation
 INTENT_NAMES = list(SCHEMA.keys())
-
