@@ -563,6 +563,36 @@ async function postJSON(url, data){
   return res.json();
 }
 
+
+
+
+
+
+// --- date helpers ---
+const DATE_KEYS = new Set([
+  'dueDate','deliveryDate','shipDate','estimatedArrival','newDate',
+  'pickupDate','dropoffDate','scheduleDate'
+]);
+
+function isDateKey(k){ return DATE_KEYS.has((k||'').toString()); }
+
+// Format to "MM/DD" unless year differs from current, then "MM/DD/YYYY"
+function formatDateForOutput(yyyy_mm_dd){
+  if(!yyyy_mm_dd) return '';
+  const [y,m,d] = yyyy_mm_dd.split('-').map(x=>parseInt(x,10));
+  if(!y||!m||!d) return '';
+  const mm = String(m).padStart(2,'0');
+  const dd = String(d).padStart(2,'0');
+  const nowY = new Date().getFullYear();
+  return (y === nowY) ? `${mm}/${dd}` : `${mm}/${dd}/${y}`;
+}
+
+
+
+
+
+
+
 /* =========================================================================================
  * Field rendering (robust)
  * =======================================================================================*/
@@ -575,14 +605,26 @@ function renderFieldsFor(intentName, requiredList){
 
   for(const key of req){
     const wrap = document.createElement('div');
-    wrap.className = 'kv';
+    wrap.className = 'kv'; // keep your layout class
 
     const label = document.createElement('label');
     label.textContent = toTitle(key);
 
     const input = document.createElement('input');
     input.id = `f_${key}`;
-    input.placeholder = toTitle(key);
+
+    // style hooks you already use in CSS (keeps it pretty)
+    input.className = 'nice-input';     // <-- use your input style class if you had one
+    wrap.classList.add('kv-inline');    // <-- optional: if you have a grid/inline style
+
+    // calendar + placeholders
+    if (isDateKey(key)) {
+      input.type = 'date';              // native popup calendar
+      input.placeholder = 'MM/DD';      // visual hint (value formatted on submit)
+    } else {
+      input.type = 'text';
+      input.placeholder = toTitle(key);
+    }
 
     wrap.appendChild(label);
     wrap.appendChild(input);
@@ -700,7 +742,16 @@ function collectFields(intentName){
   const out = {};
   for(const k of keys){
     const el = document.getElementById(`f_${k}`);
-    if(el) out[k] = el.value || '';
+    if(!el) continue;
+
+    let v = el.value || '';
+
+    // If it's a date input, normalize to mm/dd (or mm/dd/yyyy if year changed)
+    if (isDateKey(k) && el.type === 'date') {
+      v = formatDateForOutput(v);
+    }
+
+    out[k] = v;
   }
   return out;
 }
