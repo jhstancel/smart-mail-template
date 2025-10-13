@@ -13,8 +13,25 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel, Field
 
 from app.preprocess import clean_subject_body
-from .schema import SCHEMA
-from .intents_registry import INTENTS_META
+
+
+
+
+
+# --- resilient imports so uvicorn/WatchFiles find modules both in package and script modes ---
+try:
+    # Prefer package-relative when app is a proper package
+    from .schema import SCHEMA  # type: ignore
+except Exception:
+    # Fallback to absolute if running in a context where relative fails
+    from app.schema import SCHEMA  # type: ignore
+
+try:
+    from .intents_registry import INTENTS_META  # type: ignore
+except Exception:
+    from app.intents_registry import INTENTS_META  # type: ignore
+# --- end resilient imports ---
+
 
 
 # --------------------------------------------------------------------------------------
