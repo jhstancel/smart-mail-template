@@ -584,28 +584,36 @@ function makeIntentCard(item){
 
   div.dataset.intent = item.name;
 
-  div.addEventListener('click', ()=>{
-    const isActive = div.classList.contains('active');
-    document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+div.addEventListener('click', ()=>{
+  const isActive = div.classList.contains('active');
+  document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
 
-    if(isActive){
-      // deselect
-      SELECTED_INTENT = null;
-      renderFields(null);
-      autoStage.classList.add('hidden');
-      return;
-    }
+  if(isActive){
+    // deselect
+    SELECTED_INTENT = null;
+    renderFields(null);
+    autoStage.classList.add('hidden');
+    return;
+  }
 
-    div.classList.add('active');
+  div.classList.add('active');
 
-    if(item.name === 'auto_detect'){
-      autoStage.classList.remove('hidden');
-      setSelectedIntent(null);
-    } else {
-      autoStage.classList.add('hidden');
-      setSelectedIntent(item.name);
-    }
-  });
+  if(item.name === 'auto_detect'){
+    autoStage.classList.remove('hidden');
+    // clear fields for auto-detect mode
+    renderFields(null);
+    if (typeof setSelectedIntent === 'function') setSelectedIntent(null);
+  } else {
+    autoStage.classList.add('hidden');
+    // ✅ pass backend-provided required fields to the UI renderer
+    selectIntent(item.name, item.required || []);
+    if (typeof setSelectedIntent === 'function') setSelectedIntent(item.name);
+  }
+});
+
+
+
+
 
   return div;
 }
