@@ -254,5 +254,27 @@ def generate(req: GenerateReq) -> GenerateResp:
     template = env.get_template(f"{canonical}.j2")
     rendered = template.render(**(req.fields or {}))
     subject, body = split_subject_body(rendered)
+    
+    # After you computed subject and body…
+from app.intents_registry import INTENTS_META, SUBJECTS
+
+def _label_for(intent: str) -> str:
+    for m in INTENTS_META:
+        if m.get("name") == intent:
+            return m.get("label") or intent
+    return intent
+
+if not subject or not str(subject).strip():
+    # 1) explicit SUBJECTS mapping
+    subject = SUBJECTS.get(intent)
+# Optional dynamic subject for qb_order if an orderNumber exists
+if (not subject or not str(subject).strip()) and intent == "qb_order":
+    order_no = (fields or {}).get("orderNumber")
+    if order_no:
+        subject = f"Order Processing Request — {order_no}"
+
+# 2) fallback to label, then a final generic
+if not subject or not str(subject).strip():
+    subject = _label_for(intent) or "Request"
 
     return GenerateResp(subject=subject, body=body, missing=missing)
