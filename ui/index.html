@@ -161,6 +161,15 @@
 
   .row{display:grid; gap:12px; grid-template-columns:1fr 1fr}
   .kvs{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+
+  /* ✨ Pretty, consistent field boxes */
+  .kv{
+    display:flex; flex-direction:column; gap:6px;
+    padding:12px; border-radius:14px;
+    background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+    border:1px solid var(--card-border);
+  }
+
   .muted{color:var(--muted); font-size:12px}
   .pill{padding:4px 10px; border-radius:999px; border:1px solid var(--panel-border); background:color-mix(in srgb, var(--bg) 85%, white 15%);}
 
@@ -311,6 +320,9 @@
     from{ transform: translateY(0) }
     to{ transform: translateY(100vh) }
   }
+
+  /* 🚫 Make the "Required Fields" helper invisible without removing it */
+  #fieldsHint{ display:none !important; }
 </style>
 </head>
 <body>
@@ -469,7 +481,7 @@
 
 <script>
 /* =========================================================================================
- * Smart Mail Template â€” Frontend Script (clean + documented)
+ * Smart Mail Template — Frontend Script (clean + documented)
  * =======================================================================================*/
 
 /* ===== Canvas: Starfield (subtle) ===== */
@@ -574,17 +586,15 @@ function formatDateForOutput(yyyy_mm_dd){
  * Field rendering
  * =======================================================================================*/
 function renderFields(intent){
-  // fieldsWrap and fieldsHint were already defined once at the top; reuse them
   fieldsWrap.innerHTML = '';
 
   if(!intent || !SCHEMA || !SCHEMA[intent]){
-    if(fieldsHint) fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
+    if(fieldsHint) fieldsHint.textContent = ''; // invisible anyway
     return;
   }
 
   const req = Array.isArray(SCHEMA[intent].required) ? SCHEMA[intent].required : [];
-  const niceList = req.map(toTitle).join(', ');
-  if(fieldsHint) fieldsHint.textContent = req.length ? `Required Fields: ${niceList}` : 'No Required Fields';
+  if(fieldsHint) fieldsHint.textContent = ''; // keep hidden/empty
 
   for(const key of req){
     const wrap  = document.createElement('div');
@@ -598,11 +608,10 @@ function renderFields(intent){
     input.id = `f_${key}`;
     input.placeholder = toTitle(key);
 
-    // Input type hints
+    // Standardize inputs: only email, date, or text (no number spinners)
     const k = key.toLowerCase();
     if (k.includes('email')) input.type = 'email';
     else if (k.includes('date') || k.includes('ship')) input.type = 'date';
-    else if (k.includes('qty') || k.includes('quantity') || k.includes('number') || k.includes('amount')) input.type = 'number';
     else input.type = 'text';
 
     wrap.appendChild(label);
@@ -610,7 +619,6 @@ function renderFields(intent){
     fieldsWrap.appendChild(wrap);
   }
 
-  // Focus first field for speed
   const first = fieldsWrap.querySelector('input');
   if(first) first.focus();
 }
@@ -659,7 +667,7 @@ function makeIntentCard(item){
       if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(null);
     } else {
       if (autoStage) autoStage.classList.add('hidden');
-      selectIntent(item.name);   // unified path
+      selectIntent(item.name);
       if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(item.name);
     }
   });
@@ -746,14 +754,14 @@ async function doGenerate(){
   const wasText = btn ? btn.textContent : '';
 
   try{
-    if(btn){ btn.disabled = true; btn.textContent = 'Generatingâ€¦'; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Generating...'; }
 
     const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
 
     // Build payload: ALWAYS send a string intent
     const intent = usingAuto ? 'auto_detect' : SELECTED_INTENT;
     if(!intent){
-      if(fieldsHint) fieldsHint.textContent = 'Pick an intent first, or use Auto Detect.';
+      if(fieldsHint) fieldsHint.textContent = ''; // invisible anyway
       return;
     }
 
@@ -765,24 +773,19 @@ async function doGenerate(){
       highlightMissing(missing);
     }
 
-    // POST to backend
     const res = await fetch('/generate', {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
       body: JSON.stringify(payload)
     });
 
-    // Try to parse JSON even on non-2xx
     let data = null;
     try { data = await res.json(); } catch { /* ignore parse errors */ }
 
     if(!res.ok){
-      // Surface helpful message if backend returns one
       const msg = (data && (data.detail || data.message)) ? `: ${data.detail || data.message}` : '';
       console.error('Generate failed:', res.status, data);
-      if(fieldsHint) fieldsHint.textContent = `Generate failed (${res.status})${msg}`;
-
-      // Show partial subject/body if they exist
+      if(fieldsHint) fieldsHint.textContent = ''; // keep hidden
       if(data){
         if(outSubject) outSubject.textContent = data.subject || '';
         if(outBody)    outBody.textContent    = data.body || '';
@@ -794,7 +797,6 @@ async function doGenerate(){
       return;
     }
 
-    // Success
     const subject = data?.subject || '';
     const body    = data?.body || '';
 
@@ -809,12 +811,12 @@ async function doGenerate(){
       console.warn('[Missing required fields]', data.missing);
       highlightMissing(data.missing);
     } else if(fieldsHint && intent !== 'auto_detect'){
-      fieldsHint.textContent = ''; // keep workers’ UI clean
+      fieldsHint.textContent = ''; // invisible
     }
 
   }catch(err){
     console.error('Generate crashed:', err);
-    if(fieldsHint) fieldsHint.textContent = 'Generate crashed — see console.';
+    if(fieldsHint) fieldsHint.textContent = '';
   }finally{
     if(btn){ btn.disabled = false; btn.textContent = wasText || 'Generate'; }
   }
@@ -1018,16 +1020,16 @@ async function runCorruption(){
   document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') || 'light-minimal');
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
-  await loadSchema();   // <-- ensure schema is available before rendering fields
+  await loadSchema();
   await loadIntents();
 
-  if(fieldsHint) fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
+  if(fieldsHint) fieldsHint.textContent = ''; // invisible by design
 })();
 </script>
 
 <script>window.EVIL_LARRY_SRC = 'img/evil-larry.png';</script>
 
-<!-- ðŸˆ Evil Larry (R A I N  M O D E) -->
+<!-- Evil Larry (RAIN MODE) -->
 <style>
   .evil-larry{
     position:fixed; left:0; top:0;
