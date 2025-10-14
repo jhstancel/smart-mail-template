@@ -382,7 +382,7 @@
 <div id="flash" class="flash" aria-hidden="true"></div>
 <div id="buffer" class="buffer" role="dialog" aria-modal="true" aria-label="Buffering">
   <div class="buffer-card">
-    <div style="font-weight:800; margin-bottom:8px">Reinitializing display…</div>
+    <div style="font-weight:800; margin-bottom:8px">Reinitializing displayâ€¦</div>
     <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
     <div id="barPct" class="muted" style="margin-top:8px">0%</div>
   </div>
@@ -469,7 +469,7 @@
 
 <script>
 /* =========================================================================================
- * Smart Mail Template — Frontend Script (clean + documented)
+ * Smart Mail Template â€” Frontend Script (clean + documented)
  * =======================================================================================*/
 
 /* ===== Canvas: Starfield (subtle) ===== */
@@ -520,8 +520,9 @@ const outBody      = document.getElementById('outBody');
 /* ===== App state ===== */
 let INTENTS = [];            // from /intents
 let SELECTED_INTENT = '';    // '' or 'auto_detect' means auto-mode
+let SCHEMA = {};             // from /schema
 
-/* ===== Title helper ===== */
+// Title helper (keep a single definition)
 function toTitle(s){
   return (s || '')
     .replace(/([A-Z])/g, ' $1')
@@ -540,6 +541,17 @@ async function postJSON(url, data){
   });
   if(!res.ok) throw new Error(`POST ${url} failed: ${res.status}`);
   return res.json();
+}
+
+async function loadSchema(){
+  try{
+    const res = await fetch('/schema');
+    if(!res.ok) throw new Error('Failed to fetch /schema');
+    SCHEMA = await res.json();
+  }catch(e){
+    console.error('Error loading /schema:', e);
+    SCHEMA = {};
+  }
 }
 
 /* ===== Date helpers ===== */
@@ -561,31 +573,37 @@ function formatDateForOutput(yyyy_mm_dd){
 /* =========================================================================================
  * Field rendering
  * =======================================================================================*/
-function renderFieldsFor(intentName, requiredList){
+function renderFields(intent){
+  // fieldsWrap and fieldsHint were already defined once at the top; reuse them
   fieldsWrap.innerHTML = '';
-  const req = Array.isArray(requiredList) ? requiredList : [];
 
-  const nice = req.map(toTitle).join(', ');
-  fieldsHint.textContent = '';
+  if(!intent || !SCHEMA || !SCHEMA[intent]){
+    if(fieldsHint) fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
+    return;
+  }
+
+  const req = Array.isArray(SCHEMA[intent].required) ? SCHEMA[intent].required : [];
+  const niceList = req.map(toTitle).join(', ');
+  if(fieldsHint) fieldsHint.textContent = req.length ? `Required Fields: ${niceList}` : 'No Required Fields';
 
   for(const key of req){
-    const wrap = document.createElement('div');
-    wrap.className = 'kv kv-inline';
+    const wrap  = document.createElement('div');
+    wrap.className = 'kv';
 
     const label = document.createElement('label');
+    label.setAttribute('for', `f_${key}`);
     label.textContent = toTitle(key);
 
     const input = document.createElement('input');
     input.id = `f_${key}`;
-    input.className = 'nice-input';
+    input.placeholder = toTitle(key);
 
-    if (isDateKey(key)) {
-      input.type = 'date';
-      input.placeholder = 'MM/DD';
-    } else {
-      input.type = 'text';
-      input.placeholder = toTitle(key);
-    }
+    // Input type hints
+    const k = key.toLowerCase();
+    if (k.includes('email')) input.type = 'email';
+    else if (k.includes('date') || k.includes('ship')) input.type = 'date';
+    else if (k.includes('qty') || k.includes('quantity') || k.includes('number') || k.includes('amount')) input.type = 'number';
+    else input.type = 'text';
 
     wrap.appendChild(label);
     wrap.appendChild(input);
@@ -597,21 +615,13 @@ function renderFieldsFor(intentName, requiredList){
   if(first) first.focus();
 }
 
-function renderFields(intentName){
-  if(!intentName){
-    fieldsWrap.innerHTML = '';
-    fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
+function selectIntent(name){
+  SELECTED_INTENT = name || '';
+  if (!name) {
+    renderFields(null);
     return;
   }
-  const found = INTENTS.find(i => i.name === intentName);
-  const req = found && Array.isArray(found.required) ? found.required : [];
-  renderFieldsFor(intentName, req);
-}
-
-function selectIntent(name, requiredMaybe){
-  SELECTED_INTENT = name || '';
-  if (Array.isArray(requiredMaybe)) renderFieldsFor(name, requiredMaybe);
-  else renderFields(name);
+  renderFields(name);
 }
 
 /* =========================================================================================
@@ -630,32 +640,29 @@ function makeIntentCard(item){
     <div class="intent-desc">${desc}</div>
   `;
 
-div.addEventListener('click', ()=>{
-  const isActive = div.classList.contains('active');
-  document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+  div.addEventListener('click', ()=>{
+    const isActive = div.classList.contains('active');
+    document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
 
-  if(isActive){
-    SELECTED_INTENT = '';
-    renderFields(null);
-    if (autoStage) autoStage.classList.add('hidden');
-    return;
-  }
+    if(isActive){
+      SELECTED_INTENT = '';
+      renderFields(null);
+      if (autoStage) autoStage.classList.add('hidden');
+      return;
+    }
 
-  div.classList.add('active');
+    div.classList.add('active');
 
-  if(item.name === 'auto_detect'){
-    if (autoStage) autoStage.classList.remove('hidden');
-    renderFields(null); // clear manual fields
-    if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(null);
-  } else {
-    if (autoStage) autoStage.classList.add('hidden');
-    // Primary: use backend-provided required list
-    selectIntent(item.name, Array.isArray(item.required) ? item.required : undefined);
-    // Safety net: also render via INTENTS lookup in case required wasn't present
-    renderFields(item.name);
-    if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(item.name);
-  }
-});
+    if(item.name === 'auto_detect'){
+      if (autoStage) autoStage.classList.remove('hidden');
+      renderFields(null); // clear manual fields
+      if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(null);
+    } else {
+      if (autoStage) autoStage.classList.add('hidden');
+      selectIntent(item.name);   // unified path
+      if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(item.name);
+    }
+  });
 
   return div;
 }
@@ -717,7 +724,6 @@ function collectFields(intentName){
   return out;
 }
 
-
 function listMissing(intentName, fieldsObj){
   const found = INTENTS.find(i=>i.name===intentName);
   const req = found && Array.isArray(found.required) ? found.required : [];
@@ -735,14 +741,12 @@ function highlightMissing(keys){
   });
 }
 
-
-
 async function doGenerate(){
   const btn = btnGenerate;
   const wasText = btn ? btn.textContent : '';
 
   try{
-    if(btn){ btn.disabled = true; btn.textContent = 'Generating…'; }
+    if(btn){ btn.disabled = true; btn.textContent = 'Generatingâ€¦'; }
 
     const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
 
@@ -756,10 +760,10 @@ async function doGenerate(){
     const fields = usingAuto ? {} : collectFields(intent);
     const payload = { intent, fields };
     const missing = listMissing(intent, fields);
-if(missing.length){
-  console.warn('[Missing required fields]', missing);
-  highlightMissing(missing);
-}
+    if(missing.length){
+      console.warn('[Missing required fields]', missing);
+      highlightMissing(missing);
+    }
 
     // POST to backend
     const res = await fetch('/generate', {
@@ -782,10 +786,10 @@ if(missing.length){
       if(data){
         if(outSubject) outSubject.textContent = data.subject || '';
         if(outBody)    outBody.textContent    = data.body || '';
-	if(Array.isArray(data.missing) && data.missing.length){
-        console.warn('[Missing required fields]', data.missing);
-        highlightMissing(data.missing);
-      }
+        if(Array.isArray(data.missing) && data.missing.length){
+          console.warn('[Missing required fields]', data.missing);
+          highlightMissing(data.missing);
+        }
       }
       return;
     }
@@ -794,19 +798,19 @@ if(missing.length){
     const subject = data?.subject || '';
     const body    = data?.body || '';
 
-if(liveState.compose){
-  await typeInto(outSubject, subject || '');
-  await typeInto(outBody,    body || '');
-} else {
-  if(outSubject) outSubject.textContent = subject || '';
-  if(outBody)    outBody.textContent    = body || '';
-}
-if(Array.isArray(data?.missing) && data.missing.length){
-  console.warn('[Missing required fields]', data.missing);
-  highlightMissing(data.missing);
-} else if(fieldsHint && intent !== 'auto_detect'){
-  fieldsHint.textContent = ''; // keep workers’ UI clean
-}
+    if(liveState.compose){
+      await typeInto(outSubject, subject || '');
+      await typeInto(outBody,    body || '');
+    } else {
+      if(outSubject) outSubject.textContent = subject || '';
+      if(outBody)    outBody.textContent    = body || '';
+    }
+    if(Array.isArray(data?.missing) && data.missing.length){
+      console.warn('[Missing required fields]', data.missing);
+      highlightMissing(data.missing);
+    } else if(fieldsHint && intent !== 'auto_detect'){
+      fieldsHint.textContent = ''; // keep workers’ UI clean
+    }
 
   }catch(err){
     console.error('Generate crashed:', err);
@@ -816,12 +820,7 @@ if(Array.isArray(data?.missing) && data.missing.length){
   }
 }
 
-
-
-
 on(btnGenerate, 'click', doGenerate);
-
-
 
 document.getElementById('fields')?.addEventListener('keydown', (e)=>{
   if(e.key === 'Enter' && !e.shiftKey){
@@ -859,8 +858,6 @@ function scheduleLiveGenerate(delayMs=200){
 
 // expose for predict code path that already calls these
 window.scheduleLiveGenerate = scheduleLiveGenerate;
-
-
 
 /* =========================================================================================
  * Settings menu + Theme + Typing toggles + Copy/Clear
@@ -940,49 +937,49 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
     if(val==='cosmic') Starfield.start(); else Starfield.stop();
   });
 
-// --- Copy + Clear buttons (message + restore) ---
-const copySubjectBtn = document.getElementById('copySubject');
-const copyBodyBtn    = document.getElementById('copyBody');
-const clearBtn       = document.getElementById('btnClear');
+  // --- Copy + Clear buttons (message + restore) ---
+  const copySubjectBtn = document.getElementById('copySubject');
+  const copyBodyBtn    = document.getElementById('copyBody');
+  const clearBtn       = document.getElementById('btnClear');
 
-async function copyText(txt){
-  try{ await navigator.clipboard.writeText(txt); }catch(e){ console.warn('Clipboard error', e); }
-}
-function flashBtn(btn, msg){
-  if(!btn) return;
-  const old = btn.textContent;
-  btn.textContent = msg;
-  btn.classList.add('toast');
-  setTimeout(()=>{
-    btn.classList.remove('toast');
-    btn.textContent = old;
-  }, 900);
-}
+  async function copyText(txt){
+    try{ await navigator.clipboard.writeText(txt); }catch(e){ console.warn('Clipboard error', e); }
+  }
+  function flashBtn(btn, msg){
+    if(!btn) return;
+    const old = btn.textContent;
+    btn.textContent = msg;
+    btn.classList.add('toast');
+    setTimeout(()=>{
+      btn.classList.remove('toast');
+      btn.textContent = old;
+    }, 900);
+  }
 
-if(copySubjectBtn){
-  copySubjectBtn.addEventListener('click', ()=>{
-    const txt = (outSubject?.textContent || '').trim();
-    if(!txt){ flashBtn(copySubjectBtn, 'Copied'); return; } // keeps UX consistent
-    copyText(txt);
-    flashBtn(copySubjectBtn, 'Copied');
-  });
-}
-if(copyBodyBtn){
-  copyBodyBtn.addEventListener('click', ()=>{
-    const txt = (outBody?.textContent || '').trim();
-    if(!txt){ flashBtn(copyBodyBtn, 'Copied'); return; }
-    copyText(txt);
-    flashBtn(copyBodyBtn, 'Copied');
-  });
-}
-if(clearBtn){
-  clearBtn.addEventListener('click', ()=>{
-    if(outSubject) outSubject.textContent = '';
-    if(outBody)    outBody.textContent = '';
-    document.querySelectorAll('#fields input').forEach(i=> i.value = '');
-    flashBtn(clearBtn, 'Cleared');
-  });
-}
+  if(copySubjectBtn){
+    copySubjectBtn.addEventListener('click', ()=>{
+      const txt = (outSubject?.textContent || '').trim();
+      if(!txt){ flashBtn(copySubjectBtn, 'Copied'); return; } // keeps UX consistent
+      copyText(txt);
+      flashBtn(copySubjectBtn, 'Copied');
+    });
+  }
+  if(copyBodyBtn){
+    copyBodyBtn.addEventListener('click', ()=>{
+      const txt = (outBody?.textContent || '').trim();
+      if(!txt){ flashBtn(copyBodyBtn, 'Copied'); return; }
+      copyText(txt);
+      flashBtn(copyBodyBtn, 'Copied');
+    });
+  }
+  if(clearBtn){
+    clearBtn.addEventListener('click', ()=>{
+      if(outSubject) outSubject.textContent = '';
+      if(outBody)    outBody.textContent = '';
+      document.querySelectorAll('#fields input').forEach(i=> i.value = '');
+      flashBtn(clearBtn, 'Cleared');
+    });
+  }
 })();
 /* =========================================================================================
  * Corruption / “printer reload” easter egg (preserved)
@@ -1021,21 +1018,16 @@ async function runCorruption(){
   document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') || 'light-minimal');
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
+  await loadSchema();   // <-- ensure schema is available before rendering fields
   await loadIntents();
 
   if(fieldsHint) fieldsHint.textContent = '(Select An Option Or Use Auto Detect)';
 })();
-
-
-
-
-
-
 </script>
 
 <script>window.EVIL_LARRY_SRC = 'img/evil-larry.png';</script>
 
-<!-- 🐈 Evil Larry (R A I N  M O D E) -->
+<!-- ðŸˆ Evil Larry (R A I N  M O D E) -->
 <style>
   .evil-larry{
     position:fixed; left:0; top:0;
