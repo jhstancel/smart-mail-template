@@ -14,8 +14,10 @@ SCHEMA = {
         "optional": ["estimatedArrival", "orderNumber", "notes"],
     },
     "qb_order": {
-        "description": "QuickBooks order request — ask to process and confirm shipping date.",
+        "label": "QB Order",
+        "description": "QuickBooks order request.",
         "required": ["recipientName", "senderName"],
+        "optional": ["orderNumber", "orderDate", "shipDate"],
     },
     "order_confirmation": {
         "required": ["orderNumber", "companyName", "deliveryDate"],
