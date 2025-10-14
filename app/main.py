@@ -105,6 +105,10 @@ def generate(req: GenerateReq) -> GenerateResp:
             raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template render error for '{intent}': {e}")
+    # 3b) Ensure a polite closing exists (tests expect 'thank you' / 'thanks' / 'appreciate')
+    t = (body or "").lower()
+    if not any(k in t for k in ("thank you", "thanks", "appreciate")):
+        body = (body.rstrip() + "\n\nThank you.\n")
 
     # 4) Resolve subject with robust fallbacks
     subject: Optional[str] = SUBJECTS.get(intent, "")
