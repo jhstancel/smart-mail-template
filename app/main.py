@@ -92,13 +92,17 @@ def generate(req: GenerateReq) -> GenerateResp:
     required = meta.get("required", []) if isinstance(meta, dict) else []
     missing = [k for k in required if not str(fields.get(k, "")).strip()]
 
-    # 3) Render body from Jinja2 template
+        # 3) Render body from Jinja2 template
     env = _env()
     try:
         tpl = env.get_template(f"{intent}.j2")
         body = tpl.render(**fields)
     except TemplateNotFound:
-        raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
+        if intent == "auto_detect":
+            # Generic, polite fallback body for the special intent with no template
+            body = "Hello,\n\nCould you please review the draft and suggest the best intent?\n\nThank you."
+        else:
+            raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template render error for '{intent}': {e}")
 
