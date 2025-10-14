@@ -71,9 +71,7 @@ def health():
 
 @app.get("/schema")
 def get_schema():
-    # shallow copy to avoid accidental mutation in tests
-    return {k: dict(v) if isinstance(v, dict) else v for k, v in SCHEMA.items()}
-
+    return SCHEMA
 @app.get("/intents")
 def list_intents():
     return INTENTS_META
