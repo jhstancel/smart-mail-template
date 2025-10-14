@@ -100,7 +100,7 @@ def generate(req: GenerateReq) -> GenerateResp:
     except TemplateNotFound:
         if intent == "auto_detect":
             # Generic, polite fallback body for the special intent with no template
-            body = "Hello,\n\nCould you please review the draft and suggest the best intent?\n\nThank you."
+	    body = "Hello there,\n\nCould you please review the draft and suggest the best intent?\n\nThank you."
         else:
             raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
     except Exception as e:
