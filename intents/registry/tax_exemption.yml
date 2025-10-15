@@ -1,0 +1,37 @@
+id: tax_exemption
+label: Tax Exemption
+description: Notify a customer about tax-exempt status or request details.
+
+required: [recipientName]
+optional: [companyName, jurisdiction, notes]
+
+fieldTypes:
+  recipientName: string
+  companyName: string
+  jurisdiction: string
+  notes: longtext
+
+hints:
+  recipientName: e.g., “Accounts Payable”
+  companyName: e.g., “UP Aviation LLC”
+  jurisdiction: e.g., “FL” or “Florida”
+  notes: Optional context for the exemption
+
+template:
+  subject: "Tax Exemption – {{ companyName or recipientName }}"
+  bodyPath: "templates/tax_exemption.j2"
+
+autodetect:
+  keywords: ["tax exempt", "exemption", "sales tax"]
+  boosts:
+    reply: 0.04
+
+tests:
+  samples:
+    - fields:
+        recipientName: "Accounts Payable"
+        companyName: "UP Aviation LLC"
+        jurisdiction: "FL"
+      expectSubjectContains: ["Tax Exemption"]
+      expectBodyContains: ["UP Aviation", "FL"]
+

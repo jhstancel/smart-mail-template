@@ -1,0 +1,43 @@
+id: tax_exempt_certificate
+label: Tax Exempt Certificate
+description: Send or request a tax-exempt certificate for purchases.
+
+required: [recipientName]
+optional: [companyName, certificateId, jurisdiction, expirationDate, notes]
+
+fieldTypes:
+  recipientName: string
+  companyName: string
+  certificateId: string
+  jurisdiction: string
+  expirationDate: date
+  notes: longtext
+
+hints:
+  recipientName: e.g., “Accounts Payable”
+  companyName: e.g., “UP Aviation LLC”
+  certificateId: e.g., “TX-EX-4921”
+  jurisdiction: e.g., “TX”
+  expirationDate: mm/dd/yyyy
+  notes: Optional message to include with the certificate
+
+template:
+  subject: "Tax Exempt Certificate – {{ companyName or recipientName }}"
+  bodyPath: "templates/tax_exempt_certificate.j2"
+
+autodetect:
+  keywords: ["tax exemption certificate", "resale certificate", "tax exempt"]
+  boosts:
+    reply: 0.04
+
+tests:
+  samples:
+    - fields:
+        recipientName: "Accounts Payable"
+        companyName: "UP Aviation LLC"
+        certificateId: "TX-EX-4921"
+        jurisdiction: "TX"
+        expirationDate: "12/31/2026"
+      expectSubjectContains: ["Certificate"]
+      expectBodyContains: ["UP Aviation", "TX-EX-4921", "TX"]
+
