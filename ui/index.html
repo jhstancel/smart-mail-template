@@ -626,19 +626,16 @@ function renderFields(intent){
 
 function selectIntent(name){
   SELECTED_INTENT = name || '';
-  // Toggle auto-detect stage visibility and render fields
   if (!name || name === 'auto_detect'){
     autoStage?.classList.remove('hidden');
     renderFields(null);
-  }else{
+  } else {
     autoStage?.classList.add('hidden');
     renderFields(name);
   }
-  // Sync active card state
   document.querySelectorAll('.intent-card')
     .forEach(card => card.classList.toggle('active', card.dataset.intent === name));
 }
-// Expose a global for auto-detect + top-k buttons
 window.setSelectedIntent = selectIntent;
 
 
@@ -729,12 +726,14 @@ async function loadIntents(){
  * Generate flow
  * =======================================================================================*/
 function collectFields(intentName){
-  const found = INTENTS.find(i => i.name === intentName) || { required: [] };
-  const keys = Array.isArray(found.required) ? found.required : [];
+  // Pull required keys from SCHEMA so names match the backend/templates
+  const req = (SCHEMA && SCHEMA[intentName] && Array.isArray(SCHEMA[intentName].required))
+    ? SCHEMA[intentName].required
+    : [];
   const out = {};
-  for(const k of keys){
+  for (const k of req){
     const el = document.getElementById(`f_${k}`);
-    if(!el) continue;
+    if (!el) continue;
     let v = el.value || '';
     if (isDateKey(k) && el.type === 'date') v = formatDateForOutput(v);
     out[k] = v;
@@ -859,13 +858,12 @@ async function typeInto(el, text){
   if(!el){ return; }
   el.textContent = '';
   const CHUNK = 3;
-  for(let i=0; i<text.length; i+=CHUNK){
+  for (let i = 0; i < text.length; i += CHUNK){
     const end = Math.min(i + CHUNK, text.length);
     el.textContent = text.slice(0, end);
-    await new Promise(r=>setTimeout(r, 8));
+    await new Promise(r => setTimeout(r, 8));
   }
-  // Ensure the full text is set (prevents any truncation)
-  el.textContent = text;
+  el.textContent = text; // guarantee no truncation
 }
 
 function scheduleLiveGenerate(delayMs=200){
@@ -1200,7 +1198,6 @@ async function runCorruption(){
     predStatus: $('#predStatus'),
     predInfo:   $('#predInfo'),
     predIntent: $('#predIntent'),
-    // Ensure badge exists and is a real node in the strip
     predBadge:  (function(){
                   let n = document.getElementById('predBadge');
                   if(!n){
