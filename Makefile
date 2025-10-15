@@ -1,69 +1,121 @@
 # ============================================================
-# Smart Mail Template — Developer Makefile
+# Smart Mail Template — Developer Makefile (full rewrite)
 # ============================================================
 
 SHELL := /bin/bash
-PY := python3
-VENV := .venv
-UVICORN := uvicorn
-APP := app.main:app
+
+# --- Prefer the repo's virtualenv if it exists ---
+VENV ?= .venv
+ifeq ($(wildcard $(VENV)/bin/python),)
+  PY  := python3
+  PIP := pip
+else
+  PY  := $(VENV)/bin/python
+  PIP := $(VENV)/bin/pip
+endif
+
+# --- App / server config ---
+APP  ?= app.main:app
 HOST ?= 127.0.0.1
 PORT ?= 8000
 
-# ============================================================
-# Core Developer Commands
-# ============================================================
+# --- Git defaults ---
+MSG  ?= chore(auto): format, lint, test, and push
 
-.PHONY: help run serve fmt lint test train regen check-schema check-no-legacy dev push docs clean
+.PHONY: help venv install run serve dev regen check-schema check-no-legacy fmt lint test train new-intent docs push clean kill-port build-schema
 
 help:
 	@echo ""
 	@echo "🧠 Smart Mail Template — Dev Commands"
-	@echo "-----------------------------------"
-	@echo "  make run              → Start FastAPI API with auto-reload"
-	@echo "  make dev              → Regenerate schema + validate + run"
-	@echo "  make fmt              → Auto-format all Python code"
-	@echo "  make lint             → Run ruff and mypy lint checks"
-	@echo "  make test             → Run pytest test suite"
-	@echo "  make train            → Retrain ML models (autodetect classifier)"
-	@echo "  make regen            → Regenerate YAML → generated artifacts"
-	@echo "  make check-schema     → Validate generated files exist"
-	@echo "  make check-no-legacy  → Verify old schema system fully removed"
-	@echo "  make push             → Auto-format, commit, and push to GitHub"
-	@echo "  make docs             → Rebuild and publish documentation"
-	@echo "  make clean            → Remove cache, artifacts, and build files"
+	@echo "-------------------------------------"
+	@echo "  make venv            → Create .venv and install requirements"
+	@echo "  make run             → Start FastAPI with auto-reload (PORT=$(PORT))"
+	@echo "  make serve           → Alias for run"
+	@echo "  make dev             → regen → check-schema → check-no-legacy → run"
+	@echo "  make regen           → Regenerate YAML → generated artifacts"
+	@echo "  make check-schema    → Verify generated files exist"
+	@echo "  make check-no-legacy → Ensure old schema files are gone"
+	@echo "  make fmt             → Black + isort"
+	@echo "  make lint            → Ruff + mypy"
+	@echo "  make test            → Pytest suite"
+	@echo "  make train           → Train autodetect classifier"
+	@echo "  make new-intent      → Launch interactive new intent wizard"
+	@echo "  make docs            → Push docs via scripts/docpush.sh"
+	@echo "  make push            → Format, lint, test, commit, push"
+	@echo "  make clean           → Remove caches and build artifacts"
+	@echo "  make kill-port       → Kill process bound to PORT ($(PORT))"
 	@echo ""
+
+# ============================================================
+# Environment / Dependencies
+# ============================================================
+
+venv:
+	@[ -d $(VENV) ] || (echo "📦 Creating venv in $(VENV)"; python3 -m venv $(VENV))
+	@echo "📦 Installing requirements into $(VENV)"
+	@$(PIP) install -r requirements.txt
+
+install: venv
 
 # ============================================================
 # Runtime / Server
 # ============================================================
 
 run:
-	@echo "🚀 Starting FastAPI on http://${HOST}:${PORT}"
-	@$(UVICORN) $(APP) --reload --host $(HOST) --port $(PORT)
+	@echo "🚀 Starting FastAPI on http://$(HOST):$(PORT)"
+	@$(PY) -m uvicorn $(APP) --reload --host $(HOST) --port $(PORT)
 
 serve: run
 
 dev: regen check-schema check-no-legacy run
+
+kill-port:
+	@echo "🧨 Killing any process on port $(PORT)"
+	@PID=$$(lsof -ti tcp:$(PORT)) ; \
+	if [ -n "$$PID" ]; then kill -9 $$PID && echo "✓ Killed PID $$PID"; else echo "• No process on $(PORT)"; fi
+
+# ============================================================
+# Schema / Registry pipeline
+# ============================================================
+
+regen:
+	@echo "🔁 Regenerating intent schemas..."
+	@$(PY) scripts/regen_schemas.py
+
+check-schema:
+	@echo "✅ Validating generated schema files..."
+	@[ -f app/schema_generated.py ] && echo "  ✓ app/schema_generated.py" || (echo "  ✗ missing app/schema_generated.py"; exit 1)
+	@[ -f app/autodetect_rules_generated.py ] && echo "  ✓ app/autodetect_rules_generated.py" || (echo "  ✗ missing app/autodetect_rules_generated.py"; exit 1)
+	@[ -f public/schema.generated.json ] && echo "  ✓ public/schema.generated.json" || (echo "  ✗ missing public/schema.generated.json"; exit 1)
+
+check-no-legacy:
+	@echo "🔒 Checking for legacy files..."
+	@if [ -f app/schema.py ] || [ -f app/intents_registry.py ] || [ -f app/schema.py.bak ] || [ -f app/intents_registry.py.bak ]; then \
+		echo "❌ Legacy schema files detected (remove app/schema.py* and app/intents_registry.py*)"; \
+		exit 1; \
+	else \
+		echo "✅ No legacy schema files present"; \
+	fi
+
+build-schema: regen check-schema
 
 # ============================================================
 # Code Quality
 # ============================================================
 
 fmt:
-	@echo "🎨 Formatting code with black..."
+	@echo "🎨 Formatting with black + isort..."
 	@$(PY) -m black app scripts tests
-	@echo "🧹 Sorting imports..."
 	@$(PY) -m isort app scripts tests
 
 lint:
-	@echo "🔍 Running lint checks..."
+	@echo "🔍 Ruff + mypy..."
 	@ruff check app scripts
 	@$(PY) -m mypy app scripts
 
 test:
-	@echo "🧪 Running tests..."
-	@pytest -v --disable-warnings
+	@echo "🧪 Running pytest..."
+	@$(PY) -m pytest -v --disable-warnings
 
 # ============================================================
 # Model Training
@@ -75,55 +127,35 @@ train:
 	@echo "✅ Model training complete."
 
 # ============================================================
-# Schema / Registry System
+# Tooling / Docs / Git
 # ============================================================
 
-regen:
-	@echo "🔁 Regenerating intent schemas..."
-	@$(PY) scripts/regen_schemas.py
+new-intent:
+	@echo "🧩 Launching New Intent Wizard..."
+	@$(PY) scripts/new_intent.py
 
-check-schema:
-	@echo "✅ Validating generated schema files..."
-	@[ -f app/schema_generated.py ] && echo "✓ schema_generated.py exists" || (echo "✗ missing schema_generated.py"; exit 1)
-	@[ -f app/autodetect_rules_generated.py ] && echo "✓ autodetect_rules_generated.py exists" || (echo "✗ missing autodetect_rules_generated.py"; exit 1)
-	@[ -f public/schema.generated.json ] && echo "✓ schema.generated.json exists" || (echo "✗ missing schema.generated.json"; exit 1)
-
-check-no-legacy:
-	@echo "🔒 Checking for legacy files..."
-	@if [ -f app/schema.py ] || [ -f app/intents_registry.py ] || [ -f app/schema.py.bak ] || [ -f app/intents_registry.py.bak ]; then \
-		echo "❌ Legacy schema files detected (remove app/schema.py* and app/intents_registry.py*)"; \
-		exit 1; \
-	else \
-		echo "✅ No legacy schema files present"; \
-	fi
-
-# ============================================================
-# Git / Docs / Maintenance
-# ============================================================
+docs:
+	@echo "📚 Pushing docs..."
+	@bash scripts/docpush.sh
 
 push:
-	@echo "🧱 Running format + lint + test before push..."
-	@make fmt
-	@make lint
-	@make test
+	@echo "🧱 Running format + lint + test..."
+	@$(MAKE) fmt
+	@$(MAKE) lint
+	@$(MAKE) test
 	@echo "🚀 Committing and pushing..."
 	@git add -A
-	@git commit -m "chore(auto): auto-format, lint, test, and push"
+	@git commit -m "$(MSG)" || echo "• Nothing to commit"
 	@git push
 	@echo "✅ Push complete."
 
-docs:
-	@echo "📚 Building documentation..."
-	@$(PY) scripts/docpush.sh
-	@echo "✅ Documentation pushed."
+# ============================================================
+# Cleanup
+# ============================================================
 
 clean:
 	@echo "🧹 Cleaning cache and artifacts..."
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
-	@find . -type d -name "*.egg-info" -exec rm -rf {} +
 	@rm -rf .pytest_cache .mypy_cache build dist
 	@echo "✅ Cleanup complete."
-.PHONY: new-intent
-new-intent:
-	@echo "🧩 Launching New Intent Wizard..."
-	@python3 scripts/new_intent.py
+
