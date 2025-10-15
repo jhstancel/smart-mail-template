@@ -36,6 +36,19 @@ install:
 
 run:
 	$(UVICORN) app.main:app --reload
+# ============================================================
+# Schema regeneration and validation
+# ============================================================
+
+regen:
+	@echo "🔁 Regenerating intent schemas..."
+	@python3 scripts/regen_schemas.py
+
+check-schema:
+	@echo "✅ Validating generated schema files..."
+	@[ -f app/schema_generated.py ] && echo "✓ schema_generated.py exists" || (echo "✗ missing schema_generated.py"; exit 1)
+	@[ -f app/autodetect_rules.generated.py ] && echo "✓ autodetect_rules.generated.py exists" || (echo "✗ missing autodetect_rules.generated.py"; exit 1)
+	@[ -f public/schema.generated.json ] && echo "✓ schema.generated.json exists" || (echo "✗ missing schema.generated.json"; exit 1)
 
 test:
 	$(PYTHON) -m pytest -q
