@@ -1,0 +1,41 @@
+id: packing_slip_docs
+label: Packing Slip / Documents
+description: Send or request documentation such as a packing slip, invoice, or certificate.
+
+required: [documentType, orderNumber]
+optional: [attachment, notes]
+
+fieldTypes:
+  documentType: enum
+  orderNumber: string
+  attachment: string
+  notes: longtext
+
+enums:
+  documentType: [Packing Slip, Invoice, Tax Exemption Certificate, Other]
+
+hints:
+  documentType: e.g., “Packing Slip” or “Invoice”
+  orderNumber: e.g., PO-10922
+  attachment: Filename or link to uploaded file
+  notes: Optional internal comments
+
+template:
+  subject: "{{ documentType }} – {{ orderNumber }}"
+  bodyPath: "templates/packing_slip_docs.j2"
+
+autodetect:
+  keywords: ["packing slip", "invoice copy", "certificate", "document", "attachment"]
+  boosts:
+    reply: 0.05
+    containsPO: 0.04
+
+tests:
+  samples:
+    - fields:
+        documentType: "Packing Slip"
+        orderNumber: "PO-10922"
+        attachment: "packing_slip_PO10922.pdf"
+      expectSubjectContains: ["Packing Slip", "PO-10922"]
+      expectBodyContains: ["document", "packing slip", "PO-10922"]
+

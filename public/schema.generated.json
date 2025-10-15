@@ -107,6 +107,30 @@
       "deliveryDate"
     ]
   },
+  "packing_slip_docs": {
+    "description": "Send or request documentation such as a packing slip, invoice, or certificate.",
+    "fieldTypes": {
+      "attachment": "string",
+      "documentType": "enum",
+      "notes": "longtext",
+      "orderNumber": "string"
+    },
+    "hints": {
+      "attachment": "Filename or link to uploaded file",
+      "documentType": "e.g., \u201cPacking Slip\u201d or \u201cInvoice\u201d",
+      "notes": "Optional internal comments",
+      "orderNumber": "e.g., PO-10922"
+    },
+    "label": "Packing Slip / Documents",
+    "optional": [
+      "attachment",
+      "notes"
+    ],
+    "required": [
+      "documentType",
+      "orderNumber"
+    ]
+  },
   "quote_request": {
     "description": "Customer requests pricing and availability for an item.",
     "fieldTypes": {

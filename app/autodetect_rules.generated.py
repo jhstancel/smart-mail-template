@@ -51,6 +51,19 @@ AUTODETECT_GENERATED = {
       "delivery date"
     ]
   },
+  "packing_slip_docs": {
+    "boosts": {
+      "containsPO": 0.04,
+      "reply": 0.05
+    },
+    "keywords": [
+      "packing slip",
+      "invoice copy",
+      "certificate",
+      "document",
+      "attachment"
+    ]
+  },
   "quote_request": {
     "boosts": {
       "containsPO": 0.02,
