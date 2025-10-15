@@ -1,0 +1,45 @@
+id: quote_request
+label: Quote Request
+description: Customer requests pricing and availability for an item.
+
+required: [companyName, item, quantity, destination]
+optional: [deliveryDate, contactPerson, notes]
+
+fieldTypes:
+  companyName: string
+  item: string
+  quantity: string
+  destination: string
+  deliveryDate: date
+  contactPerson: string
+  notes: longtext
+
+hints:
+  companyName: e.g., UP Aviation LLC
+  item: e.g., PN-10423 or “pressure sensor kit”
+  quantity: e.g., 2
+  destination: e.g., Asheville NC or zip code
+  deliveryDate: mm/dd/yyyy
+  contactPerson: e.g., John Stancel
+  notes: Any special instructions
+
+template:
+  subject: "Quote Request – {{ item }}"
+  bodyPath: "templates/quote_request.j2"
+
+autodetect:
+  keywords: ["quote", "pricing", "availability", "rfq", "price check"]
+  boosts:
+    reply: 0.05
+    containsPO: 0.02
+
+tests:
+  samples:
+    - fields:
+        companyName: "UP Aviation LLC"
+        item: "PN-10423"
+        quantity: "2"
+        destination: "Asheville NC"
+      expectSubjectContains: ["Quote Request", "PN-10423"]
+      expectBodyContains: ["Asheville", "pricing", "availability"]
+
