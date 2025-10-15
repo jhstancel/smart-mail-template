@@ -16,8 +16,8 @@ SCHEMA = {
     "qb_order": {
         "label": "QB Order",
         "description": "QuickBooks order request.",
-        "required": ["recipientName", "senderName"],
-        "optional": ["orderNumber", "orderDate", "shipDate"],
+        "required": ["recipientName"],
+        "optional": [],
     },
     "order_confirmation": {
         "required": ["orderNumber", "companyName", "deliveryDate"],
@@ -28,8 +28,8 @@ SCHEMA = {
         "optional": ["method", "notes"],
     },
     "delay_notice": {
-        "required": ["orderNumber", "newDate", "reason"],
-        "optional": ["apology", "notes"],
+        "required": ["reason"],
+        "optional": ["previousShip", "newShip", "recipientName", "poNumber", "partNumber"],
     },
     "packing_slip_docs": {
         "required": ["documentType", "orderNumber"],
@@ -45,12 +45,12 @@ SCHEMA = {
         "optional": [],
     },
     "invoice_po_followup": {
-        "required": ["buyerName", "invoiceNumber", "poNumber", "dueDate"],
-        "optional": ["attachments", "notes"],  # senderName removed
+        "required": ["recipientName", "invoiceNumber", "poNumber", "dueDate"],
+        "optional": [],  # senderName removed
     },
     "tax_exemption": {
-        "required": [],
-        "optional": ["notes"],  # senderName removed
+        "required": ["recipientName"],
+        "optional": [],  # senderName removed
     },
 }
 
