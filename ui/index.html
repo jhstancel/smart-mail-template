@@ -1058,7 +1058,14 @@ function openOnly(which){
 
 
 
-
+function toggleMenu(){
+  const willOpen = !settingsMenu.classList.contains('open');
+  settingsMenu.classList.toggle('open', willOpen);
+  if(!willOpen) closeAllSubs();
+  // reflect state for a11y
+  const btn = document.getElementById('settingsBtn');
+  if(btn) btn.setAttribute('aria-expanded', String(willOpen));
+}
 
   on(settingsBtn,'click', (e)=>{ e.stopPropagation(); toggleMenu(); });
   on(settingsMenu,'click', (e)=>{
