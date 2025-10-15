@@ -52,6 +52,13 @@ SCHEMA = {
         "required": ["recipientName"],
         "optional": [],  # senderName removed
     },
+    "order_request": {
+    "label": "Order Request",
+    "description": "Request to process and confirm an order with shipping details.",
+    "required": ["recipientName", "parts", "fedexAccount", "shipAddress"],
+    "optional": [],  
+}
+
 }
 
 # Merge optional fields into required for all intents
