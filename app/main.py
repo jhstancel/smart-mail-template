@@ -74,14 +74,12 @@ def get_schema():
 
 @app.get("/intents")
 def list_intents():
-    # Convenience: compact list for dropdowns
-    items = []
-    for intent_id, meta in SCHEMA.items():
-        if intent_id == "auto_detect":
-            continue
-        items.append({"id": intent_id, "label": meta.get("label", intent_id)})
-    # Stable alphabetical order
-    items.sort(key=lambda x: x["label"].lower())
+    # Return compact list for cards, including auto_detect
+    items = [{"id": iid, "label": meta.get("label", iid)} for iid, meta in SCHEMA.items()]
+    # Put Auto Detect first, then alpha by label
+    def sort_key(x):
+        return (0 if x["id"] == "auto_detect" else 1, x["label"].lower())
+    items.sort(key=sort_key)
     return JSONResponse(items)
 
 @app.get("/health")

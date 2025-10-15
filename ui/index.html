@@ -1215,25 +1215,28 @@ async function runCorruption(){
     const data = await intentsRes.json();
 
     // Render cards dynamically from schema/intents
-    if (Array.isArray(data) && data.length) {
-      INTENTS = data.map(x => ({
-        name: x.id || x.name,
-        label: x.label || (x.id ? toTitle(x.id) : ''),
-        description: SCHEMA[x.id || x.name]?.description || '',
-        required: SCHEMA[x.id || x.name]?.required || [],
-        hidden: false
-      }));
-    } else {
-      INTENTS = Object.keys(SCHEMA)
-        .filter(k => k !== 'auto_detect')
-        .map(k => ({
-          name: k,
-          label: SCHEMA[k].label || toTitle(k),
-          description: SCHEMA[k].description || '',
-          required: SCHEMA[k].required || [],
-          hidden: false
-        }));
-    }
+if (Array.isArray(data) && data.length) {
+  // Include auto_detect
+  INTENTS = data.map(x => ({
+    name: x.id || x.name,
+    label: x.label || (x.id ? toTitle(x.id) : ''),
+    description: SCHEMA[x.id || x.name]?.description || '',
+    required: SCHEMA[x.id || x.name]?.required || [],
+    hidden: false
+  }));
+  // Put Auto Detect first
+  INTENTS.sort((a, b) => (a.name === 'auto_detect' ? -1 : b.name === 'auto_detect' ? 1 : a.label.localeCompare(b.label)));
+} else {
+  // No /intents endpoint or empty → build from schema directly
+  INTENTS = Object.keys(SCHEMA).map(k => ({
+    name: k,
+    label: SCHEMA[k].label || toTitle(k),
+    description: SCHEMA[k].description || '',
+    required: SCHEMA[k].required || [],
+    hidden: false
+  }));
+  INTENTS.sort((a, b) => (a.name === 'auto_detect' ? -1 : b.name === 'auto_detect' ? 1 : a.label.localeCompare(b.label)));
+}
 
     renderIntentGridFromData(INTENTS);
   } catch (err) {
