@@ -1,21 +1,25 @@
-id: auto_detect
+intent: auto_detect
 label: Auto Detect
-description:  
+description: "Placeholder intent used when automatic detection is enabled. It allows the system to analyze text and infer which intent applies."
 
 required: []
 optional: []
 
 fieldTypes: {}
-
 hints: {}
 
-template:
-  subject: ""
-  bodyPath: ""
+# Auto Detect is a virtual/router intent. It should not provide an email template.
+# Use this empty 'templates' mapping to stay consistent with the generator schema.
+templates: {}
 
+# Rules used by the detector. Keep empty arrays/maps if you’re only using global defaults.
 autodetect:
   keywords: []
   boosts: {}
+
+# Mark it as virtual for any tooling that wants to hide 'Generate' or fields.
+meta:
+  isVirtual: true
 
 tests:
   samples: []
