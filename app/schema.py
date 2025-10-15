@@ -54,5 +54,12 @@ SCHEMA = {
     },
 }
 
+# Merge optional fields into required for all intents
+for name, data in SCHEMA.items():
+    req = set(data.get("required", []))
+    opt = set(data.get("optional", []))
+    data["required"] = sorted(req | opt)  # union of both
+    data["optional"] = []  # clear optional list
+
 # Optional: for reference or validation
 INTENT_NAMES = list(SCHEMA.keys())
