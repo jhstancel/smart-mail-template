@@ -11,10 +11,14 @@
     "template": "delay_notice.j2",
     "required": ["customerName", "poNumber", "partNumber", "previousShip", "newShip", "reason", "senderName"]
   },
-  "shipment_update": {
-    "template": "shipment_update.j2",
-    "required": ["customerName", "poNumber", "carrier", "trackingNumber", "shipDate", "itemsSummary", "senderName"]
-  },
+{
+  "name": "shipment_update",
+  "label": "Shipment Update",
+  "template": "shipment_update.j2",
+  "subject": "Shipment Update",
+  "required": ["po", "trackingNumber", "carrier", "shipDate"]
+},
+
   "invoice_payment": {
     "template": "invoice_payment.j2",
     "required": ["customerName", "invoiceNumber", "amount", "paymentMethod", "paymentDate", "senderName"]

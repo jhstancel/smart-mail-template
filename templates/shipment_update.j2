@@ -4,11 +4,11 @@ Hi {{ customerName }},
 
 Good news—your order has shipped. Details are below for quick reference:
 
-• PO: {{ poNumber }}
-• Items: {{ itemsSummary }}
-• Carrier: {{ carrier }}
-• Tracking: {{ trackingNumber }}
-• Ship date: {{ shipDate }}
+{% if po %}• PO: {{ po }}{% endif %}
+{% if items %}• Items: {{ items }}{% endif %}
+{% if carrier %}• Carrier: {{ carrier }}{% endif %}
+{% if trackingNumber %}• Tracking: {{ trackingNumber }}{% endif %}
+{% if shipDate %}• Ship date: {{ shipDate }}{% endif %}
 
 If you’d like the packing slip, invoice, or any other documents, I’m happy to send them. 
 Please let me know if you prefer a particular delivery window or if there’s anything else I can coordinate on your end.
