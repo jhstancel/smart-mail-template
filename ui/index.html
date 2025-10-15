@@ -604,23 +604,55 @@ function renderFields(intent){
     label.setAttribute('for', `f_${key}`);
     label.textContent = toTitle(key);
 
-    const input = document.createElement('input');
-    input.id = `f_${key}`;
-    input.placeholder = toTitle(key);
+    // If backend provides choices for this field, render a <select>
+    const choices = (SCHEMA[intent] && SCHEMA[intent].choices) ? SCHEMA[intent].choices : null;
+    const hasChoices = choices && Array.isArray(choices[key]);
 
-    // Standardize inputs: only email, date, or text (no number spinners)
-    const k = key.toLowerCase();
-    if (k.includes('email')) input.type = 'email';
-    else if (k.includes('date') || k.includes('ship')) input.type = 'date';
-    else input.type = 'text';
+    if (hasChoices) {
+      const select = document.createElement('select');
+      select.id = `f_${key}`;
 
-    wrap.appendChild(label);
-    wrap.appendChild(input);
-    fieldsWrap.appendChild(wrap);
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = `Select ${toTitle(key)}…`;
+      ph.disabled = true;
+      ph.selected = true;
+      select.appendChild(ph);
+
+      for (const opt of choices[key]) {
+        const o = document.createElement('option');
+        o.value = String(opt.value ?? '');
+        o.textContent = String(opt.label ?? o.value);
+        select.appendChild(o);
+      }
+
+      wrap.appendChild(label);
+      wrap.appendChild(select);
+      fieldsWrap.appendChild(wrap);
+    } else {
+      const input = document.createElement('input');
+      input.id = `f_${key}`;
+      input.placeholder = toTitle(key);
+
+      // Standardize inputs: only email, date, or text (no number spinners)
+      const k = key.toLowerCase();
+      if (k.includes('email')) input.type = 'email';
+      else if (k.includes('date') || k.includes('ship')) input.type = 'date';
+      else input.type = 'text';
+
+      wrap.appendChild(label);
+      wrap.appendChild(input);
+      fieldsWrap.appendChild(wrap);
+    }
+
+
+
+
+
   }
 
-  const first = fieldsWrap.querySelector('input');
-  if(first) first.focus();
+  const first = fieldsWrap.querySelector('input, select, textarea');
+  if (first) first.focus();
 }
 
 
