@@ -128,3 +128,16 @@ dp:
 	fi
 	@./scripts/docpush.sh "$(m)"
 
+
+# ============================================================
+# Safety: disallow legacy schema files
+# ============================================================
+
+check-no-legacy:
+	@if [ -f app/schema.py ] || [ -f app/intents_registry.py ]; then \
+		echo "❌ Legacy schema files detected (remove app/schema.py or app/intents_registry.py)"; \
+		exit 1; \
+	else \
+		echo "✅ No legacy schema files present"; \
+	fi
+

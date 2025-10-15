@@ -23,39 +23,13 @@ except Exception:
 
 
 
-# ===== Schema & rules loading with graceful fallback =====
-from importlib import import_module
-
-def _try_import(module_path: str, attr: Optional[str] = None):
-    """Helper to import a module or attribute; returns None if missing."""
-    try:
-        mod = import_module(module_path)
-        return getattr(mod, attr) if attr else mod
-    except Exception:
-        return None
-
-# Primary schema: prefer generated
-SCHEMA = _try_import("app.schema_generated", "SCHEMA_GENERATED")
-if SCHEMA is not None:
-    print("[info] Using generated schema")
-else:
-    SCHEMA = _try_import("app.schema", "SCHEMA") or {}
-    print("[warn] Generated schema not found, using legacy schema")
-
-# Autodetect rules: prefer generated
-AUTODETECT_RULES = _try_import("app.autodetect_rules.generated", "AUTODETECT_GENERATED")
-if AUTODETECT_RULES is not None:
-    print("[info] Using generated autodetect rules")
-else:
-    # fallback: load from legacy configs if available
-    AUTODETECT_RULES = _try_import("configs.rules") or {}
-    print("[warn] Generated autodetect rules not found, using legacy rules")
-
-# Intents meta and subjects (legacy only for now)
-INTENTS_META = _try_import("app.intents_registry", "INTENTS_META") or []
-SUBJECTS = _try_import("app.intents_registry", "SUBJECTS") or {}
-
-# ===== End of fallback block =====
+# ===== Schema & rules loading (final) =====
+from app.schema_generated import SCHEMA_GENERATED as SCHEMA
+from app.autodetect_rules.generated import AUTODETECT_GENERATED as AUTODETECT_RULES
+INTENTS_META: list = []
+SUBJECTS: dict = {}
+print("[info] Loaded generated schema and autodetect rules (legacy system removed)")
+# ===== End of schema block =====
 
 
 
