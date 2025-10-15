@@ -1,7 +1,6 @@
 id: auto_detect
 label: Auto Detect
-description: Placeholder intent used when automatic detection is enabled. 
-  It allows the system to analyze an email and infer which intent applies.
+description:  
 
 required: []
 optional: []
