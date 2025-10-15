@@ -1,0 +1,32 @@
+# AUTO-GENERATED FILE — DO NOT EDIT.
+SCHEMA_GENERATED = {
+  "shipment_update": {
+    "description": "Notify a customer about shipment/tracking status.",
+    "fieldTypes": {
+      "carrier": "enum",
+      "estimatedArrival": "date",
+      "notes": "longtext",
+      "orderNumber": "string",
+      "shipDate": "date",
+      "trackingNumber": "string"
+    },
+    "hints": {
+      "carrier": "Choose from UPS, FedEx, DHL, USPS",
+      "estimatedArrival": "mm/dd/yyyy",
+      "orderNumber": "Optional, if available",
+      "shipDate": "mm/dd/yyyy",
+      "trackingNumber": "e.g., 1Z999AA10123456784"
+    },
+    "label": "Shipment Update",
+    "optional": [
+      "estimatedArrival",
+      "orderNumber",
+      "notes"
+    ],
+    "required": [
+      "trackingNumber",
+      "carrier",
+      "shipDate"
+    ]
+  }
+}
