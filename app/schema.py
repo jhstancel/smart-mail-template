@@ -84,3 +84,13 @@ for name, data in SCHEMA.items():
 
 # Optional: for reference or validation
 INTENT_NAMES = list(SCHEMA.keys())
+
+
+
+# Adding drop downs:
+# "choices": {
+#     "someField": [
+#         {"label": "Shown to user", "value": "goes-to-email-or-api"}
+#     ]
+# }
+
