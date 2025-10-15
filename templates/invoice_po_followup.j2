@@ -1,9 +1,10 @@
 Subject: Follow-Up on Invoice {{ invoiceNumber }} / PO {{ poNumber }} — Due {{ dueDate }}
 
-Hi {{ buyerName }},
+Hi {{ recipientName }},
 
 Just a quick follow-up regarding Invoice {{ invoiceNumber }} for PO {{ poNumber }}, due on {{ dueDate }}.
-{% if attachments %}I've attached the invoice and packing slip for reference.{% else %}For reference, I can send the invoice and packing slip upon request.{% endif %}
+
+I've attached the invoice and packing slip for reference.
 
 Can you confirm:
 • Has the PO been received in full?
@@ -12,8 +13,4 @@ Can you confirm:
 
 Please let me know if anything is needed to complete processing.
 Thank you,
-
-{% if notes %}
-
-{{ notes }}{% endif %}
 
