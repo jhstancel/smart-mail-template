@@ -61,6 +61,12 @@ INTENTS_META = [
         "description": "Reply with the tax-exempt certificate attached.",
         "order": 85,
         "hidden": False,
+    }, {
+        "name": "order_request",
+        "label": "Order Request",
+        "description": "Request to process and confirm an order with shipping details.",
+        "order": 95,
+        "hidden": False,
     },
 ]
 # --- Subject registry (safe init) ---
