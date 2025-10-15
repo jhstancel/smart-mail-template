@@ -82,6 +82,38 @@ for name, data in SCHEMA.items():
     data["required"] = sorted(req | opt)  # union of both
     data["optional"] = []  # clear optional list
 
+# Backend-controlled date fields per intent (UI will use this to decide <input type="date">)
+DATE_FIELDS_MAP = {
+    "quote_request":       ["deliveryDate"],
+    "shipment_update":     ["shipDate", "estimatedArrival"],
+    "qb_order":            ["orderDate", "shipDate"],
+    "order_confirmation":  ["deliveryDate"],
+    "invoice_payment":     ["paymentDate"],
+    "delay_notice":        ["newDate"],
+    "packing_slip_docs":   [],
+    "followup":            ["previousDate"],
+    "auto_detect":         [],
+    "invoice_po_followup": ["dueDate"],
+    "tax_exemption":       [],
+    # Add future intents here, e.g.:
+    # "order_request":    ["requestedShipDate"]
+}
+
+# Merge the map into SCHEMA without touching each entry above
+for name, fields in DATE_FIELDS_MAP.items():
+    if name in SCHEMA:
+        SCHEMA[name].setdefault("date_fields", [])
+        SCHEMA[name]["date_fields"] = sorted(set(SCHEMA[name]["date_fields"]) | set(fields))
+
+# Optional: ensure every intent has the key
+for data in SCHEMA.values():
+    data.setdefault("date_fields", [])
+
+# Optional: for reference or validation
+INTENT_NAMES = list(SCHEMA.keys())
+
+
+
 # Optional: for reference or validation
 INTENT_NAMES = list(SCHEMA.keys())
 

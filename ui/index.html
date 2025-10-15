@@ -634,15 +634,24 @@ function renderFields(intent){
       input.id = `f_${key}`;
       input.placeholder = toTitle(key);
 
-      // Standardize inputs: only email, date, or text (no number spinners)
+      // Use backend-provided date fields (no substring guessing)
       const k = key.toLowerCase();
-      if (k.includes('email')) input.type = 'email';
-      else if (k.includes('date') || k.includes('ship')) input.type = 'date';
-      else input.type = 'text';
+      const dateFields = (SCHEMA[intent] && Array.isArray(SCHEMA[intent].date_fields))
+        ? new Set(SCHEMA[intent].date_fields)
+        : new Set();
+
+      if (k.includes('email')) {
+        input.type = 'email';
+      } else if (dateFields.has(key)) {
+        input.type = 'date';
+      } else {
+        input.type = 'text';
+      }
 
       wrap.appendChild(label);
       wrap.appendChild(input);
       fieldsWrap.appendChild(wrap);
+
     }
 
 
@@ -767,8 +776,14 @@ function collectFields(intentName){
     const el = document.getElementById(`f_${k}`);
     if (!el) continue;
     let v = el.value || '';
-    if (isDateKey(k) && el.type === 'date') v = formatDateForOutput(v);
+    const dateFields = (SCHEMA[intentName] && Array.isArray(SCHEMA[intentName].date_fields))
+      ? new Set(SCHEMA[intentName].date_fields)
+      : new Set();
+    if (dateFields.has(k) && el.type === 'date') {
+      v = formatDateForOutput(v);
+    }
     out[k] = v;
+
   }
   return out;
 }
