@@ -18,10 +18,9 @@ from rich.table import Table
 from rich.text import Text
 from typer import Typer
 
-# Local validation model from Step 1
 SCRIPT_DIR = Path(__file__).resolve().parent
 ROOT = SCRIPT_DIR.parent
-sys.path.insert(0, str(SCRIPT_DIR))  # for intent_model import
+sys.path.insert(0, str(SCRIPT_DIR))
 from intent_model import IntentSpec  # type: ignore
 
 console = Console()
@@ -29,6 +28,21 @@ app = Typer(help="Interactive wizard to create a new intent (YAML + Jinja templa
 
 REGISTRY_DIR = ROOT / "intents" / "registry"
 TEMPLATES_DIR = ROOT / "templates"
+
+
+# ============================================================
+# Helpers
+# ============================================================
+
+EXIT_WORDS = {"quit", "q", "exit", "abort"}
+
+def check_exit(ans: Optional[str]):
+    """Abort gracefully on quit words or Ctrl+C."""
+    if ans is None:
+        raise KeyboardInterrupt
+    if isinstance(ans, str) and ans.strip().lower() in EXIT_WORDS:
+        raise KeyboardInterrupt
+    return ans
 
 
 def to_snake(s: str) -> str:
@@ -54,7 +68,10 @@ def prompt_label() -> str:
         '"Warranty Claim"\n'
     )
     while True:
-        label = questionary.text(msg).ask()
+        try:
+            label = check_exit(questionary.text(msg).ask())
+        except KeyboardInterrupt:
+            raise
         if not label or len(label.strip()) < 3:
             console.print("[red]Label is required and should be >= 3 chars[/red]")
             continue
@@ -70,7 +87,10 @@ def prompt_id(default_id: str) -> str:
         '"shipment_update"\n'
     )
     while True:
-        ans = questionary.text(msg).ask() or default_id
+        try:
+            ans = check_exit(questionary.text(msg).ask()) or default_id
+        except KeyboardInterrupt:
+            raise
         ans = ans.strip()
         if not re.fullmatch(r"[a-z0-9_]+", ans):
             console.print("[red]Use only lowercase letters, numbers, and underscores[/red]")
@@ -92,7 +112,10 @@ def prompt_description() -> str:
         '"Confirm payment for an invoice and share remittance details."\n'
     )
     while True:
-        d = questionary.text(msg).ask()
+        try:
+            d = check_exit(questionary.text(msg).ask())
+        except KeyboardInterrupt:
+            raise
         if not d or len(d.strip()) < 10:
             console.print("[red]Please enter a helpful sentence (>= 10 chars)[/red]")
             continue
@@ -112,13 +135,14 @@ def prompt_fields(kind: str) -> List[str]:
         '"recipientName, shipDate"\n'
     )
     while True:
-        raw = questionary.text(msg).ask() or ""
+        try:
+            raw = check_exit(questionary.text(msg).ask() or "")
+        except KeyboardInterrupt:
+            raise
         names = [n.strip() for n in raw.split(",") if n.strip()]
-        # It’s valid to have zero optional fields
         if kind == "required" and not names:
             console.print("[red]At least one required field is needed[/red]")
             continue
-        # Validate each
         bad = [n for n in names if not re.fullmatch(r"[A-Za-z0-9_]+", n)]
         if bad:
             console.print(f"[red]Invalid field names: {', '.join(bad)}[/red]")
@@ -136,11 +160,12 @@ def prompt_field_types(all_fields: List[str]) -> Dict[str, str]:
             '"date"\n'
             '"enum"\n'
         )
-        typ = questionary.select(
-            msg,
-            choices=FIELD_TYPES,
-            default="string",
-        ).ask()
+        try:
+            typ = check_exit(
+                questionary.select(msg, choices=FIELD_TYPES, default="string").ask()
+            )
+        except KeyboardInterrupt:
+            raise
         out[f] = typ
     return out
 
@@ -158,7 +183,10 @@ def prompt_enums(field_types: Dict[str, str]) -> Dict[str, List[str]]:
             '"Bronze, Silver, Gold"\n'
         )
         while True:
-            raw = questionary.text(msg).ask() or ""
+            try:
+                raw = check_exit(questionary.text(msg).ask() or "")
+            except KeyboardInterrupt:
+                raise
             opts = [o.strip() for o in raw.split(",") if o.strip()]
             if len(opts) < 2:
                 console.print("[red]Provide at least two enum options[/red]")
@@ -178,7 +206,10 @@ def prompt_hints(all_fields: List[str]) -> Dict[str, str]:
             '"e.g., PN-10423"\n'
             '"mm/dd/yyyy"\n'
         )
-        ans = questionary.text(msg).ask() or ""
+        try:
+            ans = check_exit(questionary.text(msg).ask() or "")
+        except KeyboardInterrupt:
+            raise
         if ans.strip():
             hints[f] = ans.strip()
     return hints
@@ -195,7 +226,10 @@ def prompt_subject(intent_label: str, first_field: Optional[str]) -> str:
         '"Order Confirmation – {{ orderNumber }}"\n'
         '"Invoice Payment – {{ invoiceNumber }}"\n'
     )
-    subj = questionary.text(msg).ask() or default
+    try:
+        subj = check_exit(questionary.text(msg).ask() or default)
+    except KeyboardInterrupt:
+        raise
     return subj.strip()
 
 
@@ -207,7 +241,10 @@ def prompt_autodetect() -> Dict[str, object]:
         '"quote, pricing, availability, rfq"\n'
         '"tracking, shipped, in transit"\n'
     )
-    raw_kws = questionary.text(kws_msg).ask() or ""
+    try:
+        raw_kws = check_exit(questionary.text(kws_msg).ask() or "")
+    except KeyboardInterrupt:
+        raise
     keywords = [k.strip() for k in raw_kws.split(",") if k.strip()]
 
     boosts_msg = (
@@ -217,7 +254,10 @@ def prompt_autodetect() -> Dict[str, object]:
         '"reply=0.06"\n'
         '"containsPO=0.02"\n'
     )
-    raw_b = questionary.text(boosts_msg).ask() or ""
+    try:
+        raw_b = check_exit(questionary.text(boosts_msg).ask() or "")
+    except KeyboardInterrupt:
+        raise
     boosts: Dict[str, float] = {}
     for part in [p.strip() for p in raw_b.split(",") if p.strip()]:
         if "=" in part:
@@ -230,7 +270,6 @@ def prompt_autodetect() -> Dict[str, object]:
 
 
 def scaffold_body(intent_label: str, req_fields: List[str]) -> str:
-    # simple, readable template scaffold using required fields
     lines = ["Hello,", "", f"{intent_label} details:", ""]
     for f in req_fields:
         lines.append(f"- {f}: {{ {{ {f} }} }}")
@@ -248,106 +287,102 @@ def open_in_editor(path: Path) -> None:
         pass
 
 
+# ============================================================
+# Main command
+# ============================================================
+
 @app.command()
 def main():
-    REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
-    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-
-    console.print(Panel.fit("🧩 New Intent Wizard", style="cyan"))
-
-    label = prompt_label()
-    default_id = to_snake(label)
-    intent_id = prompt_id(default_id)
-    description = prompt_description()
-
-    required = prompt_fields("required")
-    optional = prompt_fields("optional")
-    all_fields = required + optional
-
-    field_types = prompt_field_types(all_fields)
-    enums = prompt_enums(field_types)
-    hints = prompt_hints(all_fields)
-
-    subject = prompt_subject(label, required[0] if required else None)
-    body_path = f"templates/{intent_id}.j2"
-    autodetect = prompt_autodetect()
-
-    # Build intent spec dict
-    spec = {
-        "id": intent_id,
-        "label": label,
-        "description": description,
-        "required": required,
-        "optional": optional,
-        "fieldTypes": field_types,
-        "enums": enums,
-        "hints": hints,
-        "template": {"subject": subject, "bodyPath": body_path},
-        "autodetect": autodetect,
-        "tests": {"samples": []},
-    }
-
-    # Validate with Pydantic (hard fail if invalid)
     try:
-        _ = IntentSpec(**spec)
-    except Exception as e:
-        console.print(Panel(str(e), title="Validation error", style="red"))
-        sys.exit(1)
+        REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
+        TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Preview
-    console.rule("Preview")
-    t = Table(show_header=True, header_style="bold magenta")
-    t.add_column("Key")
-    t.add_column("Value")
-    t.add_row("id", intent_id)
-    t.add_row("label", label)
-    t.add_row("required", ", ".join(required) or "—")
-    t.add_row("optional", ", ".join(optional) or "—")
-    t.add_row("subject", subject)
-    t.add_row("bodyPath", body_path)
-    console.print(t)
+        console.print(Panel.fit("🧩 New Intent Wizard", style="cyan"))
 
-    console.print(Panel.fit("YAML to write", style="blue"))
-    console.print(Pretty(spec, expand_all=True))
+        label = prompt_label()
+        default_id = to_snake(label)
+        intent_id = prompt_id(default_id)
+        description = prompt_description()
 
-    # Body scaffold
-    body_text = scaffold_body(label, required)
-    console.print(Panel.fit("Body template scaffold (.j2)", style="blue"))
-    console.print(Text(body_text))
+        required = prompt_fields("required")
+        optional = prompt_fields("optional")
+        all_fields = required + optional
 
-    if not Confirm.ask("Write files to disk?"):
-        console.print("[yellow]Cancelled. No files written.[/yellow]")
+        field_types = prompt_field_types(all_fields)
+        enums = prompt_enums(field_types)
+        hints = prompt_hints(all_fields)
+
+        subject = prompt_subject(label, required[0] if required else None)
+        body_path = f"templates/{intent_id}.j2"
+        autodetect = prompt_autodetect()
+
+        spec = {
+            "id": intent_id,
+            "label": label,
+            "description": description,
+            "required": required,
+            "optional": optional,
+            "fieldTypes": field_types,
+            "enums": enums,
+            "hints": hints,
+            "template": {"subject": subject, "bodyPath": body_path},
+            "autodetect": autodetect,
+            "tests": {"samples": []},
+        }
+
+        _ = IntentSpec(**spec)  # validate
+
+        console.rule("Preview")
+        t = Table(show_header=True, header_style="bold magenta")
+        t.add_column("Key")
+        t.add_column("Value")
+        t.add_row("id", intent_id)
+        t.add_row("label", label)
+        t.add_row("required", ", ".join(required) or "—")
+        t.add_row("optional", ", ".join(optional) or "—")
+        t.add_row("subject", subject)
+        t.add_row("bodyPath", body_path)
+        console.print(t)
+
+        console.print(Panel.fit("YAML to write", style="blue"))
+        console.print(Pretty(spec, expand_all=True))
+
+        body_text = scaffold_body(label, required)
+        console.print(Panel.fit("Body template scaffold (.j2)", style="blue"))
+        console.print(Text(body_text))
+
+        if not Confirm.ask("Write files to disk?"):
+            console.print("[yellow]Cancelled. No files written.[/yellow]")
+            sys.exit(0)
+
+        yml_path = REGISTRY_DIR / f"{intent_id}.yml"
+        with yml_path.open("w", encoding="utf-8") as fp:
+            yaml.safe_dump(spec, fp, sort_keys=False, allow_unicode=True)
+
+        j2_path = TEMPLATES_DIR / f"{intent_id}.j2"
+        if j2_path.exists():
+            console.print(f"[yellow]Template exists: {j2_path}. Not overwriting.[/yellow]")
+        else:
+            j2_path.write_text(body_text, encoding="utf-8")
+            if Confirm.ask("Open template in your $EDITOR now?"):
+                open_in_editor(j2_path)
+
+        console.print("[green]Files written.[/green]")
+        console.print("[cyan]Running: make regen[/cyan]")
+        try:
+            subprocess.run(["make", "regen"], check=True)
+        except Exception:
+            console.print("[red]Failed to run make regen. Run it manually.[/red]")
+
+        console.print("[bold green]Done![/bold green] New intent added. Launch with `make run`.")
+        console.print(f"YAML: {yml_path}")
+        console.print(f"Body: {j2_path}")
+
+    except KeyboardInterrupt:
+        console.print("\n[yellow]🛑 Aborted by user.[/yellow]")
         sys.exit(0)
-
-    # Write YAML
-    yml_path = REGISTRY_DIR / f"{intent_id}.yml"
-    with yml_path.open("w", encoding="utf-8") as fp:
-        yaml.safe_dump(spec, fp, sort_keys=False, allow_unicode=True)
-
-    # Write template (only if not exists to avoid clobber)
-    j2_path = TEMPLATES_DIR / f"{intent_id}.j2"
-    if j2_path.exists():
-        console.print(f"[yellow]Template exists: {j2_path}. Not overwriting.[/yellow]")
-    else:
-        j2_path.write_text(body_text, encoding="utf-8")
-        # Optional: open in $EDITOR for quick touch-ups
-        if Confirm.ask("Open template in your $EDITOR now?"):
-            open_in_editor(j2_path)
-
-    console.print("[green]Files written.[/green]")
-
-    # Regenerate schemas
-    console.print("[cyan]Running: make regen[/cyan]")
-    try:
-        subprocess.run(["make", "regen"], check=True)
-    except Exception:
-        console.print("[red]Failed to run make regen. Run it manually.[/red]")
-
-    console.print("[bold green]Done![/bold green] New intent added. Launch with `make run`.")
-    console.print(f"YAML: {yml_path}")
-    console.print(f"Body: {j2_path}")
 
 
 if __name__ == "__main__":
-    app()
+    main()
 
