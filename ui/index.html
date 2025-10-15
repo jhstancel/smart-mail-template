@@ -623,14 +623,24 @@ function renderFields(intent){
   if(first) first.focus();
 }
 
+
 function selectIntent(name){
   SELECTED_INTENT = name || '';
-  if (!name) {
+  // Toggle auto-detect stage visibility and render fields
+  if (!name || name === 'auto_detect'){
+    autoStage?.classList.remove('hidden');
     renderFields(null);
-    return;
+  }else{
+    autoStage?.classList.add('hidden');
+    renderFields(name);
   }
-  renderFields(name);
+  // Sync active card state
+  document.querySelectorAll('.intent-card')
+    .forEach(card => card.classList.toggle('active', card.dataset.intent === name));
 }
+// Expose a global for auto-detect + top-k buttons
+window.setSelectedIntent = selectIntent;
+
 
 /* =========================================================================================
  * Intent grid (from backend)
@@ -798,21 +808,23 @@ async function doGenerate(){
 
     const subject = data?.subject || '';
     const bodyRaw = data?.body || '';
+    // Remove any leading "Subject:" line that came back in the body
     const body    = bodyRaw.replace(/^\s*subject\s*:\s*.*\n+/i,'');
 
-
     if(liveState.compose){
-      await typeInto(outSubject, subject || '');
-      await typeInto(outBody,    body || '');
+      await typeInto(outSubject, subject);
+      await typeInto(outBody,    body);
     } else {
-      if(outSubject) outSubject.textContent = subject || '';
-      if(outBody)    outBody.textContent    = body || '';
+      if(outSubject) outSubject.textContent = subject;
+      if(outBody)    outBody.textContent    = body;
     }
+
+    // If backend tells us about missing fields, highlight them
     if(Array.isArray(data?.missing) && data.missing.length){
       console.warn('[Missing required fields]', data.missing);
       highlightMissing(data.missing);
     } else if(fieldsHint && intent !== 'auto_detect'){
-      fieldsHint.textContent = ''; // invisible
+      fieldsHint.textContent = '';
     }
 
   }catch(err){
@@ -845,12 +857,15 @@ function setLivePreview(v){ liveState.preview = !!v; localStorage.setItem('sm_li
 // simple typewriter effect for Output panel
 async function typeInto(el, text){
   if(!el){ return; }
-  el.textContent = ''; // clear first
-  const CHUNK = 3;     // speed
-  for(let i=0;i<=text.length;i+=CHUNK){
-    el.textContent = text.slice(0, i);
-    await new Promise(r=>setTimeout(r, 8)); // adjust to taste
+  el.textContent = '';
+  const CHUNK = 3;
+  for(let i=0; i<text.length; i+=CHUNK){
+    const end = Math.min(i + CHUNK, text.length);
+    el.textContent = text.slice(0, end);
+    await new Promise(r=>setTimeout(r, 8));
   }
+  // Ensure the full text is set (prevents any truncation)
+  el.textContent = text;
 }
 
 function scheduleLiveGenerate(delayMs=200){
@@ -1185,7 +1200,17 @@ async function runCorruption(){
     predStatus: $('#predStatus'),
     predInfo:   $('#predInfo'),
     predIntent: $('#predIntent'),
-    predBadge:  $('#predBadge') || (function(){ const x=document.createElement('span'); x.id='predBadge'; x.className='pill'; $('#predInfo')?.appendChild(x); return x; })(),
+    // Ensure badge exists and is a real node in the strip
+    predBadge:  (function(){
+                  let n = document.getElementById('predBadge');
+                  if(!n){
+                    n = document.createElement('span');
+                    n.id = 'predBadge';
+                    n.className = 'pill';
+                    document.getElementById('predInfo')?.appendChild(n);
+                  }
+                  return n;
+                })(),
     predMsg:    $('#predMsg'),
     topK:       $('#topK'),
     btnPredict: $('#btnPredict')
