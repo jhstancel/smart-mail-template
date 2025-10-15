@@ -1,5 +1,9 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 AUTODETECT_GENERATED = {
+  "auto_detect": {
+    "boosts": {},
+    "keywords": []
+  },
   "delay_notice": {
     "boosts": {
       "containsPO": 0.03,

@@ -1,5 +1,13 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 SCHEMA_GENERATED = {
+  "auto_detect": {
+    "description": "Placeholder intent used when automatic detection is enabled. It allows the system to analyze an email and infer which intent applies.",
+    "fieldTypes": {},
+    "hints": {},
+    "label": "Auto Detect",
+    "optional": [],
+    "required": []
+  },
   "delay_notice": {
     "description": "Inform a customer that an order\u2019s delivery date has changed.",
     "fieldTypes": {
