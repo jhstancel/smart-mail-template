@@ -366,37 +366,46 @@
       </div>
       <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
     </div>
-    <div id="subTyping" class="settings-subpanel">
-      <div class="settings-row" style="justify-content:space-between; margin:8px 0">
-        <div>
-          <div class="label">Live Output Preview</div>
-          <div class="hint">Auto-fill subject &amp; body while typing</div>
-        </div>
-        <label class="toggle" aria-label="Enable Live Output Preview">
-          <input id="livePreview" type="checkbox" /> Live Preview
-        </label>
-      </div>
-    <div id="subDefaults" class="settings-subpanel">
-      <div class="label" style="margin:8px 0 6px">Global Defaults</div>
-      <div class="hint" style="margin:-2px 0 10px">Fill these once and we’ll prefill matching fields.</div>
-
-      <label style="display:block; font-weight:600; margin:8px 0 4px">Ship Address</label>
-      <input id="g_shipAddress" type="text" placeholder="1457 Merrimon Ave. Asheville, NC 28804" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--panel-border)">
-
-      <label style="display:block; font-weight:600; margin:12px 0 4px">FedEx Account (number)</label>
-      <input id="g_fedexAccount" type="text" placeholder="e.g., 240920760" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--panel-border)">
-
-      <div class="inline" style="margin-top:10px">
-        <label class="toggle"><input id="g_save" type="checkbox"> Save for this browser</label>
-        <button id="g_apply" class="btn secondary" type="button">Apply</button>
-        <button id="g_clear" class="btn secondary" type="button">Clear</button>
-      </div>
+<div id="subTyping" class="settings-subpanel">
+  <div class="settings-row" style="justify-content:space-between; margin:8px 0">
+    <div>
+      <div class="label">Live Output Preview</div>
+      <div class="hint">Auto-fill subject &amp; body while typing</div>
     </div>
-      <label class="toggle" for="liveCompose" style="margin-top:2px">
-        <input id="liveCompose" type="checkbox" checked /> Compose Live
-      </label>
-      <p class="muted" style="margin:6px 0 0">Note: Minimal themes dampen most animations.</p>
-    </div>
+    <label class="toggle" aria-label="Enable Live Output Preview">
+      <input id="livePreview" type="checkbox" /> Live Preview
+    </label>
+  </div>
+  <label class="toggle" for="liveCompose" style="margin-top:2px">
+    <input id="liveCompose" type="checkbox" checked /> Compose Live
+  </label>
+  <p class="muted" style="margin:6px 0 0">Note: Minimal themes dampen most animations.</p>
+</div>
+
+<!-- ✅ new Global Defaults section -->
+<div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
+  <div>
+    <div class="label">Global Defaults</div>
+    <div class="hint">Set Ship Address & FedEx Account defaults</div>
+  </div>
+  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+</div>
+<div id="subDefaults" class="settings-subpanel">
+  <div class="label" style="margin:8px 0 6px">Global Defaults</div>
+  <div class="hint" style="margin:-2px 0 10px">Fill these once and we’ll prefill matching fields.</div>
+
+  <label style="display:block; font-weight:600; margin:8px 0 4px">Ship Address</label>
+  <input id="g_shipAddress" type="text" placeholder="1457 Merrimon Ave. Asheville, NC 28804">
+
+  <label style="display:block; font-weight:600; margin:12px 0 4px">FedEx Account (number)</label>
+  <input id="g_fedexAccount" type="text" placeholder="e.g., 240920760">
+
+  <div class="inline" style="margin-top:10px">
+    <label class="toggle"><input id="g_save" type="checkbox"> Save for this browser</label>
+    <button id="g_apply" class="btn secondary" type="button">Apply</button>
+    <button id="g_clear" class="btn secondary" type="button">Clear</button>
+  </div>
+</div>
   </div>
 </div>
 
@@ -1024,25 +1033,32 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
   const subTyping    = document.getElementById('subTyping');
   const themeSelect  = document.getElementById('themeSelect');
 
-  function closeAllSubs(){
-    [subTheme, subTyping].forEach(el => el && el.classList.remove('open'));
-    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
-  }
-  function toggleMenu(){
-    const willOpen = !settingsMenu.classList.contains('open');
-    settingsMenu.classList.toggle('open', willOpen);
-    if(!willOpen) closeAllSubs();
-  }
-  function openOnly(which){
-    closeAllSubs();
-    if(which==='theme' && subTheme){ subTheme.classList.add('open'); }
-    if(which==='typing' && subTyping){ subTyping.classList.add('open'); }
-    document.querySelectorAll('.settings-item').forEach(row=>{
-      const chev = row.querySelector('.chev');
-      if(!chev) return;
-      chev.classList.toggle('rot90', row.getAttribute('data-item')===which);
-    });
-  }
+
+
+
+
+const subDefaults = document.getElementById('subDefaults'); // add this near subTheme/subTyping
+
+function closeAllSubs(){
+  [subTheme, subTyping, subDefaults].forEach(el => el && el.classList.remove('open'));
+  document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+}
+function openOnly(which){
+  closeAllSubs();
+  if(which==='theme' && subTheme) subTheme.classList.add('open');
+  if(which==='typing' && subTyping) subTyping.classList.add('open');
+  if(which==='defaults' && subDefaults) subDefaults.classList.add('open');
+  document.querySelectorAll('.settings-item').forEach(row=>{
+    const chev = row.querySelector('.chev');
+    if(!chev) return;
+    chev.classList.toggle('rot90', row.getAttribute('data-item')===which);
+  });
+}
+
+
+
+
+
 
   on(settingsBtn,'click', (e)=>{ e.stopPropagation(); toggleMenu(); });
   on(settingsMenu,'click', (e)=>{
