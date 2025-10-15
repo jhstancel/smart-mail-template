@@ -1,6 +1,8 @@
-intent: auto_detect
+# Legacy-compatible shape: validator requires `id`, `template.subject`, AND `template.bodyPath`.
+# Auto Detect is a router-only (virtual) intent, so these are intentionally empty.
+id: auto_detect
 label: Auto Detect
-description: "Placeholder intent used when automatic detection is enabled. It allows the system to analyze text and infer which intent applies."
+description: "Auto-detect intent from text."
 
 required: []
 optional: []
@@ -8,16 +10,14 @@ optional: []
 fieldTypes: {}
 hints: {}
 
-# Auto Detect is a virtual/router intent. It should not provide an email template.
-# Use this empty 'templates' mapping to stay consistent with the generator schema.
-templates: {}
+template:
+  subject: ""      # present to satisfy schema, unused for auto_detect
+  bodyPath: ""     # REQUIRED by current validator; keep empty string
 
-# Rules used by the detector. Keep empty arrays/maps if you’re only using global defaults.
 autodetect:
   keywords: []
   boosts: {}
 
-# Mark it as virtual for any tooling that wants to hide 'Generate' or fields.
 meta:
   isVirtual: true
 
