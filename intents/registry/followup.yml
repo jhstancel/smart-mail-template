@@ -1,0 +1,38 @@
+id: followup
+label: Follow Up
+description: Send a short follow-up or status-check message on a prior topic.
+
+required: [topic, recipientName]
+optional: [previousDate, notes]
+
+fieldTypes:
+  topic: string
+  recipientName: string
+  previousDate: date
+  notes: longtext
+
+hints:
+  topic: e.g., “order update” or “quote request”
+  recipientName: e.g., “John Stancel”
+  previousDate: mm/dd/yyyy of last message
+  notes: Optional internal note or context
+
+template:
+  subject: "Follow Up – {{ topic }}"
+  bodyPath: "templates/followup.j2"
+
+autodetect:
+  keywords: ["follow up", "checking in", "status update", "touching base"]
+  boosts:
+    reply: 0.06
+    containsPO: 0.02
+
+tests:
+  samples:
+    - fields:
+        topic: "order update"
+        recipientName: "John Stancel"
+        previousDate: "10/10/2025"
+      expectSubjectContains: ["Follow Up", "order"]
+      expectBodyContains: ["John", "update"]
+

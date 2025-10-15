@@ -26,6 +26,30 @@
       "reason"
     ]
   },
+  "followup": {
+    "description": "Send a short follow-up or status-check message on a prior topic.",
+    "fieldTypes": {
+      "notes": "longtext",
+      "previousDate": "date",
+      "recipientName": "string",
+      "topic": "string"
+    },
+    "hints": {
+      "notes": "Optional internal note or context",
+      "previousDate": "mm/dd/yyyy of last message",
+      "recipientName": "e.g., \u201cJohn Stancel\u201d",
+      "topic": "e.g., \u201corder update\u201d or \u201cquote request\u201d"
+    },
+    "label": "Follow Up",
+    "optional": [
+      "previousDate",
+      "notes"
+    ],
+    "required": [
+      "topic",
+      "recipientName"
+    ]
+  },
   "invoice_payment": {
     "description": "Notify or confirm payment for an invoice.",
     "fieldTypes": {

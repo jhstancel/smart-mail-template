@@ -13,6 +13,18 @@ AUTODETECT_GENERATED = {
       "pushed back"
     ]
   },
+  "followup": {
+    "boosts": {
+      "containsPO": 0.02,
+      "reply": 0.06
+    },
+    "keywords": [
+      "follow up",
+      "checking in",
+      "status update",
+      "touching base"
+    ]
+  },
   "invoice_payment": {
     "boosts": {
       "containsPO": 0.03,
