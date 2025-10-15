@@ -25,7 +25,7 @@ except Exception:
 
 # ===== Schema & rules loading (final) =====
 from app.schema_generated import SCHEMA_GENERATED as SCHEMA
-from app.autodetect_rules.generated import AUTODETECT_GENERATED as AUTODETECT_RULES
+from app.autodetect_rules_generated import AUTODETECT_GENERATED as AUTODETECT_RULES
 INTENTS_META: list = []
 SUBJECTS: dict = {}
 print("[info] Loaded generated schema and autodetect rules (legacy system removed)")

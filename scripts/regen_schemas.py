@@ -18,7 +18,7 @@ REGISTRY_DIR = ROOT / "intents" / "registry"
 APP_DIR = ROOT / "app"
 PUBLIC_DIR = ROOT / "public"
 APP_SCHEMA_GEN = APP_DIR / "schema_generated.py"
-APP_AUTODETECT_GEN = APP_DIR / "autodetect_rules.generated.py"
+APP_AUTODETECT_GEN = APP_DIR / "autodetect_rules_generated.py"
 PUBLIC_SCHEMA_JSON = PUBLIC_DIR / "schema.generated.json"
 
 
