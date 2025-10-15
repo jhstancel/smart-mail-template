@@ -1,0 +1,52 @@
+id: shipment_update
+label: Shipment Update
+description: Notify a customer about shipment/tracking status.
+
+# From your existing schema: required/optional fields
+required: [trackingNumber, carrier, shipDate]
+optional: [estimatedArrival, orderNumber, notes]
+
+# Types drive UI widgets + validation
+fieldTypes:
+  trackingNumber: string
+  carrier: enum
+  shipDate: date
+  estimatedArrival: date
+  orderNumber: string
+  notes: longtext
+
+# Options for enums
+enums:
+  carrier: [UPS, FedEx, DHL, USPS]
+
+# Helpful hints/placeholders (used by CLI + UI)
+hints:
+  trackingNumber: e.g., 1Z999AA10123456784
+  carrier: Choose from UPS, FedEx, DHL, USPS
+  shipDate: mm/dd/yyyy
+  estimatedArrival: mm/dd/yyyy
+  orderNumber: Optional, if available
+
+# Template config: subject inline, body in your existing Jinja file
+template:
+  subject: "Shipment Update: {{ orderNumber or trackingNumber }}"
+  bodyPath: "templates/shipment_update.j2"
+
+# Autodetect seeds — keeps it lightweight for now
+autodetect:
+  keywords: ["tracking", "shipped", "in transit", "carrier", "tracking number", "1Z"]
+  boosts:
+    reply: 0.1
+    containsPO: 0.05
+
+# Optional smoke tests the generator can turn into pytest later
+tests:
+  samples:
+    - fields:
+        trackingNumber: "1Z999AA10123456784"
+        carrier: "UPS"
+        shipDate: "10/20/2025"
+        orderNumber: "PO-4815"
+      expectSubjectContains: ["1Z999AA10123456784", "PO-4815"]
+      expectBodyContains: ["UPS", "10/20/2025"]
+
