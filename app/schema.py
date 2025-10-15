@@ -42,22 +42,18 @@ SCHEMA = {
     # Auto detect pseudo-intent (no fields; handled in main.py)
     "auto_detect": {
         "required": [],
-        "optional": [],
     },
     "invoice_po_followup": {
         "required": ["recipientName", "invoiceNumber", "poNumber", "dueDate"],
-        "optional": [],  # senderName removed
     },
     "tax_exemption": {
         "required": ["recipientName"],
-        "optional": [],  # senderName removed
     },
     "order_request": {
     "label": "Order Request",
     "description": "Request to process and confirm an order with shipping details.",
     "required": ["recipientName", "parts", "fedexAccount", "shipAddress"],
-    "optional": [],  
-}
+    }
 
 }
 
