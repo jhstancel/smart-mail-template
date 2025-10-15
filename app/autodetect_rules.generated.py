@@ -64,6 +64,18 @@ AUTODETECT_GENERATED = {
       "attachment"
     ]
   },
+  "qb_order": {
+    "boosts": {
+      "containsPO": 0.03,
+      "reply": 0.05
+    },
+    "keywords": [
+      "qb order",
+      "quickbooks",
+      "order entry",
+      "accounting"
+    ]
+  },
   "quote_request": {
     "boosts": {
       "containsPO": 0.02,

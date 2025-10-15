@@ -132,6 +132,33 @@ SCHEMA_GENERATED = {
       "orderNumber"
     ]
   },
+  "qb_order": {
+    "description": "QuickBooks order request or confirmation message.",
+    "fieldTypes": {
+      "orderDate": "date",
+      "orderNumber": "string",
+      "recipientName": "string",
+      "senderName": "string",
+      "shipDate": "date"
+    },
+    "hints": {
+      "orderDate": "mm/dd/yyyy",
+      "orderNumber": "e.g., PO-10941",
+      "recipientName": "e.g., \u201cUP Aviation Accounting\u201d",
+      "senderName": "e.g., \u201cKennedy Harper\u201d",
+      "shipDate": "mm/dd/yyyy"
+    },
+    "label": "QB Order",
+    "optional": [
+      "orderNumber",
+      "orderDate",
+      "shipDate"
+    ],
+    "required": [
+      "recipientName",
+      "senderName"
+    ]
+  },
   "quote_request": {
     "description": "Customer requests pricing and availability for an item.",
     "fieldTypes": {

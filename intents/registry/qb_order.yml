@@ -1,0 +1,41 @@
+id: qb_order
+label: QB Order
+description: QuickBooks order request or confirmation message.
+
+required: [recipientName, senderName]
+optional: [orderNumber, orderDate, shipDate]
+
+fieldTypes:
+  recipientName: string
+  senderName: string
+  orderNumber: string
+  orderDate: date
+  shipDate: date
+
+hints:
+  recipientName: e.g., “UP Aviation Accounting”
+  senderName: e.g., “Kennedy Harper”
+  orderNumber: e.g., PO-10941
+  orderDate: mm/dd/yyyy
+  shipDate: mm/dd/yyyy
+
+template:
+  subject: "QB Order – {{ orderNumber or recipientName }}"
+  bodyPath: "templates/qb_order.j2"
+
+autodetect:
+  keywords: ["qb order", "quickbooks", "order entry", "accounting"]
+  boosts:
+    reply: 0.05
+    containsPO: 0.03
+
+tests:
+  samples:
+    - fields:
+        recipientName: "UP Aviation Accounting"
+        senderName: "Kennedy Harper"
+        orderNumber: "PO-10941"
+        orderDate: "10/15/2025"
+      expectSubjectContains: ["QB Order", "PO-10941"]
+      expectBodyContains: ["Accounting", "Kennedy"]
+
