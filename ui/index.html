@@ -751,10 +751,9 @@ function highlightMissing(keys){
 
 async function doGenerate(){
   const btn = btnGenerate;
-  const wasText = btn ? btn.textContent : '';
 
   try{
-    if(btn){ btn.disabled = true; btn.textContent = 'Generating...'; }
+    if(btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); }
 
     const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
 
@@ -799,6 +798,8 @@ async function doGenerate(){
 
     const subject = data?.subject || '';
     const body    = data?.body || '';
+    const body    = bodyRaw.replace(/^\s*subject\s*:\s*.*\n+/i,'');
+
 
     if(liveState.compose){
       await typeInto(outSubject, subject || '');
@@ -818,7 +819,7 @@ async function doGenerate(){
     console.error('Generate crashed:', err);
     if(fieldsHint) fieldsHint.textContent = '';
   }finally{
-    if(btn){ btn.disabled = false; btn.textContent = wasText || 'Generate'; }
+    if(btn){ btn.disabled = false; btn.removeAttribute('aria-busy'); }
   }
 }
 
@@ -873,10 +874,16 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
   const savedPreview = localStorage.getItem('sm_live_preview') === '1';
   if(liveComposeCb){ liveComposeCb.checked = savedCompose; setLiveCompose(savedCompose); }
   if(livePreviewCb){ livePreviewCb.checked = savedPreview; setLivePreview(savedPreview); }
+  if(btnGenerate){ btnGenerate.style.display = savedPreview ? 'none' : ''; }
 
   // wire toggles
   if(liveComposeCb){ liveComposeCb.addEventListener('change', e=> setLiveCompose(e.target.checked)); }
-  if(livePreviewCb){ livePreviewCb.addEventListener('change', e=> setLivePreview(e.target.checked)); }
+  if(livePreviewCb){
+    livePreviewCb.addEventListener('change', e=>{
+      setLivePreview(e.target.checked);
+      if(btnGenerate){ btnGenerate.style.display = e.target.checked ? 'none' : ''; }
+    });
+  }
 
   // auto-generate when fields change (gated by livePreview)
   document.getElementById('fields')?.addEventListener('input', ()=>{
@@ -1184,17 +1191,20 @@ async function runCorruption(){
     btnPredict: $('#btnPredict')
   };
 
-  const toNice = (s)=> (s||'').replaceAll('_',' ').split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
-  function scoreBadgeHTML(score){ const pct = Math.round((score ?? 0)*100); return `<span class="pill">${pct}%</span>`; }
-  function setPredictStatus(msg){ if(els.predStatus) els.predStatus.textContent = msg || ''; }
-  function hidePredictInfo(){ if(els.predInfo) els.predInfo.style.display='none'; if(els.topK) els.topK.innerHTML=''; }
 
-  function updatePredictUI(data){
+
+    const toNice = (s)=> (s||'').replaceAll('_',' ').split(' ').map(w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase()).join(' ');
+    function scoreBadge(score){ return `${Math.round((score ?? 0)*100)}%`; }
+    function setPredictStatus(msg){ if(els.predStatus) els.predStatus.textContent = msg || ''; }
+    function hidePredictInfo(){ if(els.predInfo) els.predInfo.style.display='none'; if(els.topK) els.topK.innerHTML=''; }
+
+    function updatePredictUI(data){
     if(!data){ hidePredictInfo(); return; }
     const { intent, confidence, top_k = [], message = '' } = data;
 
     if(els.predIntent) els.predIntent.textContent = intent ? toNice(intent) : '—';
-    if(els.predBadge)  els.predBadge.innerHTML    = scoreBadgeHTML(confidence ?? 0);
+    if(els.predBadge)  els.predBadge.textContent  = scoreBadge(confidence ?? 0);
+
     if(els.predMsg)    els.predMsg.textContent    = message || '';
 
     if(els.topK){
