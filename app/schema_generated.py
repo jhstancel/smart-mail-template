@@ -78,6 +78,36 @@ SCHEMA_GENERATED = {
       "paymentDate"
     ]
   },
+  "invoice_po_followup": {
+    "description": "Follow up on an invoice or purchase order previously sent or discussed.",
+    "fieldTypes": {
+      "invoiceNumber": "string",
+      "notes": "longtext",
+      "poNumber": "string",
+      "previousDate": "date",
+      "recipientName": "string",
+      "topic": "string"
+    },
+    "hints": {
+      "invoiceNumber": "e.g., INV-4827",
+      "notes": "Optional additional context or reminder details",
+      "poNumber": "e.g., PO-10892",
+      "previousDate": "mm/dd/yyyy",
+      "recipientName": "e.g., \u201cJohn Stancel\u201d",
+      "topic": "e.g., \u201cInvoice 4827\u201d or \u201cPO 10892\u201d"
+    },
+    "label": "Invoice / PO Follow-Up",
+    "optional": [
+      "invoiceNumber",
+      "poNumber",
+      "previousDate",
+      "notes"
+    ],
+    "required": [
+      "topic",
+      "recipientName"
+    ]
+  },
   "order_confirmation": {
     "description": "Confirm that an order has been received and provide delivery details.",
     "fieldTypes": {

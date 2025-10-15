@@ -1,0 +1,42 @@
+id: invoice_po_followup
+label: Invoice / PO Follow-Up
+description: Follow up on an invoice or purchase order previously sent or discussed.
+
+required: [topic, recipientName]
+optional: [invoiceNumber, poNumber, previousDate, notes]
+
+fieldTypes:
+  topic: string
+  recipientName: string
+  invoiceNumber: string
+  poNumber: string
+  previousDate: date
+  notes: longtext
+
+hints:
+  topic: e.g., “Invoice 4827” or “PO 10892”
+  recipientName: e.g., “John Stancel”
+  invoiceNumber: e.g., INV-4827
+  poNumber: e.g., PO-10892
+  previousDate: mm/dd/yyyy
+  notes: Optional additional context or reminder details
+
+template:
+  subject: "{{ topic }} – Follow-Up"
+  bodyPath: "templates/invoice_po_followup.j2"
+
+autodetect:
+  keywords: ["invoice follow up", "po follow up", "invoice status", "payment status"]
+  boosts:
+    reply: 0.07
+    containsPO: 0.04
+
+tests:
+  samples:
+    - fields:
+        topic: "Invoice 4827"
+        recipientName: "John Stancel"
+        previousDate: "10/12/2025"
+      expectSubjectContains: ["Invoice", "Follow-Up"]
+      expectBodyContains: ["John", "Invoice", "status"]
+

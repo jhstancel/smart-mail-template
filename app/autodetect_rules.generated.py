@@ -39,6 +39,18 @@ AUTODETECT_GENERATED = {
       "ach"
     ]
   },
+  "invoice_po_followup": {
+    "boosts": {
+      "containsPO": 0.04,
+      "reply": 0.07
+    },
+    "keywords": [
+      "invoice follow up",
+      "po follow up",
+      "invoice status",
+      "payment status"
+    ]
+  },
   "order_confirmation": {
     "boosts": {
       "containsPO": 0.04,
