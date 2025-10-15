@@ -1,5 +1,18 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 AUTODETECT_GENERATED = {
+  "delay_notice": {
+    "boosts": {
+      "containsPO": 0.03,
+      "reply": 0.05
+    },
+    "keywords": [
+      "delay",
+      "reschedule",
+      "postpone",
+      "new date",
+      "pushed back"
+    ]
+  },
   "invoice_payment": {
     "boosts": {
       "containsPO": 0.03,

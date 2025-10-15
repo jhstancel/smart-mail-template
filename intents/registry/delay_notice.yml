@@ -1,0 +1,41 @@
+id: delay_notice
+label: Delay Notice
+description: Inform a customer that an order’s delivery date has changed.
+
+required: [orderNumber, newDate, reason]
+optional: [apology, notes]
+
+fieldTypes:
+  orderNumber: string
+  newDate: date
+  reason: longtext
+  apology: longtext
+  notes: longtext
+
+hints:
+  orderNumber: e.g., PO-10927
+  newDate: mm/dd/yyyy
+  reason: e.g., supplier delay, parts backlog
+  apology: Optional apology or reassurance text
+  notes: Any additional internal notes
+
+template:
+  subject: "Delay Notice – {{ orderNumber }}"
+  bodyPath: "templates/delay_notice.j2"
+
+autodetect:
+  keywords: ["delay", "reschedule", "postpone", "new date", "pushed back"]
+  boosts:
+    reply: 0.05
+    containsPO: 0.03
+
+tests:
+  samples:
+    - fields:
+        orderNumber: "PO-10927"
+        newDate: "11/05/2025"
+        reason: "Supplier shipment backlog"
+        apology: "We’re sorry for the inconvenience."
+      expectSubjectContains: ["Delay", "PO-10927"]
+      expectBodyContains: ["Supplier", "11/05/2025", "inconvenience"]
+

@@ -1,5 +1,32 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 SCHEMA_GENERATED = {
+  "delay_notice": {
+    "description": "Inform a customer that an order\u2019s delivery date has changed.",
+    "fieldTypes": {
+      "apology": "longtext",
+      "newDate": "date",
+      "notes": "longtext",
+      "orderNumber": "string",
+      "reason": "longtext"
+    },
+    "hints": {
+      "apology": "Optional apology or reassurance text",
+      "newDate": "mm/dd/yyyy",
+      "notes": "Any additional internal notes",
+      "orderNumber": "e.g., PO-10927",
+      "reason": "e.g., supplier delay, parts backlog"
+    },
+    "label": "Delay Notice",
+    "optional": [
+      "apology",
+      "notes"
+    ],
+    "required": [
+      "orderNumber",
+      "newDate",
+      "reason"
+    ]
+  },
   "invoice_payment": {
     "description": "Notify or confirm payment for an invoice.",
     "fieldTypes": {
