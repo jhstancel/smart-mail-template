@@ -146,6 +146,32 @@ SCHEMA_GENERATED = {
       "deliveryDate"
     ]
   },
+  "order_request": {
+    "description": "Request to process and confirm an order with shipping details.",
+    "fieldTypes": {
+      "fedexAccount": "enum",
+      "notes": "longtext",
+      "parts": "longtext",
+      "recipientName": "string",
+      "shipAddress": "longtext"
+    },
+    "hints": {
+      "fedexAccount": "Select shipper account number",
+      "notes": "Any special instructions for fulfillment",
+      "parts": "List PN and qty lines",
+      "recipientName": "e.g., \u201cUP Aviation Receiving\u201d",
+      "shipAddress": "Full street, city, state, zip"
+    },
+    "label": "Order Request",
+    "optional": [],
+    "required": [
+      "recipientName",
+      "shipAddress",
+      "parts",
+      "notes",
+      "fedexAccount"
+    ]
+  },
   "packing_slip_docs": {
     "description": "Send or request documentation such as a packing slip, invoice, or certificate.",
     "fieldTypes": {
@@ -257,6 +283,60 @@ SCHEMA_GENERATED = {
       "trackingNumber",
       "carrier",
       "shipDate"
+    ]
+  },
+  "tax_exempt_certificate": {
+    "description": "Send or request a tax-exempt certificate for purchases.",
+    "fieldTypes": {
+      "certificateId": "string",
+      "companyName": "string",
+      "expirationDate": "date",
+      "jurisdiction": "string",
+      "notes": "longtext",
+      "recipientName": "string"
+    },
+    "hints": {
+      "certificateId": "e.g., \u201cTX-EX-4921\u201d",
+      "companyName": "e.g., \u201cUP Aviation LLC\u201d",
+      "expirationDate": "mm/dd/yyyy",
+      "jurisdiction": "e.g., \u201cTX\u201d",
+      "notes": "Optional message to include with the certificate",
+      "recipientName": "e.g., \u201cAccounts Payable\u201d"
+    },
+    "label": "Tax Exempt Certificate",
+    "optional": [
+      "companyName",
+      "certificateId",
+      "jurisdiction",
+      "expirationDate",
+      "notes"
+    ],
+    "required": [
+      "recipientName"
+    ]
+  },
+  "tax_exemption": {
+    "description": "Notify a customer about tax-exempt status or request details.",
+    "fieldTypes": {
+      "companyName": "string",
+      "jurisdiction": "string",
+      "notes": "longtext",
+      "recipientName": "string"
+    },
+    "hints": {
+      "companyName": "e.g., \u201cUP Aviation LLC\u201d",
+      "jurisdiction": "e.g., \u201cFL\u201d or \u201cFlorida\u201d",
+      "notes": "Optional context for the exemption",
+      "recipientName": "e.g., \u201cAccounts Payable\u201d"
+    },
+    "label": "Tax Exemption",
+    "optional": [
+      "companyName",
+      "jurisdiction",
+      "notes"
+    ],
+    "required": [
+      "recipientName"
     ]
   }
 }

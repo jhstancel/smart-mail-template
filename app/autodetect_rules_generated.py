@@ -67,6 +67,18 @@ AUTODETECT_GENERATED = {
       "delivery date"
     ]
   },
+  "order_request": {
+    "boosts": {
+      "containsPO": 0.04,
+      "reply": 0.05
+    },
+    "keywords": [
+      "order request",
+      "please process",
+      "ship to",
+      "fulfill"
+    ]
+  },
   "packing_slip_docs": {
     "boosts": {
       "containsPO": 0.04,
@@ -117,6 +129,26 @@ AUTODETECT_GENERATED = {
       "carrier",
       "tracking number",
       "1Z"
+    ]
+  },
+  "tax_exempt_certificate": {
+    "boosts": {
+      "reply": 0.04
+    },
+    "keywords": [
+      "tax exemption certificate",
+      "resale certificate",
+      "tax exempt"
+    ]
+  },
+  "tax_exemption": {
+    "boosts": {
+      "reply": 0.04
+    },
+    "keywords": [
+      "tax exempt",
+      "exemption",
+      "sales tax"
     ]
   }
 }
