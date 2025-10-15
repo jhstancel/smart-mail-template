@@ -722,7 +722,6 @@ function renderFields(intent){
 
   const first = fieldsWrap.querySelector('input, select, textarea');
   if (first) first.focus();
-}
 
 }
 
@@ -1106,14 +1105,15 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
       flashBtn(copyBodyBtn, 'Copied');
     });
   }
-  if(clearBtn){
-    clearBtn.addEventListener('click', ()=>{
-      if(outSubject) outSubject.textContent = '';
-      if(outBody)    outBody.textContent = '';
-      document.querySelectorAll('#fields input').forEach(i=> i.value = '');
-      flashBtn(clearBtn, 'Cleared');
-    });
-  }
+if(clearBtn){
+  clearBtn.addEventListener('click', ()=>{
+    if(outSubject) outSubject.textContent = '';
+    if(outBody)    outBody.textContent = '';
+    document.querySelectorAll('#fields input, #fields select, #fields textarea')
+      .forEach(i=> i.value = '');
+    flashBtn(clearBtn, 'Cleared');
+  });
+}
 
   /* ===== Global Defaults wiring ===== */
   loadGlobalDefaults(); // hydrate Settings UI with saved values (if any)
