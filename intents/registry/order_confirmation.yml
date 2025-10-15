@@ -1,0 +1,42 @@
+id: order_confirmation
+label: Order Confirmation
+description: Confirm that an order has been received and provide delivery details.
+
+required: [orderNumber, companyName, deliveryDate]
+optional: [items, trackingNumber, notes]
+
+fieldTypes:
+  orderNumber: string
+  companyName: string
+  deliveryDate: date
+  items: longtext
+  trackingNumber: string
+  notes: longtext
+
+hints:
+  orderNumber: e.g., PO-10832
+  companyName: e.g., UP Aviation LLC
+  deliveryDate: mm/dd/yyyy
+  items: List main components or SKUs
+  trackingNumber: e.g., 1Z999AA10123456784
+  notes: Optional remarks or follow-up context
+
+template:
+  subject: "Order Confirmation – {{ orderNumber }}"
+  bodyPath: "templates/order_confirmation.j2"
+
+autodetect:
+  keywords: ["order confirmation", "confirmed", "scheduled", "delivery date"]
+  boosts:
+    reply: 0.08
+    containsPO: 0.04
+
+tests:
+  samples:
+    - fields:
+        orderNumber: "PO-10832"
+        companyName: "UP Aviation LLC"
+        deliveryDate: "10/25/2025"
+      expectSubjectContains: ["Order Confirmation", "PO-10832"]
+      expectBodyContains: ["UP Aviation", "10/25/2025", "order"]
+

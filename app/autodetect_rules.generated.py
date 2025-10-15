@@ -14,6 +14,18 @@ AUTODETECT_GENERATED = {
       "ach"
     ]
   },
+  "order_confirmation": {
+    "boosts": {
+      "containsPO": 0.04,
+      "reply": 0.08
+    },
+    "keywords": [
+      "order confirmation",
+      "confirmed",
+      "scheduled",
+      "delivery date"
+    ]
+  },
   "quote_request": {
     "boosts": {
       "containsPO": 0.02,

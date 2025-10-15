@@ -27,6 +27,36 @@ SCHEMA_GENERATED = {
       "paymentDate"
     ]
   },
+  "order_confirmation": {
+    "description": "Confirm that an order has been received and provide delivery details.",
+    "fieldTypes": {
+      "companyName": "string",
+      "deliveryDate": "date",
+      "items": "longtext",
+      "notes": "longtext",
+      "orderNumber": "string",
+      "trackingNumber": "string"
+    },
+    "hints": {
+      "companyName": "e.g., UP Aviation LLC",
+      "deliveryDate": "mm/dd/yyyy",
+      "items": "List main components or SKUs",
+      "notes": "Optional remarks or follow-up context",
+      "orderNumber": "e.g., PO-10832",
+      "trackingNumber": "e.g., 1Z999AA10123456784"
+    },
+    "label": "Order Confirmation",
+    "optional": [
+      "items",
+      "trackingNumber",
+      "notes"
+    ],
+    "required": [
+      "orderNumber",
+      "companyName",
+      "deliveryDate"
+    ]
+  },
   "quote_request": {
     "description": "Customer requests pricing and availability for an item.",
     "fieldTypes": {
