@@ -123,4 +123,7 @@ clean:
 	@find . -type d -name "*.egg-info" -exec rm -rf {} +
 	@rm -rf .pytest_cache .mypy_cache build dist
 	@echo "✅ Cleanup complete."
-
+.PHONY: new-intent
+new-intent:
+	@echo "🧩 Launching New Intent Wizard..."
+	@python3 scripts/new_intent.py

@@ -1,257 +1,353 @@
 #!/usr/bin/env python3
-"""
-Scaffold a new intent end-to-end:
-- Create templates/<intent>.j2 (polite, passes tone tests)
-- Update configs/intents.json (required fields)
-- Optionally update configs/rules.json (keyword hints)
-- Optionally append a labeled example to data/emails.labeled.train.csv
-- Run scripts/validate_repo.py
+from __future__ import annotations
 
-Usage examples:
-  python scripts/new_intent.py --name return_merchandise_authorization \
-      --fields customerName,rmaNumber,itemsSummary,senderName \
-      --title "RMA Request" \
-      --rules rma,return,authorization \
-      --example "Please confirm RMA 123 for two widgets" \
-      --yes
-
-  # Interactive mode (no flags)
-  python scripts/new_intent.py
-"""
-import argparse
-import json
 import os
+import re
+import subprocess
 import sys
 from pathlib import Path
+from typing import Dict, List, Optional
 
-# from datetime import date
+import questionary
+import yaml
+from rich.console import Console
+from rich.panel import Panel
+from rich.pretty import Pretty
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.text import Text
+from typer import Typer
 
-ROOT = Path(__file__).resolve().parents[1]
-CONFIGS = ROOT / "configs"
-TEMPLATES = ROOT / "templates"
-DATA = ROOT / "data"
+# Local validation model from Step 1
+SCRIPT_DIR = Path(__file__).resolve().parent
+ROOT = SCRIPT_DIR.parent
+sys.path.insert(0, str(SCRIPT_DIR))  # for intent_model import
+from intent_model import IntentSpec  # type: ignore
 
+console = Console()
+app = Typer(help="Interactive wizard to create a new intent (YAML + Jinja template).")
 
-def abort(msg: str, code: int = 1):
-    print(f"[new_intent] ERROR: {msg}", file=sys.stderr)
-    sys.exit(code)
-
-
-def confirm(prompt: str) -> bool:
-    try:
-        return input(f"{prompt} [y/N]: ").strip().lower() in ("y", "yes")
-    except EOFError:
-        return False
-
-
-def load_json(path: Path) -> dict:
-    if not path.exists():
-        return {}
-    return json.loads(path.read_text(encoding="utf-8") or "{}")
+REGISTRY_DIR = ROOT / "intents" / "registry"
+TEMPLATES_DIR = ROOT / "templates"
 
 
-def save_json(path: Path, data: dict):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+def to_snake(s: str) -> str:
+    s = re.sub(r"[^\w\s-]", "", s)
+    s = s.replace("-", " ")
+    s = re.sub(r"\s+", "_", s.strip().lower())
+    s = re.sub(r"_+", "_", s)
+    return s
+
+
+def assert_unique_id(intent_id: str) -> None:
+    existing = {p.stem for p in REGISTRY_DIR.glob("*.yml")}
+    if intent_id in existing:
+        raise ValueError(f"Intent id '{intent_id}' already exists in intents/registry")
+
+
+def prompt_label() -> str:
+    msg = (
+        'Label / Title\n'
+        'Examples:\n'
+        '"Return Authorization"\n'
+        '"Backorder Notice"\n'
+        '"Warranty Claim"\n'
     )
+    while True:
+        label = questionary.text(msg).ask()
+        if not label or len(label.strip()) < 3:
+            console.print("[red]Label is required and should be >= 3 chars[/red]")
+            continue
+        return label.strip()
 
 
-DEFAULT_BODY = """Hi {{ customerName or 'there' }},
-
-I hope you’re doing well. {{ lead_sentence }}
-
-{{ main_request }}
-
-Thank you for your help,
-{{ senderName or 'Smart Mail User' }}
-"""
-
-TEMPLATE_SKELETON = (
-    """Subject: {{ subject_line }}
-
-"""
-    + DEFAULT_BODY
-)
-
-
-def guess_lead_sentence(intent_name: str) -> str:
-    # Lightweight, readable default; can edit later in the .j2 file.
-    if "return" in intent_name or "rma" in intent_name:
-        return "I’m reaching out regarding a return authorization."
-    if "quote" in intent_name or "pricing" in intent_name:
-        return "I’m reaching out with a quick pricing and availability request."
-    if "invoice" in intent_name or "payment" in intent_name:
-        return "I wanted to share a quick payment update."
-    if "shipment" in intent_name or "tracking" in intent_name:
-        return "Good news—your order details are below."
-    if "follow" in intent_name:
-        return "I’m checking in on the item we discussed."
-    if "delay" in intent_name or "schedule" in intent_name:
-        return "I want to share a brief schedule update."
-    return "I wanted to share a quick update."
+def prompt_id(default_id: str) -> str:
+    msg = (
+        f'Machine id (snake_case) [default: {default_id}]\n'
+        'Examples:\n'
+        '"return_authorization"\n'
+        '"delay_notice"\n'
+        '"shipment_update"\n'
+    )
+    while True:
+        ans = questionary.text(msg).ask() or default_id
+        ans = ans.strip()
+        if not re.fullmatch(r"[a-z0-9_]+", ans):
+            console.print("[red]Use only lowercase letters, numbers, and underscores[/red]")
+            continue
+        try:
+            assert_unique_id(ans)
+        except ValueError as e:
+            console.print(f"[red]{e}[/red]")
+            continue
+        return ans
 
 
-def guess_main_request(fields: list[str]) -> str:
-    # Build a natural sentence using known common fields.
-    fset = {f.lower(): f for f in fields}
-    bits = []
-    if "rmanumber" in fset:
-        bits.append(f"RMA {{ {fset['rmanumber']} }}")
-    if "ponumber" in fset:
-        bits.append(f"PO {{ {fset['ponumber']} }}")
-    if "partnumber" in fset:
-        bits.append(f"{{ {fset['partnumber']} }}")
-    if "quantity" in fset or "qty" in fset:
-        key = fset.get("quantity", fset.get("qty"))
-        bits.append(f"(qty {{ {key} }})")
-    joined = " ".join(bits).strip()
-    if joined:
-        return f"Could you please confirm details for {joined}?"
-    # Fallback
-    pf = fields[0] if fields else "details"
-    return f"Could you please confirm {{ {pf} }}?"
+def prompt_description() -> str:
+    msg = (
+        "Short description\n"
+        'Examples:\n'
+        '"Provide or request an RMA for returning parts/items."\n'
+        '"Inform a customer that a delivery date has changed."\n'
+        '"Confirm payment for an invoice and share remittance details."\n'
+    )
+    while True:
+        d = questionary.text(msg).ask()
+        if not d or len(d.strip()) < 10:
+            console.print("[red]Please enter a helpful sentence (>= 10 chars)[/red]")
+            continue
+        return d.strip()
 
 
-def build_subject(title: str, fields: list[str]) -> str:
-    primary = fields[0] if fields else None
-    if primary:
-        return f"{title} – {{{{ {primary} }}}}"
-    return title
+FIELD_TYPES = ["string", "longtext", "date", "enum", "number", "email", "phone", "bool"]
 
 
-def append_example_row(intent: str, example: str):
-    csv_path = DATA / "emails.labeled.train.csv"
-    header = "text,intent\n"
-    line = f'"{example}",{intent}\n'
-    csv_path.parent.mkdir(parents=True, exist_ok=True)
-    if not csv_path.exists():
-        csv_path.write_text(header + line, encoding="utf-8")
+def prompt_fields(kind: str) -> List[str]:
+    assert kind in ("required", "optional")
+    msg = (
+        f"{kind.title()} fields (comma-separated)\n"
+        'Examples:\n'
+        '"rmaNumber, partNumber, quantity"\n'
+        '"poNumber, trackingNumber"\n'
+        '"recipientName, shipDate"\n'
+    )
+    while True:
+        raw = questionary.text(msg).ask() or ""
+        names = [n.strip() for n in raw.split(",") if n.strip()]
+        # It’s valid to have zero optional fields
+        if kind == "required" and not names:
+            console.print("[red]At least one required field is needed[/red]")
+            continue
+        # Validate each
+        bad = [n for n in names if not re.fullmatch(r"[A-Za-z0-9_]+", n)]
+        if bad:
+            console.print(f"[red]Invalid field names: {', '.join(bad)}[/red]")
+            continue
+        return names
+
+
+def prompt_field_types(all_fields: List[str]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for f in all_fields:
+        msg = (
+            f"Type for field '{f}' (choose)\n"
+            'Examples:\n'
+            '"string"\n'
+            '"date"\n'
+            '"enum"\n'
+        )
+        typ = questionary.select(
+            msg,
+            choices=FIELD_TYPES,
+            default="string",
+        ).ask()
+        out[f] = typ
+    return out
+
+
+def prompt_enums(field_types: Dict[str, str]) -> Dict[str, List[str]]:
+    enums: Dict[str, List[str]] = {}
+    for name, typ in field_types.items():
+        if typ != "enum":
+            continue
+        msg = (
+            f"Options for enum '{name}' (comma-separated)\n"
+            'Examples:\n'
+            '"UPS, FedEx, DHL, USPS"\n'
+            '"Open, Closed, Pending"\n'
+            '"Bronze, Silver, Gold"\n'
+        )
+        while True:
+            raw = questionary.text(msg).ask() or ""
+            opts = [o.strip() for o in raw.split(",") if o.strip()]
+            if len(opts) < 2:
+                console.print("[red]Provide at least two enum options[/red]")
+                continue
+            enums[name] = opts
+            break
+    return enums
+
+
+def prompt_hints(all_fields: List[str]) -> Dict[str, str]:
+    hints: Dict[str, str] = {}
+    for f in all_fields:
+        msg = (
+            f"Hint / placeholder text for '{f}' (optional)\n"
+            'Examples:\n'
+            '"e.g., RMA-2048"\n'
+            '"e.g., PN-10423"\n'
+            '"mm/dd/yyyy"\n'
+        )
+        ans = questionary.text(msg).ask() or ""
+        if ans.strip():
+            hints[f] = ans.strip()
+    return hints
+
+
+def prompt_subject(intent_label: str, first_field: Optional[str]) -> str:
+    default = (
+        f"{intent_label} – {{ {{ {first_field} }} }}" if first_field else intent_label
+    )
+    msg = (
+        f"Subject template (Jinja allowed) [default: {default}]\n"
+        'Examples:\n'
+        '"RMA {{ rmaNumber }} – {{ partNumber }} (qty {{ quantity }})"\n'
+        '"Order Confirmation – {{ orderNumber }}"\n'
+        '"Invoice Payment – {{ invoiceNumber }}"\n'
+    )
+    subj = questionary.text(msg).ask() or default
+    return subj.strip()
+
+
+def prompt_autodetect() -> Dict[str, object]:
+    kws_msg = (
+        "Autodetect keywords (comma-separated; optional)\n"
+        'Examples:\n'
+        '"rma, return, authorization, send back"\n'
+        '"quote, pricing, availability, rfq"\n'
+        '"tracking, shipped, in transit"\n'
+    )
+    raw_kws = questionary.text(kws_msg).ask() or ""
+    keywords = [k.strip() for k in raw_kws.split(",") if k.strip()]
+
+    boosts_msg = (
+        "Reply/PO boosts (optional; leave blank to skip)\n"
+        'Examples:\n'
+        '"reply=0.1, containsPO=0.05"\n'
+        '"reply=0.06"\n'
+        '"containsPO=0.02"\n'
+    )
+    raw_b = questionary.text(boosts_msg).ask() or ""
+    boosts: Dict[str, float] = {}
+    for part in [p.strip() for p in raw_b.split(",") if p.strip()]:
+        if "=" in part:
+            k, v = part.split("=", 1)
+            try:
+                boosts[k.strip()] = float(v.strip())
+            except ValueError:
+                console.print(f"[yellow]Ignoring invalid boost '{part}'[/yellow]")
+    return {"keywords": keywords, "boosts": boosts}
+
+
+def scaffold_body(intent_label: str, req_fields: List[str]) -> str:
+    # simple, readable template scaffold using required fields
+    lines = ["Hello,", "", f"{intent_label} details:", ""]
+    for f in req_fields:
+        lines.append(f"- {f}: {{ {{ {f} }} }}")
+    lines += ["", "Thank you,"]
+    return "\n".join(lines) + "\n"
+
+
+def open_in_editor(path: Path) -> None:
+    editor = os.environ.get("EDITOR") or os.environ.get("VISUAL")
+    if not editor:
         return
-    # append if not duplicate
-    existing = csv_path.read_text(encoding="utf-8")
-    if line not in existing:
-        with csv_path.open("a", encoding="utf-8") as fp:
-            fp.write(line)
+    try:
+        subprocess.run([editor, str(path)])
+    except Exception:
+        pass
 
 
-def run_validator():
-    val = ROOT / "scripts" / "validate_repo.py"
-    if val.exists():
-        print("[new_intent] running validate_repo.py …")
-        os.system(f"{sys.executable} {val}")
-
-
+@app.command()
 def main():
-    p = argparse.ArgumentParser(
-        description="Create a new intent + template + config wiring."
-    )
-    p.add_argument(
-        "--name", help="intent name (slug, e.g., return_merchandise_authorization)"
-    )
-    p.add_argument(
-        "--fields",
-        help="comma-separated required fields (e.g., customerName,rmaNumber,itemsSummary,senderName)",
-    )
-    p.add_argument("--title", help="Subject line title (e.g., 'RMA Request')")
-    p.add_argument("--rules", help="comma-separated keyword hints (optional)")
-    p.add_argument(
-        "--example",
-        help="optional labeled example text to append to data/emails.labeled.train.csv",
-    )
-    p.add_argument("--yes", action="store_true", help="non-interactive; assume 'yes'")
-    args = p.parse_args()
+    REGISTRY_DIR.mkdir(parents=True, exist_ok=True)
+    TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Interactive fallbacks
-    name = args.name or input("New intent name (slug): ").strip()
-    if not name:
-        abort("intent name is required")
-    fields = [
-        f.strip()
-        for f in (
-            args.fields or input("Required fields (comma-separated): ").strip()
-        ).split(",")
-        if f.strip()
-    ]
-    if not fields:
-        abort("at least one required field is needed")
-    title = (
-        args.title
-        or input("Subject title (e.g., 'RMA Request'): ").strip()
-        or "New Request"
-    )
-    rules = (
-        [
-            r.strip()
-            for r in (
-                args.rules
-                or input("Keyword hints (comma-separated, optional): ").strip()
-            ).split(",")
-            if r.strip()
-        ]
-        if args.rules is None
-        else ([r.strip() for r in args.rules.split(",") if r.strip()])
-    )
-    example = args.example or ""
+    console.print(Panel.fit("🧩 New Intent Wizard", style="cyan"))
 
-    # Load configs
-    intents_json = CONFIGS / "intents.json"
-    rules_json = CONFIGS / "rules.json"
-    intents = load_json(intents_json)
-    rules_map = load_json(rules_json)
+    label = prompt_label()
+    default_id = to_snake(label)
+    intent_id = prompt_id(default_id)
+    description = prompt_description()
 
-    if name in intents and not args.yes:
-        if not confirm(
-            f"Intent '{name}' already exists in intents.json. Update fields/template anyway?"
-        ):
-            abort("aborted by user")
+    required = prompt_fields("required")
+    optional = prompt_fields("optional")
+    all_fields = required + optional
 
-    # Update intents.json
-    intents.setdefault(name, {})
-    intents[name]["required"] = fields
-    save_json(intents_json, intents)
-    print(f"[new_intent] updated {intents_json}")
+    field_types = prompt_field_types(all_fields)
+    enums = prompt_enums(field_types)
+    hints = prompt_hints(all_fields)
 
-    # Update rules.json (optional)
-    if rules:
-        rules_map.setdefault(name, [])
-        merged = list(
-            dict.fromkeys([*rules_map[name], *rules])
-        )  # de-dupe, preserve order
-        rules_map[name] = merged
-        save_json(rules_json, rules_map)
-        print(f"[new_intent] updated {rules_json}")
+    subject = prompt_subject(label, required[0] if required else None)
+    body_path = f"templates/{intent_id}.j2"
+    autodetect = prompt_autodetect()
 
-    # Create template
-    subject_line = build_subject(title, fields)
-    lead = guess_lead_sentence(name)
-    main_req = guess_main_request(fields)
-    body = (
-        TEMPLATE_SKELETON.replace("{{ subject_line }}", subject_line)
-        .replace("{{ lead_sentence }}", lead)
-        .replace("{{ main_request }}", main_req)
-    )
-    tpl_path = TEMPLATES / f"{name}.j2"
-    if tpl_path.exists() and not args.yes:
-        if not confirm(f"Template {tpl_path.name} exists. Overwrite?"):
-            abort("aborted by user")
-    tpl_path.parent.mkdir(parents=True, exist_ok=True)
-    tpl_path.write_text(body, encoding="utf-8")
-    print(f"[new_intent] wrote template {tpl_path}")
+    # Build intent spec dict
+    spec = {
+        "id": intent_id,
+        "label": label,
+        "description": description,
+        "required": required,
+        "optional": optional,
+        "fieldTypes": field_types,
+        "enums": enums,
+        "hints": hints,
+        "template": {"subject": subject, "bodyPath": body_path},
+        "autodetect": autodetect,
+        "tests": {"samples": []},
+    }
 
-    # Optional: append labeled example
-    if example:
-        append_example_row(name, example)
-        print(f"[new_intent] appended example row to {DATA/'emails.labeled.train.csv'}")
+    # Validate with Pydantic (hard fail if invalid)
+    try:
+        _ = IntentSpec(**spec)
+    except Exception as e:
+        console.print(Panel(str(e), title="Validation error", style="red"))
+        sys.exit(1)
 
-    # Validate
-    run_validator()
+    # Preview
+    console.rule("Preview")
+    t = Table(show_header=True, header_style="bold magenta")
+    t.add_column("Key")
+    t.add_column("Value")
+    t.add_row("id", intent_id)
+    t.add_row("label", label)
+    t.add_row("required", ", ".join(required) or "—")
+    t.add_row("optional", ", ".join(optional) or "—")
+    t.add_row("subject", subject)
+    t.add_row("bodyPath", body_path)
+    console.print(t)
 
-    print("\nDone ✅  Next steps:")
-    print(f"  • Edit {tpl_path.name} if you want to refine wording.")
-    print("  • Run: pytest -q")
-    print("  • (Optional) Retrain: python -m model.train")
+    console.print(Panel.fit("YAML to write", style="blue"))
+    console.print(Pretty(spec, expand_all=True))
+
+    # Body scaffold
+    body_text = scaffold_body(label, required)
+    console.print(Panel.fit("Body template scaffold (.j2)", style="blue"))
+    console.print(Text(body_text))
+
+    if not Confirm.ask("Write files to disk?"):
+        console.print("[yellow]Cancelled. No files written.[/yellow]")
+        sys.exit(0)
+
+    # Write YAML
+    yml_path = REGISTRY_DIR / f"{intent_id}.yml"
+    with yml_path.open("w", encoding="utf-8") as fp:
+        yaml.safe_dump(spec, fp, sort_keys=False, allow_unicode=True)
+
+    # Write template (only if not exists to avoid clobber)
+    j2_path = TEMPLATES_DIR / f"{intent_id}.j2"
+    if j2_path.exists():
+        console.print(f"[yellow]Template exists: {j2_path}. Not overwriting.[/yellow]")
+    else:
+        j2_path.write_text(body_text, encoding="utf-8")
+        # Optional: open in $EDITOR for quick touch-ups
+        if Confirm.ask("Open template in your $EDITOR now?"):
+            open_in_editor(j2_path)
+
+    console.print("[green]Files written.[/green]")
+
+    # Regenerate schemas
+    console.print("[cyan]Running: make regen[/cyan]")
+    try:
+        subprocess.run(["make", "regen"], check=True)
+    except Exception:
+        console.print("[red]Failed to run make regen. Run it manually.[/red]")
+
+    console.print("[bold green]Done![/bold green] New intent added. Launch with `make run`.")
+    console.print(f"YAML: {yml_path}")
+    console.print(f"Body: {j2_path}")
 
 
 if __name__ == "__main__":
-    main()
+    app()
+

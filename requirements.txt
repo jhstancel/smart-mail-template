@@ -20,4 +20,8 @@ black>=24.8.0
 flake8>=7.1.0
 pre-commit>=3.8.0
 
+typer>=0.12.3
+questionary>=2.0.1
+rich>=13.7.1
+
 joblib
