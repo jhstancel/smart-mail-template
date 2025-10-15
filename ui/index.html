@@ -376,7 +376,22 @@
           <input id="livePreview" type="checkbox" /> Live Preview
         </label>
       </div>
+    <div id="subDefaults" class="settings-subpanel">
+      <div class="label" style="margin:8px 0 6px">Global Defaults</div>
+      <div class="hint" style="margin:-2px 0 10px">Fill these once and we’ll prefill matching fields.</div>
 
+      <label style="display:block; font-weight:600; margin:8px 0 4px">Ship Address</label>
+      <input id="g_shipAddress" type="text" placeholder="1457 Merrimon Ave. Asheville, NC 28804" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--panel-border)">
+
+      <label style="display:block; font-weight:600; margin:12px 0 4px">FedEx Account (number)</label>
+      <input id="g_fedexAccount" type="text" placeholder="e.g., 240920760" style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--panel-border)">
+
+      <div class="inline" style="margin-top:10px">
+        <label class="toggle"><input id="g_save" type="checkbox"> Save for this browser</label>
+        <button id="g_apply" class="btn secondary" type="button">Apply</button>
+        <button id="g_clear" class="btn secondary" type="button">Clear</button>
+      </div>
+    </div>
       <label class="toggle" for="liveCompose" style="margin-top:2px">
         <input id="liveCompose" type="checkbox" checked /> Compose Live
       </label>
@@ -534,6 +549,10 @@ let INTENTS = [];            // from /intents
 let SELECTED_INTENT = '';    // '' or 'auto_detect' means auto-mode
 let SCHEMA = {};             // from /schema
 
+// NEW: Global defaults (session memory) + persistence key
+let GLOBAL_DEFAULTS = { shipAddress: '', fedexAccount: '' };
+const DEFAULTS_STORAGE_KEY = 'sm_global_defaults_v1';
+
 // Title helper (keep a single definition)
 function toTitle(s){
   return (s || '')
@@ -564,6 +583,33 @@ async function loadSchema(){
     console.error('Error loading /schema:', e);
     SCHEMA = {};
   }
+}
+/* ===== Global defaults helpers ===== */
+function loadGlobalDefaults(){
+  try{
+    const raw = localStorage.getItem(DEFAULTS_STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === 'object'){
+        GLOBAL_DEFAULTS = { ...GLOBAL_DEFAULTS, ...parsed };
+      }
+    }
+  }catch(_e){}
+  // Hydrate the settings UI
+  const a=$('#g_shipAddress'), f=$('#g_fedexAccount');
+  if(a) a.value = GLOBAL_DEFAULTS.shipAddress || '';
+  if(f) f.value = GLOBAL_DEFAULTS.fedexAccount || '';
+}
+function saveGlobalDefaults(){
+  try{
+    localStorage.setItem(DEFAULTS_STORAGE_KEY, JSON.stringify(GLOBAL_DEFAULTS));
+  }catch(_e){}
+}
+function clearGlobalDefaults(persistToo){
+  GLOBAL_DEFAULTS = { shipAddress:'', fedexAccount:'' };
+  if(persistToo){ try{ localStorage.removeItem(DEFAULTS_STORAGE_KEY);}catch(_e){} }
+  const a=$('#g_shipAddress'), f=$('#g_fedexAccount');
+  if(a) a.value=''; if(f) f.value='';
 }
 
 /* ===== Date helpers ===== */
@@ -659,9 +705,25 @@ function renderFields(intent){
 
 
   }
+  // Prefill from Global Defaults (if empty)
+  const ga = (GLOBAL_DEFAULTS.shipAddress || '').trim();
+  const fa = (GLOBAL_DEFAULTS.fedexAccount || '').trim();
+
+  const shipAddrEl = fieldsWrap.querySelector('#f_shipAddress');
+  if (shipAddrEl && !shipAddrEl.value && ga){
+    shipAddrEl.value = ga;
+  }
+
+  const fedexEl = fieldsWrap.querySelector('#f_fedexAccount');
+  if (fedexEl && !fedexEl.value && fa){
+    // Works for both <input> and <select>
+    fedexEl.value = fa;
+  }
 
   const first = fieldsWrap.querySelector('input, select, textarea');
   if (first) first.focus();
+}
+
 }
 
 
@@ -922,8 +984,11 @@ function scheduleLiveGenerate(delayMs=200){
 // expose for predict code path that already calls these
 window.scheduleLiveGenerate = scheduleLiveGenerate;
 
+
+
+
 /* =========================================================================================
- * Settings menu + Theme + Typing toggles + Copy/Clear
+ * Settings menu + Theme + Typing toggles + Copy/Clear + Global Defaults wiring
  * =======================================================================================*/
 (function wireUI(){
   const liveComposeCb = document.getElementById('liveCompose');
@@ -1049,7 +1114,45 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
       flashBtn(clearBtn, 'Cleared');
     });
   }
+
+  /* ===== Global Defaults wiring ===== */
+  loadGlobalDefaults(); // hydrate Settings UI with saved values (if any)
+
+  const gAddr  = document.getElementById('g_shipAddress');
+  const gAcct  = document.getElementById('g_fedexAccount');
+  const gSave  = document.getElementById('g_save');
+  const gApply = document.getElementById('g_apply');
+  const gClear = document.getElementById('g_clear');
+
+  function captureDefaultsFromUI(){
+    GLOBAL_DEFAULTS.shipAddress  = (gAddr?.value || '').trim();
+    GLOBAL_DEFAULTS.fedexAccount = (gAcct?.value || '').trim();
+  }
+
+  if(gApply){
+    gApply.addEventListener('click', ()=>{
+      captureDefaultsFromUI();
+      if(gSave?.checked) saveGlobalDefaults();
+      // Re-render fields for current intent so defaults prefill immediately
+      if(SELECTED_INTENT){ renderFields(SELECTED_INTENT); }
+    });
+  }
+
+  if(gClear){
+    gClear.addEventListener('click', ()=>{
+      const persist = !!gSave?.checked;
+      clearGlobalDefaults(persist);
+      if(SELECTED_INTENT){ renderFields(SELECTED_INTENT); }
+    });
+  }
 })();
+
+
+
+
+
+
+
 /* =========================================================================================
  * Corruption / “printer reload” easter egg (preserved)
  * =======================================================================================*/
