@@ -382,7 +382,7 @@
   <p class="muted" style="margin:6px 0 0">Note: Minimal themes dampen most animations.</p>
 </div>
 
-<!-- ✅ new Global Defaults section -->
+<!-- new Global Defaults section -->
 <div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
   <div>
     <div class="label">Global Defaults</div>
@@ -397,8 +397,6 @@
   <label style="display:block; font-weight:600; margin:8px 0 4px">Ship Address</label>
   <input id="g_shipAddress" type="text" placeholder="1457 Merrimon Ave. Asheville, NC 28804">
 
-  <label style="display:block; font-weight:600; margin:12px 0 4px">FedEx Account (number)</label>
-  <input id="g_fedexAccount" type="text" placeholder="e.g., 240920760">
 
   <div class="inline" style="margin-top:10px">
     <label class="toggle"><input id="g_save" type="checkbox"> Save for this browser</label>
@@ -559,7 +557,7 @@ let SELECTED_INTENT = '';    // '' or 'auto_detect' means auto-mode
 let SCHEMA = {};             // from /schema
 
 // NEW: Global defaults (session memory) + persistence key
-let GLOBAL_DEFAULTS = { shipAddress: '', fedexAccount: '' };
+let GLOBAL_DEFAULTS = { shipAddress: ''};
 const DEFAULTS_STORAGE_KEY = 'sm_global_defaults_v1';
 
 // Title helper (keep a single definition)
@@ -605,9 +603,8 @@ function loadGlobalDefaults(){
     }
   }catch(_e){}
   // Hydrate the settings UI
-  const a=$('#g_shipAddress'), f=$('#g_fedexAccount');
-  if(a) a.value = GLOBAL_DEFAULTS.shipAddress || '';
-  if(f) f.value = GLOBAL_DEFAULTS.fedexAccount || '';
+const a=$('#g_shipAddress');
+if(a) a.value = GLOBAL_DEFAULTS.shipAddress || '';
 }
 function saveGlobalDefaults(){
   try{
@@ -716,18 +713,12 @@ function renderFields(intent){
   }
   // Prefill from Global Defaults (if empty)
   const ga = (GLOBAL_DEFAULTS.shipAddress || '').trim();
-  const fa = (GLOBAL_DEFAULTS.fedexAccount || '').trim();
 
   const shipAddrEl = fieldsWrap.querySelector('#f_shipAddress');
   if (shipAddrEl && !shipAddrEl.value && ga){
     shipAddrEl.value = ga;
   }
 
-  const fedexEl = fieldsWrap.querySelector('#f_fedexAccount');
-  if (fedexEl && !fedexEl.value && fa){
-    // Works for both <input> and <select>
-    fedexEl.value = fa;
-  }
 
   const first = fieldsWrap.querySelector('input, select, textarea');
   if (first) first.focus();
@@ -1149,7 +1140,6 @@ if(clearBtn){
 
   function captureDefaultsFromUI(){
     GLOBAL_DEFAULTS.shipAddress  = (gAddr?.value || '').trim();
-    GLOBAL_DEFAULTS.fedexAccount = (gAcct?.value || '').trim();
   }
 
   if(gApply){
