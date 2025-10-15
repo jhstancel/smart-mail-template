@@ -64,6 +64,26 @@ def _env() -> Environment:
     )
 
 # ---------------- Routes ----------------
+
+from fastapi.responses import JSONResponse
+
+@app.get("/schema")
+def get_schema():
+    # Return the generated schema dict to the UI
+    return JSONResponse(SCHEMA)
+
+@app.get("/intents")
+def list_intents():
+    # Convenience: compact list for dropdowns
+    items = []
+    for intent_id, meta in SCHEMA.items():
+        if intent_id == "auto_detect":
+            continue
+        items.append({"id": intent_id, "label": meta.get("label", intent_id)})
+    # Stable alphabetical order
+    items.sort(key=lambda x: x["label"].lower())
+    return JSONResponse(items)
+
 @app.get("/health")
 def health():
     return {

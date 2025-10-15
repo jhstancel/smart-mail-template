@@ -1197,16 +1197,51 @@ async function runCorruption(){
 }
 
 /* =========================================================================================
- * Init
+ * Init (modernized for YAML schema)
  * =======================================================================================*/
 (async function init(){
   document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') || 'light-minimal');
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
-  await loadSchema();
-  await loadIntents();
+  try {
+    // Fetch generated schema
+    const schemaRes = await fetch('/schema');
+    if (!schemaRes.ok) throw new Error('Failed to load schema');
+    SCHEMA = await schemaRes.json();
 
-  if(fieldsHint) fieldsHint.textContent = ''; // invisible by design
+    // Fetch compact intent list for cards
+    const intentsRes = await fetch('/intents');
+    if (!intentsRes.ok) throw new Error('Failed to load intents');
+    const data = await intentsRes.json();
+
+    // Render cards dynamically from schema/intents
+    if (Array.isArray(data) && data.length) {
+      INTENTS = data.map(x => ({
+        name: x.id || x.name,
+        label: x.label || (x.id ? toTitle(x.id) : ''),
+        description: SCHEMA[x.id || x.name]?.description || '',
+        required: SCHEMA[x.id || x.name]?.required || [],
+        hidden: false
+      }));
+    } else {
+      INTENTS = Object.keys(SCHEMA)
+        .filter(k => k !== 'auto_detect')
+        .map(k => ({
+          name: k,
+          label: SCHEMA[k].label || toTitle(k),
+          description: SCHEMA[k].description || '',
+          required: SCHEMA[k].required || [],
+          hidden: false
+        }));
+    }
+
+    renderIntentGridFromData(INTENTS);
+  } catch (err) {
+    console.error('Error initializing schema/intents:', err);
+    intentGrid.innerHTML = '<div class="muted">Failed to load schema.</div>';
+  }
+
+  if (fieldsHint) fieldsHint.textContent = ''; // invisible by design
 })();
 </script>
 
