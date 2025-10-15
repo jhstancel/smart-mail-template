@@ -1,5 +1,32 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 SCHEMA_GENERATED = {
+  "invoice_payment": {
+    "description": "Notify or confirm payment for an invoice.",
+    "fieldTypes": {
+      "amount": "string",
+      "invoiceNumber": "string",
+      "method": "string",
+      "notes": "longtext",
+      "paymentDate": "date"
+    },
+    "hints": {
+      "amount": "e.g., 420.00 USD",
+      "invoiceNumber": "e.g., INV-4827",
+      "method": "e.g., ACH, Check, Credit Card",
+      "notes": "Optional message to include with confirmation",
+      "paymentDate": "mm/dd/yyyy"
+    },
+    "label": "Invoice Payment",
+    "optional": [
+      "method",
+      "notes"
+    ],
+    "required": [
+      "invoiceNumber",
+      "amount",
+      "paymentDate"
+    ]
+  },
   "quote_request": {
     "description": "Customer requests pricing and availability for an item.",
     "fieldTypes": {

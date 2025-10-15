@@ -1,0 +1,41 @@
+id: invoice_payment
+label: Invoice Payment
+description: Notify or confirm payment for an invoice.
+
+required: [invoiceNumber, amount, paymentDate]
+optional: [method, notes]
+
+fieldTypes:
+  invoiceNumber: string
+  amount: string
+  paymentDate: date
+  method: string
+  notes: longtext
+
+hints:
+  invoiceNumber: e.g., INV-4827
+  amount: e.g., 420.00 USD
+  paymentDate: mm/dd/yyyy
+  method: e.g., ACH, Check, Credit Card
+  notes: Optional message to include with confirmation
+
+template:
+  subject: "Invoice Payment – {{ invoiceNumber }}"
+  bodyPath: "templates/invoice_payment.j2"
+
+autodetect:
+  keywords: ["invoice", "payment", "paid", "remittance", "wire", "ach"]
+  boosts:
+    reply: 0.1
+    containsPO: 0.03
+
+tests:
+  samples:
+    - fields:
+        invoiceNumber: "INV-4827"
+        amount: "420.00 USD"
+        paymentDate: "10/20/2025"
+        method: "ACH"
+      expectSubjectContains: ["Invoice Payment", "INV-4827"]
+      expectBodyContains: ["420.00", "ACH", "10/20/2025"]
+

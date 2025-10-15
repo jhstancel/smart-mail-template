@@ -1,5 +1,19 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 AUTODETECT_GENERATED = {
+  "invoice_payment": {
+    "boosts": {
+      "containsPO": 0.03,
+      "reply": 0.1
+    },
+    "keywords": [
+      "invoice",
+      "payment",
+      "paid",
+      "remittance",
+      "wire",
+      "ach"
+    ]
+  },
   "quote_request": {
     "boosts": {
       "containsPO": 0.02,
