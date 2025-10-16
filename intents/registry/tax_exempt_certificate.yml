@@ -1,32 +1,22 @@
 id: tax_exempt_certificate
 label: Tax Exempt Certificate
-description: Send or request a tax-exempt certificate for purchases.
+description: Send a tax-exempt certificate with a simple message.
 
 required: [recipientName]
-optional: [companyName, certificateId, jurisdiction, expirationDate, notes]
+optional: []
 
 fieldTypes:
   recipientName: string
-  companyName: string
-  certificateId: string
-  jurisdiction: string
-  expirationDate: date
-  notes: longtext
 
 hints:
-  recipientName: e.g., “Accounts Payable”
-  companyName: e.g., “UP Aviation LLC”
-  certificateId: e.g., “TX-EX-4921”
-  jurisdiction: e.g., “TX”
-  expirationDate: mm/dd/yyyy
-  notes: Optional message to include with the certificate
+  recipientName: e.g., "Accounts Payable"
 
 template:
-  subject: "Tax Exempt Certificate – {{ companyName or recipientName }}"
-  bodyPath: "templates/tax_exempt_certificate.j2"
+  subject: "Tax Exempt Certificate Attached"
+  bodyPath: "templates/tax_exempt_certificate.txt"
 
 autodetect:
-  keywords: ["tax exemption certificate", "resale certificate", "tax exempt"]
+  keywords: ["tax exemption certificate", "resale certificate", "tax exempt", "tax form"]
   boosts:
     reply: 0.04
 
@@ -34,10 +24,6 @@ tests:
   samples:
     - fields:
         recipientName: "Accounts Payable"
-        companyName: "UP Aviation LLC"
-        certificateId: "TX-EX-4921"
-        jurisdiction: "TX"
-        expirationDate: "12/31/2026"
-      expectSubjectContains: ["Certificate"]
-      expectBodyContains: ["UP Aviation", "TX-EX-4921", "TX"]
+      expectSubjectContains: ["Tax Exempt Certificate"]
+      expectBodyContains: ["Accounts Payable", "attached"]
 

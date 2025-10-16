@@ -2,30 +2,27 @@ id: packing_slip_docs
 label: Packing Slip / Documents
 description: Send or request documentation such as a packing slip, invoice, or certificate.
 
-required: [documentType, orderNumber]
-optional: [attachment, notes]
+required: [poNumber, customerName, docsList]
+optional: [notes]
 
 fieldTypes:
-  documentType: enum
-  orderNumber: string
-  attachment: string
+  poNumber: string
+  customerName: string
+  docsList: longtext
   notes: longtext
 
-enums:
-  documentType: [Packing Slip, Invoice, Tax Exemption Certificate, Other]
-
 hints:
-  documentType: e.g., “Packing Slip” or “Invoice”
-  orderNumber: e.g., PO-10922
-  attachment: Filename or link to uploaded file
-  notes: Optional internal comments
+  poNumber: e.g., PO-10922
+  customerName: e.g., John Smith
+  docsList: e.g., "Packing Slip, Invoice, CoC"
+  notes: Optional internal note or context
 
 template:
-  subject: "{{ documentType }} – {{ orderNumber }}"
-  bodyPath: "templates/packing_slip_docs.j2"
+  subject: "Documents for PO {{ poNumber }}"
+  bodyPath: "templates/packing_slip_docs.txt"
 
 autodetect:
-  keywords: ["packing slip", "invoice copy", "certificate", "document", "attachment"]
+  keywords: ["packing slip", "invoice copy", "certificate", "document", "attachment", "CoC", "CoA", "SDS"]
   boosts:
     reply: 0.05
     containsPO: 0.04
@@ -33,9 +30,9 @@ autodetect:
 tests:
   samples:
     - fields:
-        documentType: "Packing Slip"
-        orderNumber: "PO-10922"
-        attachment: "packing_slip_PO10922.pdf"
-      expectSubjectContains: ["Packing Slip", "PO-10922"]
-      expectBodyContains: ["document", "packing slip", "PO-10922"]
+        poNumber: "PO-10922"
+        customerName: "John Smith"
+        docsList: "Packing Slip, Invoice, CoC"
+      expectSubjectContains: ["Documents", "PO-10922"]
+      expectBodyContains: ["Packing Slip", "Invoice", "PO-10922", "John"]
 

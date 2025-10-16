@@ -2,31 +2,29 @@ id: order_confirmation
 label: Order Confirmation
 description: Confirm that an order has been received and provide delivery details.
 
-required: [orderNumber, companyName, deliveryDate]
-optional: [items, trackingNumber, notes]
+required: [poNumber, customerName, itemsSummary, promisedShip]
+optional: [notes]
 
 fieldTypes:
-  orderNumber: string
-  companyName: string
-  deliveryDate: date
-  items: longtext
-  trackingNumber: string
+  poNumber: string
+  customerName: string
+  itemsSummary: longtext
+  promisedShip: date
   notes: longtext
 
 hints:
-  orderNumber: e.g., PO-10832
-  companyName: e.g., UP Aviation LLC
-  deliveryDate: mm/dd/yyyy
-  items: List main components or SKUs
-  trackingNumber: e.g., 1Z999AA10123456784
-  notes: Optional remarks or follow-up context
+  poNumber: e.g., PO-10832
+  customerName: e.g., John Smith
+  itemsSummary: e.g., 10 × Part A, 5 × Part B
+  promisedShip: mm/dd/yyyy
+  notes: Optional internal note or context
 
 template:
-  subject: "Order Confirmation – {{ orderNumber }}"
-  bodyPath: "templates/order_confirmation.j2"
+  subject: "Order Confirmation – PO {{ poNumber }}"
+  bodyPath: "templates/order_confirmation.txt"
 
 autodetect:
-  keywords: ["order confirmation", "confirmed", "scheduled", "delivery date"]
+  keywords: ["order confirmation", "confirmed", "scheduled", "delivery date", "acknowledgement"]
   boosts:
     reply: 0.08
     containsPO: 0.04
@@ -34,9 +32,10 @@ autodetect:
 tests:
   samples:
     - fields:
-        orderNumber: "PO-10832"
-        companyName: "UP Aviation LLC"
-        deliveryDate: "10/25/2025"
+        poNumber: "PO-10832"
+        customerName: "John Smith"
+        itemsSummary: "10 × Widget A, 5 × Widget B"
+        promisedShip: "10/25/2025"
       expectSubjectContains: ["Order Confirmation", "PO-10832"]
-      expectBodyContains: ["UP Aviation", "10/25/2025", "order"]
+      expectBodyContains: ["10/25/2025", "Widget", "John"]
 

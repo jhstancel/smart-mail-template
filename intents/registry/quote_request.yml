@@ -1,34 +1,30 @@
 id: quote_request
 label: Quote Request
-description: Customer requests pricing and availability for an item.
+description: Request pricing and lead time for a specific part and quantity.
 
-required: [companyName, item, quantity, destination]
-optional: [deliveryDate, contactPerson, notes]
+required: [customerName, partNumber, quantity]
+optional: [needByDate, notes]
 
 fieldTypes:
-  companyName: string
-  item: string
+  customerName: string
+  partNumber: string
   quantity: string
-  destination: string
-  deliveryDate: date
-  contactPerson: string
+  needByDate: date
   notes: longtext
 
 hints:
-  companyName: e.g., UP Aviation LLC
-  item: e.g., PN-10423 or “pressure sensor kit”
-  quantity: e.g., 2
-  destination: e.g., Asheville NC or zip code
-  deliveryDate: mm/dd/yyyy
-  contactPerson: e.g., John Stancel
-  notes: Any special instructions
+  customerName: e.g., "John Smith"
+  partNumber: e.g., "PN-10423"
+  quantity: e.g., "2"
+  needByDate: mm/dd/yyyy (optional target date)
+  notes: Optional context or constraints (e.g., MOQs, alt parts)
 
 template:
-  subject: "Quote Request – {{ item }}"
-  bodyPath: "templates/quote_request.j2"
+  subject: "Pricing & Lead Time Request – {{ partNumber }} (Qty {{ quantity }})"
+  bodyPath: "templates/quote_request.txt"
 
 autodetect:
-  keywords: ["quote", "pricing", "availability", "rfq", "price check"]
+  keywords: ["quote", "pricing", "lead time", "rfq", "price check", "availability"]
   boosts:
     reply: 0.05
     containsPO: 0.02
@@ -36,10 +32,10 @@ autodetect:
 tests:
   samples:
     - fields:
-        companyName: "UP Aviation LLC"
-        item: "PN-10423"
+        customerName: "John Smith"
+        partNumber: "PN-10423"
         quantity: "2"
-        destination: "Asheville NC"
-      expectSubjectContains: ["Quote Request", "PN-10423"]
-      expectBodyContains: ["Asheville", "pricing", "availability"]
+        needByDate: "11/05/2025"
+      expectSubjectContains: ["Pricing", "Lead Time", "PN-10423", "Qty 2"]
+      expectBodyContains: ["John", "pricing", "lead time", "PN-10423", "quantity 2"]
 

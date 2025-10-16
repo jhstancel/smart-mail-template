@@ -1,28 +1,22 @@
 id: tax_exemption
 label: Tax Exemption
-description: Notify a customer about tax-exempt status or request details.
+description: Notify a customer about tax-exempt status or send a tax-exempt certificate.
 
 required: [recipientName]
-optional: [companyName, jurisdiction, notes]
+optional: []
 
 fieldTypes:
   recipientName: string
-  companyName: string
-  jurisdiction: string
-  notes: longtext
 
 hints:
-  recipientName: e.g., “Accounts Payable”
-  companyName: e.g., “UP Aviation LLC”
-  jurisdiction: e.g., “FL” or “Florida”
-  notes: Optional context for the exemption
+  recipientName: e.g., "Accounts Payable"
 
 template:
-  subject: "Tax Exemption – {{ companyName or recipientName }}"
-  bodyPath: "templates/tax_exemption.j2"
+  subject: "Tax Exempt Certificate Attached"
+  bodyPath: "templates/tax_exemption.txt"
 
 autodetect:
-  keywords: ["tax exempt", "exemption", "sales tax"]
+  keywords: ["tax exempt", "exemption", "sales tax", "resale certificate"]
   boosts:
     reply: 0.04
 
@@ -30,8 +24,6 @@ tests:
   samples:
     - fields:
         recipientName: "Accounts Payable"
-        companyName: "UP Aviation LLC"
-        jurisdiction: "FL"
-      expectSubjectContains: ["Tax Exemption"]
-      expectBodyContains: ["UP Aviation", "FL"]
+      expectSubjectContains: ["Tax Exempt Certificate"]
+      expectBodyContains: ["Accounts Payable", "attached"]
 

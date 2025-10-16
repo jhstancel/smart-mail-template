@@ -1,52 +1,50 @@
 id: shipment_update
 label: Shipment Update
-description: Notify a customer about shipment/tracking status.
+description: Notify a customer about shipment or tracking status.
 
-# From your existing schema: required/optional fields
-required: [trackingNumber, carrier, shipDate]
-optional: [estimatedArrival, orderNumber, notes]
+required: [poNumber, customerName, carrier, trackingNumber, shipDate]
+optional: [items, notes]
 
-# Types drive UI widgets + validation
 fieldTypes:
-  trackingNumber: string
+  poNumber: string
+  customerName: string
   carrier: enum
+  trackingNumber: string
   shipDate: date
-  estimatedArrival: date
-  orderNumber: string
+  items: longtext
   notes: longtext
 
-# Options for enums
 enums:
   carrier: [UPS, FedEx, DHL, USPS]
 
-# Helpful hints/placeholders (used by CLI + UI)
 hints:
-  trackingNumber: e.g., 1Z999AA10123456784
+  poNumber: e.g., PO-4815
+  customerName: e.g., John Smith
   carrier: Choose from UPS, FedEx, DHL, USPS
+  trackingNumber: e.g., 1Z999AA10123456784
   shipDate: mm/dd/yyyy
-  estimatedArrival: mm/dd/yyyy
-  orderNumber: Optional, if available
+  items: Optional – brief list or summary of shipped parts
+  notes: Optional internal comments or context
 
-# Template config: subject inline, body in your existing Jinja file
 template:
-  subject: "Shipment Update: {{ orderNumber or trackingNumber }}"
-  bodyPath: "templates/shipment_update.j2"
+  subject: "Tracking – PO {{ poNumber }} (Shipped {{ shipDate }})"
+  bodyPath: "templates/shipment_update.txt"
 
-# Autodetect seeds — keeps it lightweight for now
 autodetect:
-  keywords: ["tracking", "shipped", "in transit", "carrier", "tracking number", "1Z"]
+  keywords: ["tracking", "shipped", "in transit", "carrier", "tracking number", "1Z", "FedEx", "UPS"]
   boosts:
     reply: 0.1
     containsPO: 0.05
 
-# Optional smoke tests the generator can turn into pytest later
 tests:
   samples:
     - fields:
-        trackingNumber: "1Z999AA10123456784"
+        poNumber: "PO-4815"
+        customerName: "John Smith"
         carrier: "UPS"
+        trackingNumber: "1Z999AA10123456784"
         shipDate: "10/20/2025"
-        orderNumber: "PO-4815"
-      expectSubjectContains: ["1Z999AA10123456784", "PO-4815"]
-      expectBodyContains: ["UPS", "10/20/2025"]
+        items: "Widgets A and B"
+      expectSubjectContains: ["Tracking", "PO-4815", "10/20/2025"]
+      expectBodyContains: ["UPS", "1Z999AA10123456784", "John", "Widgets"]
 
