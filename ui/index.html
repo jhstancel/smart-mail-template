@@ -641,88 +641,65 @@ function renderFields(intent){
   fieldsWrap.innerHTML = '';
 
   if(!intent || !SCHEMA || !SCHEMA[intent]){
-    if(fieldsHint) fieldsHint.textContent = ''; // invisible anyway
+    if(fieldsHint) fieldsHint.textContent = '';
     return;
   }
 
-  const req = Array.isArray(SCHEMA[intent].required) ? SCHEMA[intent].required : [];
-  if(fieldsHint) fieldsHint.textContent = ''; // keep hidden/empty
+  const spec = SCHEMA[intent];
+  const required = Array.isArray(spec.required) ? spec.required : [];
+  const optional = Array.isArray(spec.optional) ? spec.optional : [];
+  const all = [...required, ...optional];
+  const types = spec.fieldTypes || {};
+  const enums = spec.enums || {};
 
-  for(const key of req){
+  if(fieldsHint) fieldsHint.textContent = '';
+
+  for(const key of all){
     const wrap  = document.createElement('div');
     wrap.className = 'kv';
 
     const label = document.createElement('label');
-    label.setAttribute('for', `f_${key}`);
-    label.textContent = toTitle(key);
+    label.htmlFor = `f_${key}`;
+    label.textContent = toTitle(key) + (required.includes(key) ? ' *' : '');
 
-    // If backend provides choices for this field, render a <select>
-    const choices = (SCHEMA[intent] && SCHEMA[intent].choices) ? SCHEMA[intent].choices : null;
-    const hasChoices = choices && Array.isArray(choices[key]);
+    let input;
 
-    if (hasChoices) {
-      const select = document.createElement('select');
-      select.id = `f_${key}`;
-
-      const ph = document.createElement('option');
-      ph.value = '';
-      ph.textContent = `Select ${toTitle(key)}…`;
-      ph.disabled = true;
-      ph.selected = true;
-      select.appendChild(ph);
-
-      for (const opt of choices[key]) {
-        const o = document.createElement('option');
-        o.value = String(opt.value ?? '');
-        o.textContent = String(opt.label ?? o.value);
-        select.appendChild(o);
-      }
-
-      wrap.appendChild(label);
-      wrap.appendChild(select);
-      fieldsWrap.appendChild(wrap);
-    } else {
-      const input = document.createElement('input');
+    if (enums[key] && Array.isArray(enums[key])) {
+      // Enum fields render as <select>
+      input = document.createElement('select');
       input.id = `f_${key}`;
-      input.placeholder = toTitle(key);
-
-      // Use backend-provided date fields (no substring guessing)
-      const k = key.toLowerCase();
-      const dateFields = (SCHEMA[intent] && Array.isArray(SCHEMA[intent].date_fields))
-        ? new Set(SCHEMA[intent].date_fields)
-        : new Set();
-
-      if (k.includes('email')) {
-        input.type = 'email';
-      } else if (dateFields.has(key)) {
-        input.type = 'date';
-      } else {
-        input.type = 'text';
-      }
-
-      wrap.appendChild(label);
-      wrap.appendChild(input);
-      fieldsWrap.appendChild(wrap);
-
+      enums[key].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        input.appendChild(o);
+      });
+    } else if ((types[key] || '').toLowerCase() === 'date') {
+      // Date fields render as native calendar pickers
+      input = document.createElement('input');
+      input.type = 'date';
+      input.id = `f_${key}`;
+    } else {
+      // Default to text
+      input = document.createElement('input');
+      input.type = 'text';
+      input.id = `f_${key}`;
     }
 
-
-
-
-
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    fieldsWrap.appendChild(wrap);
   }
-  // Prefill from Global Defaults (if empty)
-  const ga = (GLOBAL_DEFAULTS.shipAddress || '').trim();
 
+  // Prefill ship address if available
+  const ga = (GLOBAL_DEFAULTS.shipAddress || '').trim();
   const shipAddrEl = fieldsWrap.querySelector('#f_shipAddress');
   if (shipAddrEl && !shipAddrEl.value && ga){
     shipAddrEl.value = ga;
   }
 
-
   const first = fieldsWrap.querySelector('input, select, textarea');
   if (first) first.focus();
-
 }
 
 
