@@ -1,28 +1,30 @@
 id: followup
-label: Follow Up
+label: Follow-up
 description: Send a short follow-up or status-check message on a prior topic.
 
-required: [topic, recipientName]
+required: [customerName, context, ask]
 optional: [previousDate, notes]
 
 fieldTypes:
-  topic: string
-  recipientName: string
+  customerName: string
+  context: longtext
+  ask: longtext
   previousDate: date
   notes: longtext
 
 hints:
-  topic: e.g., “order update” or “quote request”
-  recipientName: e.g., “John Stancel”
-  previousDate: mm/dd/yyyy of last message
+  customerName: e.g., "John Smith"
+  context: e.g., "the quote for PO-10927" or "yesterday’s delivery timing"
+  ask: e.g., "Do you have an update?" or "Could you confirm the new ship date?"
+  previousDate: mm/dd/yyyy of last message (optional)
   notes: Optional internal note or context
 
 template:
-  subject: "Follow Up – {{ topic }}"
-  bodyPath: "templates/followup.j2"
+  subject: "Follow-up – {{ context }}"
+  bodyPath: "templates/followup.txt"
 
 autodetect:
-  keywords: ["follow up", "checking in", "status update", "touching base"]
+  keywords: ["follow up", "follow-up", "checking in", "status update", "touching base"]
   boosts:
     reply: 0.06
     containsPO: 0.02
@@ -30,9 +32,9 @@ autodetect:
 tests:
   samples:
     - fields:
-        topic: "order update"
-        recipientName: "John Stancel"
-        previousDate: "10/10/2025"
-      expectSubjectContains: ["Follow Up", "order"]
-      expectBodyContains: ["John", "update"]
+        customerName: "John Smith"
+        context: "the quote for PO-10927"
+        ask: "Do you have an update?"
+      expectSubjectContains: ["Follow-up", "PO-10927"]
+      expectBodyContains: ["Hi John", "checking in", "Do you have an update?"]
 
