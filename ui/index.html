@@ -645,49 +645,173 @@ function renderFields(intent){
     return;
   }
 
-  const spec = SCHEMA[intent];
-  const required = Array.isArray(spec.required) ? spec.required : [];
-  const optional = Array.isArray(spec.optional) ? spec.optional : [];
-  const all = [...required, ...optional];
-  const types = spec.fieldTypes || {};
-  const enums = spec.enums || {};
+  const spec      = SCHEMA[intent];
+  const required  = Array.isArray(spec.required) ? spec.required : [];
+  const optional  = Array.isArray(spec.optional) ? spec.optional : [];
+  const allKeys   = [...required, ...optional];
+  const types     = spec.fieldTypes || {};
+  const enums     = spec.enums || {};
 
-  if(fieldsHint) fieldsHint.textContent = '';
+  if(fieldsHint) fieldsHint.textContent = ''; // we keep the hint area visually hidden
 
-  for(const key of all){
+  // helpers for the special `parts` editor
+  function addPartsRow(tableBody, partNumber = '', quantity = ''){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="input" data-k="partNumber" value="${partNumber}"></td>
+      <td style="width:110px"><input class="input" data-k="quantity" value="${quantity}" inputmode="numeric" pattern="\\d*"></td>
+      <td style="width:40px;text-align:right"><button type="button" class="btn-link del" aria-label="Remove">−</button></td>
+    `;
+    tr.querySelector('.del').onclick = () => { tr.remove(); syncPartsHidden(); };
+    // keep hidden input in sync on edits
+    tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', syncPartsHidden));
+    tableBody.appendChild(tr);
+  }
+
+  function smartParseParts(text){
+    const rows = [];
+    (text || '').split(/\r?\n/).forEach(line => {
+      const s = line.trim();
+      if(!s) return;
+      // CSV/TSV/pipe: PN,2  |  PN\t2  |  PN|2
+      let m = s.match(/^\s*([^,|\t]+)[,|\t]\s*(\d+)\s*$/);
+      if(m){ rows.push({ partNumber: m[1].trim(), quantity: m[2].trim() }); return; }
+      // "PN x2" or "PN 2"
+      m = s.match(/^\s*(\S+)\s*(?:[xX]\s*)?(\d+)\s*$/);
+      if(m){ rows.push({ partNumber: m[1], quantity: m[2] }); return; }
+      // fallback: whole token as partNumber
+      rows.push({ partNumber: s, quantity: '' });
+    });
+    return rows;
+  }
+
+  function syncPartsHidden(){
+    const hidden = document.getElementById('f_parts'); // hidden canonical value
+    const tbody  = document.querySelector('#parts_table tbody');
+    if(!hidden) return;
+    if(tbody && tbody.children.length){
+      const rows = [...tbody.querySelectorAll('tr')].map(tr => {
+        const pn  = tr.querySelector('input[data-k="partNumber"]')?.value?.trim();
+        const qty = tr.querySelector('input[data-k="quantity"]')?.value?.trim();
+        return (pn || qty) ? { partNumber: pn || '', quantity: qty || '' } : null;
+      }).filter(Boolean);
+      hidden.value = JSON.stringify(rows);
+    } else {
+      const raw = document.getElementById('f_parts_text')?.value || '';
+      hidden.value = raw.trim();
+    }
+  }
+
+  for(const key of allKeys){
     const wrap  = document.createElement('div');
     wrap.className = 'kv';
 
     const label = document.createElement('label');
     label.htmlFor = `f_${key}`;
     label.textContent = toTitle(key) + (required.includes(key) ? ' *' : '');
+    wrap.appendChild(label);
 
-    let input;
+    // Special rich editor for `parts`
+    if(key === 'parts'){
+      const box = document.createElement('div');
+      box.className = 'parts-editor space-y-2';
 
+      // hidden canonical field the rest of the app reads
+      const hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.id = 'f_parts';
+      box.appendChild(hidden);
+
+      // free-form textarea for paste
+      const ta = document.createElement('textarea');
+      ta.id = 'f_parts_text';
+      ta.rows = 4;
+      ta.className = 'input';
+      ta.placeholder = 'Paste parts (e.g. "PN-10423 x2", "PN-10423,2", or 2-column paste)';
+      ta.addEventListener('input', syncPartsHidden);
+
+      // control buttons
+      const controls = document.createElement('div');
+      controls.className = 'row space-x-2';
+
+      const parseBtn = document.createElement('button');
+      parseBtn.type = 'button';
+      parseBtn.className = 'btn';
+      parseBtn.textContent = 'Smart Parse → Table';
+
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'btn-secondary';
+      addBtn.textContent = '+ Add row';
+
+      controls.appendChild(parseBtn);
+      controls.appendChild(addBtn);
+
+      // editable table
+      const table = document.createElement('table');
+      table.id = 'parts_table';
+      table.className = 'parts-table w-full';
+      table.innerHTML = `
+        <thead><tr><th>Part Number</th><th style="width:110px">Qty</th><th></th></tr></thead>
+        <tbody></tbody>
+      `;
+
+      const tbody = table.querySelector('tbody');
+
+      // actions
+      parseBtn.onclick = () => {
+        tbody.innerHTML = '';
+        smartParseParts(ta.value).forEach(r => addPartsRow(tbody, r.partNumber, r.quantity));
+        syncPartsHidden();
+      };
+      addBtn.onclick = () => { addPartsRow(tbody); syncPartsHidden(); };
+
+      box.appendChild(ta);
+      box.appendChild(controls);
+      box.appendChild(table);
+
+      wrap.appendChild(box);
+      fieldsWrap.appendChild(wrap);
+      // keep hidden up-to-date initially
+      syncPartsHidden();
+      continue; // next key
+    }
+
+    // Enum → <select>
     if (enums[key] && Array.isArray(enums[key])) {
-      // Enum fields render as <select>
-      input = document.createElement('select');
-      input.id = `f_${key}`;
+      const select = document.createElement('select');
+      select.id = `f_${key}`;
       enums[key].forEach(opt => {
         const o = document.createElement('option');
         o.value = opt;
         o.textContent = opt;
-        input.appendChild(o);
+        select.appendChild(o);
       });
-    } else if ((types[key] || '').toLowerCase() === 'date') {
-      // Date fields render as native calendar pickers
-      input = document.createElement('input');
-      input.type = 'date';
-      input.id = `f_${key}`;
-    } else {
-      // Default to text
-      input = document.createElement('input');
-      input.type = 'text';
-      input.id = `f_${key}`;
+      wrap.appendChild(select);
+      fieldsWrap.appendChild(wrap);
+      continue;
     }
 
-    wrap.appendChild(label);
-    wrap.appendChild(input);
+    // Field type mapping
+    const t = String(types[key] || '').toLowerCase();
+    if (t === 'date') {
+      const input = document.createElement('input');
+      input.type = 'date';
+      input.id = `f_${key}`;
+      wrap.appendChild(input);
+    } else if (t === 'longtext') {
+      const ta = document.createElement('textarea');
+      ta.id = `f_${key}`;
+      ta.rows = 4;
+      ta.className = 'input';
+      wrap.appendChild(ta);
+    } else {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = `f_${key}`;
+      wrap.appendChild(input);
+    }
+
     fieldsWrap.appendChild(wrap);
   }
 
@@ -698,7 +822,7 @@ function renderFields(intent){
     shipAddrEl.value = ga;
   }
 
-  const first = fieldsWrap.querySelector('input, select, textarea');
+  const first = fieldsWrap.querySelector('input:not([type="hidden"]), select, textarea');
   if (first) first.focus();
 }
 
