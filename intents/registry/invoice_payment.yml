@@ -2,29 +2,31 @@ id: invoice_payment
 label: Invoice Payment
 description: Notify or confirm payment for an invoice.
 
-required: [invoiceNumber, amount, paymentDate]
-optional: [method, notes]
+required: [invoiceNumber, amount, paymentDate, paymentMethod, customerName]
+optional: [notes]
 
 fieldTypes:
   invoiceNumber: string
   amount: string
   paymentDate: date
-  method: string
+  paymentMethod: string
+  customerName: string
   notes: longtext
 
 hints:
   invoiceNumber: e.g., INV-4827
   amount: e.g., 420.00 USD
   paymentDate: mm/dd/yyyy
-  method: e.g., ACH, Check, Credit Card
-  notes: Optional message to include with confirmation
+  paymentMethod: e.g., ACH, Check, Credit Card
+  customerName: e.g., John Smith
+  notes: Optional message or internal note
 
 template:
-  subject: "Invoice Payment – {{ invoiceNumber }}"
-  bodyPath: "templates/invoice_payment.j2"
+  subject: "Payment Remittance – Invoice {{ invoiceNumber }}"
+  bodyPath: "templates/invoice_payment.txt"
 
 autodetect:
-  keywords: ["invoice", "payment", "paid", "remittance", "wire", "ach"]
+  keywords: ["invoice", "payment", "paid", "remittance", "wire", "ach", "remit"]
   boosts:
     reply: 0.1
     containsPO: 0.03
@@ -35,7 +37,8 @@ tests:
         invoiceNumber: "INV-4827"
         amount: "420.00 USD"
         paymentDate: "10/20/2025"
-        method: "ACH"
-      expectSubjectContains: ["Invoice Payment", "INV-4827"]
-      expectBodyContains: ["420.00", "ACH", "10/20/2025"]
+        paymentMethod: "ACH"
+        customerName: "John Smith"
+      expectSubjectContains: ["Payment Remittance", "INV-4827"]
+      expectBodyContains: ["ACH", "420.00", "10/20/2025", "John"]
 
