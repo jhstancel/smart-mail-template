@@ -1,30 +1,32 @@
 id: delay_notice
 label: Delay Notice
-description: Inform a customer that an order’s delivery date has changed.
+description: Notify a customer that a purchase order’s shipping schedule has changed.
 
-required: [orderNumber, newDate, reason]
-optional: [apology, notes]
+required: [poNumber, partNumber, customerName, reason, previousShip, newShip]
+optional: []
 
 fieldTypes:
-  orderNumber: string
-  newDate: date
+  poNumber: string
+  partNumber: string
+  customerName: string
   reason: longtext
-  apology: longtext
-  notes: longtext
+  previousShip: date
+  newShip: date
 
 hints:
-  orderNumber: e.g., PO-10927
-  newDate: mm/dd/yyyy
-  reason: e.g., supplier delay, parts backlog
-  apology: Optional apology or reassurance text
-  notes: Any additional internal notes
+  poNumber: e.g., PO-10927
+  partNumber: e.g., 28-4752-09A
+  customerName: e.g., John Smith
+  reason: e.g., supplier delay, weather, production hold
+  previousShip: previous confirmed ship date
+  newShip: updated ship date
 
 template:
-  subject: "Delay Notice – {{ orderNumber }}"
-  bodyPath: "templates/delay_notice.j2"
+  subject: "Schedule Update – PO {{ poNumber }} / {{ partNumber }}"
+  bodyPath: "templates/delay_notice.txt"
 
 autodetect:
-  keywords: ["delay", "reschedule", "postpone", "new date", "pushed back"]
+  keywords: ["delay", "reschedule", "pushed", "postpone", "new date", "schedule update"]
   boosts:
     reply: 0.05
     containsPO: 0.03
@@ -32,10 +34,12 @@ autodetect:
 tests:
   samples:
     - fields:
-        orderNumber: "PO-10927"
-        newDate: "11/05/2025"
-        reason: "Supplier shipment backlog"
-        apology: "We’re sorry for the inconvenience."
-      expectSubjectContains: ["Delay", "PO-10927"]
-      expectBodyContains: ["Supplier", "11/05/2025", "inconvenience"]
+        poNumber: "PO-10927"
+        partNumber: "28-4752-09A"
+        customerName: "John Smith"
+        reason: "supplier production backlog"
+        previousShip: "10/12/2025"
+        newShip: "10/25/2025"
+      expectSubjectContains: ["PO-10927", "28-4752-09A"]
+      expectBodyContains: ["schedule update", "10/12/2025", "10/25/2025", "inconvenience"]
 
