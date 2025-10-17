@@ -96,48 +96,31 @@ def get_schema():
 @app.get("/intents")
 def list_intents():
     return INTENTS_META
-
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
     intent = (req.intent or "").strip()
     fields: Dict[str, Any] = dict(req.fields or {})
 
-    # 1) Validate intent
+    # 1) Validate intent exists
     if intent not in SCHEMA:
         raise HTTPException(status_code=400, detail=f"Unknown intent: {intent}")
 
     # 2) Normalize special fields (Order Request → parts)
     def _normalize_parts(v: Any) -> list[dict]:
-        """
-        Accepts:
-          - list[dict] like [{"partNumber":"PN-10423","quantity":"2"}, ...]
-          - JSON string for that list
-          - plain text lines like 'PN-10423,2' or 'PN-10423 x2'
-          - 2-column TSV/CSV pasted data
-        Returns only complete rows with both keys.
-        """
         import json, re
         rows: list[dict] = []
-
         if isinstance(v, list):
             rows = v
         elif isinstance(v, str):
             s = v.strip()
-            if not s:
-                rows = []
-            else:
-                # Try JSON first
+            if s:
                 try:
                     parsed = json.loads(s)
                     if isinstance(parsed, list):
                         rows = parsed
-                    else:
-                        rows = []
                 except Exception:
-                    # Fallback: line parser
                     lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
                     for ln in lines:
-                        # Try CSV/TSV 2-col
                         if "\t" in ln:
                             a, *rest = ln.split("\t")
                             b = rest[0] if rest else ""
@@ -147,7 +130,6 @@ def generate(req: GenerateReq) -> GenerateResp:
                             b = rest[0] if rest else ""
                             pn, qty = a.strip(), b.strip()
                         else:
-                            # Look for "PN xQTY" or "PN QTY"
                             m = re.search(r"^\s*(.+?)\s*(?:x|\s)\s*(\d+)\s*$", ln, re.I)
                             if m:
                                 pn, qty = m.group(1).strip(), m.group(2).strip()
@@ -155,10 +137,7 @@ def generate(req: GenerateReq) -> GenerateResp:
                                 pn, qty = ln, ""
                         if pn and qty:
                             rows.append({"partNumber": pn, "quantity": qty})
-        else:
-            rows = []
-
-        # Clean/gate: keep only complete rows with both values
+        # gate complete rows
         good = []
         for r in rows:
             pn = str(r.get("partNumber", "")).strip()
@@ -168,13 +147,11 @@ def generate(req: GenerateReq) -> GenerateResp:
         return good
 
     if intent == "order_request":
-        parts_in = fields.get("parts", "")
-        fields["parts"] = _normalize_parts(parts_in)
+        fields["parts"] = _normalize_parts(fields.get("parts", ""))
 
-    # 3) Required/missing fields via schema (treat lists/structured properly)
+    # 3) Soft validation: compute 'missing' but DO NOT raise
     meta = SCHEMA.get(intent, {}) if isinstance(SCHEMA.get(intent, {}), dict) else {}
     required = meta.get("required", []) if isinstance(meta, dict) else []
-
     missing: list[str] = []
     for k in required:
         val = fields.get(k, None)
@@ -182,33 +159,26 @@ def generate(req: GenerateReq) -> GenerateResp:
             if not isinstance(val, list) or len(val) == 0:
                 missing.append(k)
         else:
-            # strings/other scalars
-            s = "" if val is None else str(val)
-            if not s.strip():
+            sval = "" if val is None else str(val)
+            if not sval.strip():
                 missing.append(k)
 
-    if missing:
-        raise HTTPException(status_code=400, detail="Missing required fields", )
-
-    # 4) Render from Jinja2 template
+    # 4) Render from Jinja2 template (guards already in template avoid ugly bullets)
     env = _env()
     try:
         tpl = env.get_template(f"{intent}.j2")
         body = tpl.render(**fields)
     except TemplateNotFound:
-        if intent == "auto_detect":
-            body = "Hello there,\n\nCould you please review the draft and suggest the best intent?\n\nThank you."
-        else:
-            raise HTTPException(status_code=500, detail=f"Missing template for intent '{intent}'")
+        body = "Hello,\n\nDraft is missing its template.\n\nThanks."
 
-    # 5) Subject: use mapping if present, otherwise a sane default
-    subject: str = ""
+    # 5) Subject fallback
     try:
-        subject = SUBJECTS.get(intent, "")  # if your file defines SUBJECTS
+        subject = SUBJECTS.get(intent, "")
     except NameError:
         subject = ""
     if not subject.strip():
         subject = "Order Request" if intent == "order_request" else (_label_for(intent) or "Request")
 
-    return GenerateResp(subject=subject, body=body, missing=[])
+    # Always 200; include what’s missing so UI can display it
+    return GenerateResp(subject=subject, body=body, missing=missing)
 
