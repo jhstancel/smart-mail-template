@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from jinja2 import Environment, FileSystemLoader, Undefined, TemplateNotFound
 
 app = FastAPI(title="Smart Mail Template API")
@@ -40,7 +40,7 @@ print("[info] Loaded generated schema and autodetect rules (legacy system remove
 # ---------------- Models ----------------
 class GenerateReq(BaseModel):
     intent: str
-    fields: Dict[str, str] = {}
+    fields: Dict[str, Any] = Field(default_factory=dict)
 
 class GenerateResp(BaseModel):
     subject: str
