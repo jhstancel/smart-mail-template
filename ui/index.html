@@ -5,6 +5,47 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
+/* Parts inline editor — compact, aligned */
+.parts-header { 
+  display:grid; 
+  grid-template-columns: 1fr 110px 36px; 
+  gap:12px; 
+  align-items:center; 
+  margin-bottom:6px;
+}
+.parts-header .h { font-weight:700; }
+
+.parts-row { 
+  display:grid; 
+  grid-template-columns: 1fr 110px 36px; 
+  gap:12px; 
+  align-items:center; 
+  margin:6px 0;
+}
+
+.parts-input { height:40px; }         /* match your form controls */
+.parts-qty   { text-align:center; }
+
+.parts-minus { 
+  width:36px; height:36px; 
+  border:1px solid rgba(255,100,100,.45); 
+  border-radius:999px; 
+  display:flex; align-items:center; justify-content:center; 
+  background:#fff; 
+  cursor:pointer;
+}
+.parts-minus:hover { border-color: rgba(255,80,80,.8); }
+
+.parts-plus {
+  border:1px solid var(--card-border);
+  border-radius:999px;
+  padding:10px 14px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  cursor:pointer;
+}
+
+.parts-plus-row { margin-top:8px; }
+
   /* ===== THEME VARIABLES ===== */
   :root{
     --bg:#ffffff;            /* default: light-minimal */
@@ -950,17 +991,14 @@ function initOrderRequestPartsEditor(container) {
   container.innerHTML = ""; // clear the old slabs/buttons
 
   // --- Label row (optional headers) ---
-  const labels = document.createElement('div');
-  labels.style.display = 'grid';
-  labels.style.gridTemplateColumns = '1fr 120px 36px';
-  labels.style.alignItems = 'center';
-  labels.style.gap = '10px';
-  labels.innerHTML = `
-    <div class="parts-label">Part Number</div>
-    <div class="parts-label">Quantity</div>
-    <div></div>
-  `;
-  container.appendChild(labels);
+const header = document.createElement('div');
+header.className = 'parts-header';
+header.innerHTML = `
+  <div class="h">Part<br>Number</div>
+  <div class="h">Quantity</div>
+  <div></div>
+`;
+container.appendChild(header);
 
   // --- Table for rows ---
   const table = document.createElement('table');
@@ -1004,76 +1042,79 @@ function initOrderRequestPartsEditor(container) {
 
     // rows
     parts.forEach((row, idx) => {
-      const tr = document.createElement('tr');
-      const td = document.createElement('td');
-      td.colSpan = 3;
-      const cell = document.createElement('div');
-      cell.className = 'cell';
+const tr = document.createElement('tr');
+const td = document.createElement('td');
+td.colSpan = 3;
 
-      // PN
-      const pn = document.createElement('input');
-      pn.className = 'input';
-      pn.placeholder = 'e.g., PN-1402';
-      pn.value = row.partNumber || '';
-      pn.addEventListener('input', e => {
-        parts[idx].partNumber = e.target.value;
-        syncPartsHidden();
-      });
+const row = document.createElement('div');
+row.className = 'parts-row';
 
-      // Qty (spelled out as requested)
-      const qty = document.createElement('input');
-      qty.className = 'input';
-      qty.placeholder = 'Quantity';
-      qty.value = row.quantity || '';
-      qty.addEventListener('input', e => {
-        // keep digits only
-        e.target.value = e.target.value.replace(/[^\d]/g,'');
-        parts[idx].quantity = e.target.value;
-        syncPartsHidden();
-      });
+// PN
+const pn = document.createElement('input');
+pn.className = 'input parts-input';
+pn.placeholder = 'e.g., PN-1402';
+pn.value = row.partNumber || '';
+pn.addEventListener('input', e => {
+  parts[idx].partNumber = e.target.value;
+  syncPartsHidden();
+});
 
-      // Minus
-      const minus = document.createElement('button');
-      minus.type = 'button';
-      minus.className = 'parts-minus';
-      minus.setAttribute('aria-label','Remove row');
-      minus.textContent = '–';
-      minus.addEventListener('click', () => {
-        parts.splice(idx, 1);
-        render();
-        syncPartsHidden();
-      });
+// Qty
+const qty = document.createElement('input');
+qty.className = 'input parts-input parts-qty';
+qty.placeholder = 'Quantity';
+qty.inputMode = 'numeric';
+qty.value = row.quantity || '';
+qty.addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/[^\d]/g,'');
+  parts[idx].quantity = e.target.value;
+  syncPartsHidden();
+});
 
-      cell.appendChild(pn);
-      cell.appendChild(qty);
-      cell.appendChild(minus);
-      td.appendChild(cell);
-      tr.appendChild(td);
-      tbody.appendChild(tr);
+// Minus
+const minus = document.createElement('button');
+minus.type = 'button';
+minus.className = 'parts-minus';
+minus.setAttribute('aria-label','Remove row');
+minus.textContent = '–';
+minus.addEventListener('click', () => {
+  parts.splice(idx, 1);
+  render();
+  syncPartsHidden();
+});
+
+row.appendChild(pn);
+row.appendChild(qty);
+row.appendChild(minus);
+td.appendChild(row);
+tr.appendChild(td);
+tbody.appendChild(tr);
+
     });
 
     // plus row (always exactly one, under the last existing row)
-    const trPlus = document.createElement('tr');
-    trPlus.className = 'parts-plus-row';
-    const tdPlus = document.createElement('td');
-    tdPlus.colSpan = 3;
-    const cellPlus = document.createElement('div');
-    cellPlus.className = 'cell';
+const trPlus = document.createElement('tr');
+const tdPlus = document.createElement('td');
+tdPlus.colSpan = 3;
 
-    const plus = document.createElement('button');
-    plus.type = 'button';
-    plus.className = 'parts-plus';
-    plus.textContent = '+ Add another part';
-    plus.addEventListener('click', () => {
-      parts.push({ partNumber: '', quantity: '' });
-      render();
-      syncPartsHidden();
-    });
+const plusWrap = document.createElement('div');
+plusWrap.className = 'parts-plus-row';
 
-    cellPlus.appendChild(plus);
-    tdPlus.appendChild(cellPlus);
-    trPlus.appendChild(tdPlus);
-    tbody.appendChild(trPlus);
+const plus = document.createElement('button');
+plus.type = 'button';
+plus.className = 'parts-plus';
+plus.textContent = '+ Add another part';
+plus.addEventListener('click', () => {
+  parts.push({ partNumber: '', quantity: '' });
+  render();
+  syncPartsHidden();
+});
+
+plusWrap.appendChild(plus);
+tdPlus.appendChild(plusWrap);
+trPlus.appendChild(tdPlus);
+tbody.appendChild(trPlus);
+
   }
 
   // Seed with one row if none
