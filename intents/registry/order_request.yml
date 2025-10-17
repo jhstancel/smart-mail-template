@@ -2,7 +2,7 @@ id: order_request
 label: Order Request
 description: Request to process and confirm an order with shipping details.
 
-required: [recipientName, shipAddress, parts, fedexAccount]
+required: [recipientName, fedexAccount, shipAddress, parts]
 optional: [notes]
 
 fieldTypes:
@@ -27,6 +27,20 @@ enums:
     - "091536978"
 
 hints:
+  fedexAccountLabels: |
+    {
+      "031400023": "MEXICALI/COMPLETIONS",
+      "240920760": "EDWARDS",
+      "228448800": "DALLAS/FORTH WORTH",
+      "805079878": "SPARES/RDCFP (INNOVATION DR)",
+      "054900023": "APPLETON",
+      "335312570": "CAHOKIA",
+      "161038032": "ELISE ST",
+      "231190686": "WEST PALM BEACH",
+      "158314215": "BRUNSWICK",
+      "323701300": "MESA",
+      "091536978": "GILL CORP"
+    }
   recipientName: e.g., "UP Aviation Receiving"
   shipAddress: Full street, city, state, zip
   parts: List PN and qty lines
@@ -35,7 +49,7 @@ hints:
 
 template:
   subject: "Order Request – {{ recipientName }}"
-  bodyPath: "templates/order_request.txt"
+  bodyPath: "templates/order_request.j2"
 
 autodetect:
   keywords: ["order request", "please process", "ship to", "fulfill", "FedEx"]
