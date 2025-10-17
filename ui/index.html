@@ -81,6 +81,14 @@
 .parts-table input.input { width:100%; }
 .btn-mini{ border:1px solid var(--card-border); background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); border-radius:10px; padding:6px 8px; cursor:pointer }
 .btn-mini.danger{ border-color: rgba(255,100,100,.5); }
+.parts-rows  { width:100%; border-collapse:separate; border-spacing:0 8px; }
+.parts-rows td { padding:0; }
+.parts-rows .cell { display:flex; align-items:center; gap:10px; }
+.parts-rows input.input { width:100%; }
+.parts-minus { border:1px solid rgba(255,100,100,.5); border-radius:12px; padding:4px 8px; background:transparent; cursor:pointer; }
+.parts-plus  { border:1px solid var(--card-border); border-radius:14px; padding:6px 10px; background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); cursor:pointer; }
+.parts-plus-row td { padding-top:4px; }
+.parts-label { font-weight:700; }
 
   /* Starfield */
   canvas#stars{position:fixed; inset:0; z-index:-3;}
@@ -558,6 +566,26 @@ function smartParseParts(raw){
 
   return out;
 }
+
+function syncPartsHidden(){
+  const hidden = document.getElementById('f_parts');
+  if(!hidden) return;
+
+  const tbody = document.querySelector('#parts_table tbody');
+  if(tbody){
+    const rows = [...tbody.querySelectorAll('tr')].map(tr=>{
+      const pn  = tr.querySelector('input[data-k="partNumber"]')?.value?.trim();
+      const qty = tr.querySelector('input[data-k="quantity"]')?.value?.trim();
+      return (pn && qty) ? { partNumber: pn, quantity: qty } : null;
+    }).filter(Boolean);
+    hidden.value = rows.length ? JSON.stringify(rows) : '[]';
+  } else {
+    const raw = document.getElementById('f_parts_text')?.value || '';
+    const parsed = smartParseParts(raw);
+    hidden.value = parsed.length ? JSON.stringify(parsed) : '[]';
+  }
+}
+
 function addPartsRow(tbody, partNumber = "", quantity = ""){
   const tr = document.createElement('tr');
   tr.innerHTML = `
@@ -736,60 +764,13 @@ function renderFields(intent){
     wrap.appendChild(label);
 
     // Special case for 'parts'
-    if(key === 'parts'){
-      const box = document.createElement('div');
-      box.className = 'parts-editor space-y-2';
-      const hidden = document.createElement('input');
-      hidden.type = 'hidden';
-      hidden.id = 'f_parts';
-      box.appendChild(hidden);
-
-      const ta = document.createElement('textarea');
-      ta.id = 'f_parts_text';
-      ta.rows = 4;
-      ta.className = 'input';
-      ta.placeholder = 'Paste parts (e.g. "PN-10423 x2", "PN-10423,2", or 2-column paste)';
-      ta.addEventListener('input', syncPartsHidden);
-
-      const controls = document.createElement('div');
-      controls.className = 'row space-x-2';
-
-      const parseBtn = document.createElement('button');
-      parseBtn.type = 'button';
-      parseBtn.className = 'btn';
-      parseBtn.textContent = 'Smart Parse → Table';
-      
-
-const addBtn = document.createElement('button');
-addBtn.type = 'button';
-addBtn.className = 'btn secondary';
-addBtn.textContent = '+ Add row';
-
-
-      controls.appendChild(parseBtn);
-      controls.appendChild(addBtn);
-
-      const table = document.createElement('table');
-      table.id = 'parts_table';
-      table.className = 'parts-table w-full';
-      table.innerHTML = `
-        <thead><tr><th>Part Number</th><th style="width:110px">Qty</th><th></th></tr></thead>
-        <tbody></tbody>
-      `;
-      const tbody = table.querySelector('tbody');
-      parseBtn.onclick = () => {
-        tbody.innerHTML = '';
-        smartParseParts(ta.value).forEach(r => addPartsRow(tbody, r.partNumber, r.quantity));
-        syncPartsHidden();
-      };
-      addBtn.onclick = () => { addPartsRow(tbody); syncPartsHidden(); };
-
-      box.appendChild(ta);
-      box.appendChild(controls);
-      box.appendChild(table);
-      wrap.appendChild(box);
+    if (key === 'parts') {
+      const host = document.createElement('div');
+      host.id = 'partsCardBody';
+      wrap.appendChild(host);
       fieldsWrap.appendChild(wrap);
-      syncPartsHidden();
+      // mount the new inline editor (Part Number + Quantity with +/– controls)
+      initOrderRequestPartsEditor(host);
       continue;
     }
 
@@ -962,67 +943,162 @@ async function loadIntents(){
 }
 
 
-function syncPartsHidden(){
-  const hidden = document.getElementById('f_parts');
-  const tbody  = document.querySelector('#parts_table tbody');
-  if(!hidden) return;
+// === Order Request: Parts editor (Part Number + Quantity with inline +/–) ===
 
-  if(tbody && tbody.children.length){
-const rows = [...tbody.querySelectorAll('tr')].map(tr => {
-  const pn  = tr.querySelector('input[data-k="partNumber"]')?.value?.trim();
-  const qty = tr.querySelector('input[data-k="quantity"]')?.value?.trim();
-  return (pn && qty) ? { partNumber: pn, quantity: qty } : null;
-}).filter(Boolean);
+function initOrderRequestPartsEditor(container) {
+  // container is the right-hand "Parts *" card DOM node
+  container.innerHTML = ""; // clear the old slabs/buttons
 
-    // ensure consistent structure
-    hidden.value = rows.length ? JSON.stringify(rows) : "[]";
-  } else {
-    const raw = document.getElementById('f_parts_text')?.value || '';
-    const parsed = smartParseParts(raw);
-    hidden.value = parsed.length ? JSON.stringify(parsed) : "[]";
+  // --- Label row (optional headers) ---
+  const labels = document.createElement('div');
+  labels.style.display = 'grid';
+  labels.style.gridTemplateColumns = '1fr 120px 36px';
+  labels.style.alignItems = 'center';
+  labels.style.gap = '10px';
+  labels.innerHTML = `
+    <div class="parts-label">Part Number</div>
+    <div class="parts-label">Quantity</div>
+    <div></div>
+  `;
+  container.appendChild(labels);
+
+  // --- Table for rows ---
+  const table = document.createElement('table');
+  table.className = 'parts-rows';
+  const tbody = document.createElement('tbody');
+  table.appendChild(tbody);
+  container.appendChild(table);
+
+  // Hidden sink used elsewhere in your code (keep the same id if you had one)
+  let hidden = container.querySelector('#partsHidden');
+  if (!hidden) {
+    hidden = document.createElement('textarea');
+    hidden.id = 'partsHidden';
+    hidden.style.display = 'none';
+    container.appendChild(hidden);
   }
+
+  // Local state: array of {partNumber, quantity}
+  let parts = [];
+
+  // Hydrate from any existing hidden value (supports list JSON)
+  try {
+    const v = JSON.parse(hidden.value || '[]');
+    if (Array.isArray(v)) parts = v.map(r => ({
+      partNumber: String(r.partNumber||''),
+      quantity: String(r.quantity||'')
+    }));
+  } catch(_) { /* ignore */ }
+
+  function syncPartsHidden(){
+    // Keep only complete rows
+    const rows = parts
+      .map(r => ({ partNumber: (r.partNumber||'').trim(), quantity: (r.quantity||'').trim() }))
+      .filter(r => r.partNumber && r.quantity);
+    hidden.value = JSON.stringify(rows);
+    // If your app has a global payload builder, it will read this hidden sink
+  }
+
+  function render(){
+    tbody.innerHTML = '';
+
+    // rows
+    parts.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 3;
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+
+      // PN
+      const pn = document.createElement('input');
+      pn.className = 'input';
+      pn.placeholder = 'e.g., PN-1402';
+      pn.value = row.partNumber || '';
+      pn.addEventListener('input', e => {
+        parts[idx].partNumber = e.target.value;
+        syncPartsHidden();
+      });
+
+      // Qty (spelled out as requested)
+      const qty = document.createElement('input');
+      qty.className = 'input';
+      qty.placeholder = 'Quantity';
+      qty.value = row.quantity || '';
+      qty.addEventListener('input', e => {
+        // keep digits only
+        e.target.value = e.target.value.replace(/[^\d]/g,'');
+        parts[idx].quantity = e.target.value;
+        syncPartsHidden();
+      });
+
+      // Minus
+      const minus = document.createElement('button');
+      minus.type = 'button';
+      minus.className = 'parts-minus';
+      minus.setAttribute('aria-label','Remove row');
+      minus.textContent = '–';
+      minus.addEventListener('click', () => {
+        parts.splice(idx, 1);
+        render();
+        syncPartsHidden();
+      });
+
+      cell.appendChild(pn);
+      cell.appendChild(qty);
+      cell.appendChild(minus);
+      td.appendChild(cell);
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+
+    // plus row (always exactly one, under the last existing row)
+    const trPlus = document.createElement('tr');
+    trPlus.className = 'parts-plus-row';
+    const tdPlus = document.createElement('td');
+    tdPlus.colSpan = 3;
+    const cellPlus = document.createElement('div');
+    cellPlus.className = 'cell';
+
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'parts-plus';
+    plus.textContent = '+ Add another part';
+    plus.addEventListener('click', () => {
+      parts.push({ partNumber: '', quantity: '' });
+      render();
+      syncPartsHidden();
+    });
+
+    cellPlus.appendChild(plus);
+    tdPlus.appendChild(cellPlus);
+    trPlus.appendChild(tdPlus);
+    tbody.appendChild(trPlus);
+  }
+
+  // Seed with one row if none
+  if (parts.length === 0) parts = [{ partNumber:'', quantity:'' }];
+  render();
+  syncPartsHidden();
 }
 
-/* =========================================================================================
- * Generate flow
- * =======================================================================================*/
-function collectFields(intentName){
-  const req = (SCHEMA && SCHEMA[intentName] && Array.isArray(SCHEMA[intentName].required))
-    ? SCHEMA[intentName].required
-    : [];
-  const out = {};
-
-  for (const k of req){
-    const el = document.getElementById(`f_${k}`);
-    if (!el) continue;
-    let v = el.value || '';
-
-    // handle dates
-    const dateFields = (SCHEMA[intentName] && Array.isArray(SCHEMA[intentName].date_fields))
-      ? new Set(SCHEMA[intentName].date_fields)
-      : new Set();
-    if (dateFields.has(k) && el.type === 'date') {
-      v = formatDateForOutput(v);
-    }
-
-    // special-case: parts (parse JSON if possible)
-    if (k === "parts") {
-      try {
-        const parsed = JSON.parse(v);
-        if (Array.isArray(parsed)) {
-          out[k] = parsed;
-          continue;
-        }
-      } catch(e){}
-      out[k] = smartParseParts(v);
-      continue;
-    }
-
-    out[k] = v;
-  }
-  return out;
+// Hook into your existing page lifecycle
+// Call this AFTER the intent card for "order_request" has been inserted into the DOM.
+function enhanceOrderRequestCard() {
+  // Find the Parts card DOM node – adjust #partsCard selector to match your markup
+  const card = document.querySelector('[data-field="parts"]') || document.querySelector('#partsCard') || null;
+  if (card) initOrderRequestPartsEditor(card);
 }
 
+// If you already have a function that runs when the intent changes, call enhanceOrderRequestCard() there.
+// Otherwise, run once on load (no-op for other intents).
+document.addEventListener('DOMContentLoaded', () => {
+  try { 
+    if (typeof activeIntent !== 'undefined' && activeIntent === 'order_request') {
+      enhanceOrderRequestCard();
+    }
+  } catch(_) {}
+});
 
 function listMissing(intentName, fieldsObj){
   const found = INTENTS.find(i => i.name === intentName);
@@ -1044,6 +1120,26 @@ function highlightMissing(keys){
       setTimeout(()=>{ el.style.boxShadow=''; el.style.borderColor=''; }, 1200);
     }
   });
+}
+function collectFields(intent){
+  const fields = {};
+  document.querySelectorAll('#fields [id^="f_"]').forEach(el=>{
+    const key = el.id.slice(2);
+    if(!key) return;
+    if(el.tagName === 'SELECT') fields[key] = el.value;
+    else if(el.type === 'checkbox') fields[key] = !!el.checked;
+    else fields[key] = el.value ?? '';
+  });
+
+  // Prefer hidden parts JSON (new editor uses #partsHidden; old table uses #f_parts)
+  const partsHidden = document.getElementById('partsHidden') || document.getElementById('f_parts');
+  if(partsHidden){
+    try{
+      const arr = JSON.parse(partsHidden.value || '[]');
+      if(Array.isArray(arr)) fields.parts = arr;
+    }catch(_){}
+  }
+  return fields;
 }
 
 async function doGenerate(){
