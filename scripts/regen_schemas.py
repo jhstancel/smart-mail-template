@@ -40,20 +40,48 @@ def load_intents() -> List[IntentSpec]:
 def build_backend_schema(intents: List[IntentSpec]) -> Dict[str, Dict]:
     """
     Produces the minimal schema the backend typically needs:
-    { intent_id: { label, description, required, optional, fieldTypes, hints } }
+    { intent_id: { label, description, required, optional, fieldTypes, hints, enums } }
     """
     out: Dict[str, Dict] = {}
     for spec in intents:
+        # Raw enums (list[str] per pydantic)
+        enums_raw = getattr(spec, "enums", {}) or {}
+
+        hints = spec.hints or {}
+        enums_final: Dict[str, list] = {}
+
+        for key, values in enums_raw.items():
+            # labels map may be a JSON string in hints (e.g., hints.fedexAccountLabels)
+            labels_map_key = f"{key}Labels"
+            labels_map = {}
+            raw_labels = hints.get(labels_map_key) if isinstance(hints, dict) else None
+            if isinstance(raw_labels, str):
+                try:
+                    labels_map = json.loads(raw_labels)
+                except Exception:
+                    labels_map = {}
+            elif isinstance(raw_labels, dict):
+                labels_map = raw_labels  # tolerated if schema ever loosens
+
+            # Convert list[str] -> list[{"label":..., "value":...}]
+            if isinstance(values, list):
+                vv = []
+                for v in values:
+                    v_str = str(v)
+                    label = labels_map.get(v_str, v_str)
+                    vv.append({"label": label, "value": v_str})
+                enums_final[key] = vv
+
         out[spec.id] = {
             "label": spec.label,
             "description": spec.description or "",
             "required": spec.required,
             "optional": spec.optional,
             "fieldTypes": spec.fieldTypes,
-            "hints": spec.hints,
+            "hints": hints,
+            "enums": enums_final,
         }
     return out
-
 
 def build_frontend_schema(intents: List[IntentSpec]) -> Dict[str, Dict]:
     """
