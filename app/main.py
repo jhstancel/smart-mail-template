@@ -99,48 +99,98 @@ def list_intents():
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
-    import json
-
-    intent = req.intent
-    fields = dict(req.fields or {})
+    intent = (req.intent or "").strip()
+    fields: Dict[str, Any] = dict(req.fields or {})
 
     # 1) Validate intent
     if intent not in SCHEMA:
         raise HTTPException(status_code=400, detail=f"Unknown intent: {intent}")
 
-    # 1b) Normalize "parts" so templates always see a list[{partNumber,quantity}]
-    parts = fields.get("parts")
-    if isinstance(parts, list):
-        # assume already a list of dicts
-        pass
-    elif isinstance(parts, str):
-        # try JSON string first, then line-by-line fallback (qty=1)
-        try:
-            parsed = json.loads(parts)
-            if isinstance(parsed, list):
-                fields["parts"] = parsed
-            else:
-                raise ValueError("not a list")
-        except Exception:
-            lines = [s.strip() for s in parts.replace("\r", "").split("\n") if s.strip()]
-            fields["parts"] = [{"partNumber": ln, "quantity": "1"} for ln in lines]
-    else:
-        fields["parts"] = []
+    # 2) Normalize special fields (Order Request → parts)
+    def _normalize_parts(v: Any) -> list[dict]:
+        """
+        Accepts:
+          - list[dict] like [{"partNumber":"PN-10423","quantity":"2"}, ...]
+          - JSON string for that list
+          - plain text lines like 'PN-10423,2' or 'PN-10423 x2'
+          - 2-column TSV/CSV pasted data
+        Returns only complete rows with both keys.
+        """
+        import json, re
+        rows: list[dict] = []
 
-    # 2) Required/missing fields via schema (treat arrays correctly)
-    meta = SCHEMA.get(intent, {})
+        if isinstance(v, list):
+            rows = v
+        elif isinstance(v, str):
+            s = v.strip()
+            if not s:
+                rows = []
+            else:
+                # Try JSON first
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        rows = parsed
+                    else:
+                        rows = []
+                except Exception:
+                    # Fallback: line parser
+                    lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
+                    for ln in lines:
+                        # Try CSV/TSV 2-col
+                        if "\t" in ln:
+                            a, *rest = ln.split("\t")
+                            b = rest[0] if rest else ""
+                            pn, qty = a.strip(), b.strip()
+                        elif "," in ln:
+                            a, *rest = ln.split(",")
+                            b = rest[0] if rest else ""
+                            pn, qty = a.strip(), b.strip()
+                        else:
+                            # Look for "PN xQTY" or "PN QTY"
+                            m = re.search(r"^\s*(.+?)\s*(?:x|\s)\s*(\d+)\s*$", ln, re.I)
+                            if m:
+                                pn, qty = m.group(1).strip(), m.group(2).strip()
+                            else:
+                                pn, qty = ln, ""
+                        if pn and qty:
+                            rows.append({"partNumber": pn, "quantity": qty})
+        else:
+            rows = []
+
+        # Clean/gate: keep only complete rows with both values
+        good = []
+        for r in rows:
+            pn = str(r.get("partNumber", "")).strip()
+            qty = str(r.get("quantity", "")).strip()
+            if pn and qty:
+                good.append({"partNumber": pn, "quantity": qty})
+        return good
+
+    if intent == "order_request":
+        parts_in = fields.get("parts", "")
+        fields["parts"] = _normalize_parts(parts_in)
+
+    # 3) Required/missing fields via schema (treat lists/structured properly)
+    meta = SCHEMA.get(intent, {}) if isinstance(SCHEMA.get(intent, {}), dict) else {}
     required = meta.get("required", []) if isinstance(meta, dict) else []
 
-    def _is_missing(v):
-        if isinstance(v, list):
-            return len(v) == 0
-        if isinstance(v, dict):
-            return len(v) == 0
-        return not str(v or "").strip()
+    missing: list[str] = []
+    for k in required:
+        val = fields.get(k, None)
+        if k == "parts":
+            if not isinstance(val, list) or len(val) == 0:
+                missing.append(k)
+        else:
+            # strings/other scalars
+            s = "" if val is None else str(val)
+            if not s.strip():
+                missing.append(k)
 
-    missing = [k for k in required if _is_missing(fields.get(k))]
+    if missing:
+        raise HTTPException(status_code=400, detail="Missing required fields", )
 
-    # 3) Render body from Jinja2 template
+    # 4) Render from Jinja2 template
     env = _env()
     try:
         tpl = env.get_template(f"{intent}.j2")
@@ -149,23 +199,16 @@ def generate(req: GenerateReq) -> GenerateResp:
         if intent == "auto_detect":
             body = "Hello there,\n\nCould you please review the draft and suggest the best intent?\n\nThank you."
         else:
-            raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Template render error for '{intent}': {e}")
+            raise HTTPException(status_code=500, detail=f"Missing template for intent '{intent}'")
 
-    # 3b) Ensure a polite closing exists (tests expect 'thank you' / 'thanks' / 'appreciate')
-    t = (body or "").lower()
-    if not any(k in t for k in ("thank you", "thanks", "appreciate")):
-        body = (body.rstrip() + "\n\nThank you.\n")
+    # 5) Subject: use mapping if present, otherwise a sane default
+    subject: str = ""
+    try:
+        subject = SUBJECTS.get(intent, "")  # if your file defines SUBJECTS
+    except NameError:
+        subject = ""
+    if not subject.strip():
+        subject = "Order Request" if intent == "order_request" else (_label_for(intent) or "Request")
 
-    # 4) Resolve subject with robust fallbacks
-    subject: Optional[str] = SUBJECTS.get(intent, "")
-    if not subject or not str(subject).strip():
-        if intent == "qb_order" and fields.get("orderNumber"):
-            subject = f"Order Processing Request — {fields['orderNumber']}"
-        else:
-            subject = _label_for(intent) or "Request"
-
-    # 5) Respond
-    return GenerateResp(subject=subject, body=body, missing=missing)
+    return GenerateResp(subject=subject, body=body, missing=[])
 
