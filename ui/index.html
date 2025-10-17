@@ -1041,56 +1041,55 @@ container.appendChild(header);
     tbody.innerHTML = '';
 
     // rows
-    parts.forEach((row, idx) => {
-const tr = document.createElement('tr');
-const td = document.createElement('td');
-td.colSpan = 3;
+parts.forEach((row, idx) => {
+  const tr = document.createElement('tr');
+  const td = document.createElement('td');
+  td.colSpan = 3;
 
-const row = document.createElement('div');
-row.className = 'parts-row';
+  const rowEl = document.createElement('div');
+  rowEl.className = 'parts-row';
 
-// PN
-const pn = document.createElement('input');
-pn.className = 'input parts-input';
-pn.placeholder = 'e.g., PN-1402';
-pn.value = row.partNumber || '';
-pn.addEventListener('input', e => {
-  parts[idx].partNumber = e.target.value;
-  syncPartsHidden();
+  // PN
+  const pn = document.createElement('input');
+  pn.className = 'input parts-input';
+  pn.placeholder = 'e.g., PN-1402';
+  pn.value = row.partNumber || '';
+  pn.addEventListener('input', e => {
+    parts[idx].partNumber = e.target.value;
+    syncPartsHidden();
+  });
+
+  // Qty
+  const qty = document.createElement('input');
+  qty.className = 'input parts-input parts-qty';
+  qty.placeholder = 'Quantity';
+  qty.inputMode = 'numeric';
+  qty.value = row.quantity || '';
+  qty.addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/[^\d]/g,'');
+    parts[idx].quantity = e.target.value;
+    syncPartsHidden();
+  });
+
+  // Minus
+  const minus = document.createElement('button');
+  minus.type = 'button';
+  minus.className = 'parts-minus';
+  minus.setAttribute('aria-label','Remove row');
+  minus.textContent = '–';
+  minus.addEventListener('click', () => {
+    parts.splice(idx, 1);
+    render();
+    syncPartsHidden();
+  });
+
+  rowEl.appendChild(pn);
+  rowEl.appendChild(qty);
+  rowEl.appendChild(minus);
+  td.appendChild(rowEl);
+  tr.appendChild(td);
+  tbody.appendChild(tr);
 });
-
-// Qty
-const qty = document.createElement('input');
-qty.className = 'input parts-input parts-qty';
-qty.placeholder = 'Quantity';
-qty.inputMode = 'numeric';
-qty.value = row.quantity || '';
-qty.addEventListener('input', e => {
-  e.target.value = e.target.value.replace(/[^\d]/g,'');
-  parts[idx].quantity = e.target.value;
-  syncPartsHidden();
-});
-
-// Minus
-const minus = document.createElement('button');
-minus.type = 'button';
-minus.className = 'parts-minus';
-minus.setAttribute('aria-label','Remove row');
-minus.textContent = '–';
-minus.addEventListener('click', () => {
-  parts.splice(idx, 1);
-  render();
-  syncPartsHidden();
-});
-
-row.appendChild(pn);
-row.appendChild(qty);
-row.appendChild(minus);
-td.appendChild(row);
-tr.appendChild(td);
-tbody.appendChild(tr);
-
-    });
 
     // plus row (always exactly one, under the last existing row)
 const trPlus = document.createElement('tr');
