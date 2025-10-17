@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -99,31 +99,60 @@ def list_intents():
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
+    import json
+
     intent = req.intent
-    fields = req.fields or {}
+    fields = dict(req.fields or {})
 
     # 1) Validate intent
     if intent not in SCHEMA:
         raise HTTPException(status_code=400, detail=f"Unknown intent: {intent}")
 
-    # 2) Required/missing fields via schema
+    # 1b) Normalize "parts" so templates always see a list[{partNumber,quantity}]
+    parts = fields.get("parts")
+    if isinstance(parts, list):
+        # assume already a list of dicts
+        pass
+    elif isinstance(parts, str):
+        # try JSON string first, then line-by-line fallback (qty=1)
+        try:
+            parsed = json.loads(parts)
+            if isinstance(parsed, list):
+                fields["parts"] = parsed
+            else:
+                raise ValueError("not a list")
+        except Exception:
+            lines = [s.strip() for s in parts.replace("\r", "").split("\n") if s.strip()]
+            fields["parts"] = [{"partNumber": ln, "quantity": "1"} for ln in lines]
+    else:
+        fields["parts"] = []
+
+    # 2) Required/missing fields via schema (treat arrays correctly)
     meta = SCHEMA.get(intent, {})
     required = meta.get("required", []) if isinstance(meta, dict) else []
-    missing = [k for k in required if not str(fields.get(k, "")).strip()]
 
-        # 3) Render body from Jinja2 template
+    def _is_missing(v):
+        if isinstance(v, list):
+            return len(v) == 0
+        if isinstance(v, dict):
+            return len(v) == 0
+        return not str(v or "").strip()
+
+    missing = [k for k in required if _is_missing(fields.get(k))]
+
+    # 3) Render body from Jinja2 template
     env = _env()
     try:
         tpl = env.get_template(f"{intent}.j2")
         body = tpl.render(**fields)
     except TemplateNotFound:
         if intent == "auto_detect":
-            # Generic, polite fallback body for the special intent with no template
             body = "Hello there,\n\nCould you please review the draft and suggest the best intent?\n\nThank you."
         else:
             raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Template render error for '{intent}': {e}")
+
     # 3b) Ensure a polite closing exists (tests expect 'thank you' / 'thanks' / 'appreciate')
     t = (body or "").lower()
     if not any(k in t for k in ("thank you", "thanks", "appreciate")):
