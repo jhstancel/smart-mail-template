@@ -12,9 +12,10 @@ AUTODETECT_GENERATED = {
     "keywords": [
       "delay",
       "reschedule",
+      "pushed",
       "postpone",
       "new date",
-      "pushed back"
+      "schedule update"
     ]
   },
   "followup": {
@@ -24,6 +25,7 @@ AUTODETECT_GENERATED = {
     },
     "keywords": [
       "follow up",
+      "follow-up",
       "checking in",
       "status update",
       "touching base"
@@ -40,7 +42,8 @@ AUTODETECT_GENERATED = {
       "paid",
       "remittance",
       "wire",
-      "ach"
+      "ach",
+      "remit"
     ]
   },
   "invoice_po_followup": {
@@ -52,7 +55,8 @@ AUTODETECT_GENERATED = {
       "invoice follow up",
       "po follow up",
       "invoice status",
-      "payment status"
+      "payment status",
+      "due date"
     ]
   },
   "order_confirmation": {
@@ -64,7 +68,8 @@ AUTODETECT_GENERATED = {
       "order confirmation",
       "confirmed",
       "scheduled",
-      "delivery date"
+      "delivery date",
+      "acknowledgement"
     ]
   },
   "order_request": {
@@ -76,7 +81,8 @@ AUTODETECT_GENERATED = {
       "order request",
       "please process",
       "ship to",
-      "fulfill"
+      "fulfill",
+      "FedEx"
     ]
   },
   "packing_slip_docs": {
@@ -89,7 +95,10 @@ AUTODETECT_GENERATED = {
       "invoice copy",
       "certificate",
       "document",
-      "attachment"
+      "attachment",
+      "CoC",
+      "CoA",
+      "SDS"
     ]
   },
   "qb_order": {
@@ -112,9 +121,10 @@ AUTODETECT_GENERATED = {
     "keywords": [
       "quote",
       "pricing",
-      "availability",
+      "lead time",
       "rfq",
-      "price check"
+      "price check",
+      "availability"
     ]
   },
   "shipment_update": {
@@ -128,7 +138,9 @@ AUTODETECT_GENERATED = {
       "in transit",
       "carrier",
       "tracking number",
-      "1Z"
+      "1Z",
+      "FedEx",
+      "UPS"
     ]
   },
   "tax_exempt_certificate": {
@@ -138,7 +150,8 @@ AUTODETECT_GENERATED = {
     "keywords": [
       "tax exemption certificate",
       "resale certificate",
-      "tax exempt"
+      "tax exempt",
+      "tax form"
     ]
   },
   "tax_exemption": {
@@ -148,7 +161,8 @@ AUTODETECT_GENERATED = {
     "keywords": [
       "tax exempt",
       "exemption",
-      "sales tax"
+      "sales tax",
+      "resale certificate"
     ]
   }
 }

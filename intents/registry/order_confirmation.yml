@@ -2,22 +2,20 @@ id: order_confirmation
 label: Order Confirmation
 description: Confirm that an order has been received and provide delivery details.
 
-required: [poNumber, customerName, itemsSummary, promisedShip]
-optional: [notes]
+required: [poNumber, recipientName, itemsSummary, promisedShip]
+optional: []
 
 fieldTypes:
   poNumber: string
-  customerName: string
+  recipientName: string
   itemsSummary: longtext
   promisedShip: date
-  notes: longtext
 
 hints:
   poNumber: e.g., PO-10832
-  customerName: e.g., John Smith
+  recipientName: e.g., John Smith
   itemsSummary: e.g., 10 × Part A, 5 × Part B
   promisedShip: mm/dd/yyyy
-  notes: Optional internal note or context
 
 template:
   subject: "Order Confirmation – PO {{ poNumber }}"
@@ -33,7 +31,7 @@ tests:
   samples:
     - fields:
         poNumber: "PO-10832"
-        customerName: "John Smith"
+        recipientName: "John Smith"
         itemsSummary: "10 × Widget A, 5 × Widget B"
         promisedShip: "10/25/2025"
       expectSubjectContains: ["Order Confirmation", "PO-10832"]

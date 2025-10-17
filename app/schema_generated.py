@@ -1,7 +1,8 @@
 # AUTO-GENERATED FILE — DO NOT EDIT.
 SCHEMA_GENERATED = {
   "auto_detect": {
-    "description": "Placeholder intent used when automatic detection is enabled. It allows the system to analyze an email and infer which intent applies.",
+    "description": "Auto-detect intent from text.",
+    "enums": {},
     "fieldTypes": {},
     "hints": {},
     "label": "Auto Detect",
@@ -9,145 +10,182 @@ SCHEMA_GENERATED = {
     "required": []
   },
   "delay_notice": {
-    "description": "Inform a customer that an order\u2019s delivery date has changed.",
+    "description": "Notify a customer that a purchase order\u2019s shipping schedule has changed.",
+    "enums": {},
     "fieldTypes": {
-      "apology": "longtext",
-      "newDate": "date",
-      "notes": "longtext",
-      "orderNumber": "string",
+      "customerName": "string",
+      "newShip": "date",
+      "partNumber": "string",
+      "poNumber": "string",
+      "previousShip": "date",
       "reason": "longtext"
     },
     "hints": {
-      "apology": "Optional apology or reassurance text",
-      "newDate": "mm/dd/yyyy",
-      "notes": "Any additional internal notes",
-      "orderNumber": "e.g., PO-10927",
-      "reason": "e.g., supplier delay, parts backlog"
+      "customerName": "e.g., John Smith",
+      "newShip": "updated ship date",
+      "partNumber": "e.g., 28-4752-09A",
+      "poNumber": "e.g., PO-10927",
+      "previousShip": "previous confirmed ship date",
+      "reason": "e.g., supplier delay, weather, production hold"
     },
     "label": "Delay Notice",
-    "optional": [
-      "apology",
-      "notes"
-    ],
+    "optional": [],
     "required": [
-      "orderNumber",
-      "newDate",
-      "reason"
+      "poNumber",
+      "partNumber",
+      "customerName",
+      "reason",
+      "previousShip",
+      "newShip"
     ]
   },
   "followup": {
     "description": "Send a short follow-up or status-check message on a prior topic.",
+    "enums": {},
     "fieldTypes": {
-      "notes": "longtext",
-      "previousDate": "date",
-      "recipientName": "string",
-      "topic": "string"
+      "ask": "longtext",
+      "context": "longtext",
+      "customerName": "string"
     },
     "hints": {
-      "notes": "Optional internal note or context",
-      "previousDate": "mm/dd/yyyy of last message",
-      "recipientName": "e.g., \u201cJohn Stancel\u201d",
-      "topic": "e.g., \u201corder update\u201d or \u201cquote request\u201d"
+      "ask": "e.g., \"Do you have an update?\" or \"Could you confirm the new ship date?\"",
+      "context": "e.g., \"the quote for PO-10927\" or \"yesterday\u2019s delivery timing\"",
+      "customerName": "e.g., \"John Smith\""
     },
-    "label": "Follow Up",
+    "label": "Follow-up",
     "optional": [
-      "previousDate",
-      "notes"
+      "ask"
     ],
     "required": [
-      "topic",
-      "recipientName"
+      "customerName",
+      "context"
     ]
   },
   "invoice_payment": {
     "description": "Notify or confirm payment for an invoice.",
+    "enums": {},
     "fieldTypes": {
       "amount": "string",
       "invoiceNumber": "string",
-      "method": "string",
-      "notes": "longtext",
-      "paymentDate": "date"
+      "paymentDate": "date",
+      "paymentMethod": "string",
+      "recipientName": "string"
     },
     "hints": {
       "amount": "e.g., 420.00 USD",
       "invoiceNumber": "e.g., INV-4827",
-      "method": "e.g., ACH, Check, Credit Card",
-      "notes": "Optional message to include with confirmation",
-      "paymentDate": "mm/dd/yyyy"
+      "paymentDate": "mm/dd/yyyy",
+      "paymentMethod": "e.g., ACH, Check, Credit Card",
+      "recipientName": "e.g., John Smith"
     },
     "label": "Invoice Payment",
-    "optional": [
-      "method",
-      "notes"
-    ],
+    "optional": [],
     "required": [
       "invoiceNumber",
+      "recipientName",
       "amount",
+      "paymentMethod",
       "paymentDate"
     ]
   },
   "invoice_po_followup": {
     "description": "Follow up on an invoice or purchase order previously sent or discussed.",
+    "enums": {},
     "fieldTypes": {
+      "dueDate": "date",
       "invoiceNumber": "string",
-      "notes": "longtext",
       "poNumber": "string",
-      "previousDate": "date",
-      "recipientName": "string",
-      "topic": "string"
+      "recipientName": "string"
     },
     "hints": {
+      "dueDate": "mm/dd/yyyy",
       "invoiceNumber": "e.g., INV-4827",
-      "notes": "Optional additional context or reminder details",
       "poNumber": "e.g., PO-10892",
-      "previousDate": "mm/dd/yyyy",
-      "recipientName": "e.g., \u201cJohn Stancel\u201d",
-      "topic": "e.g., \u201cInvoice 4827\u201d or \u201cPO 10892\u201d"
+      "recipientName": "e.g., John Smith"
     },
     "label": "Invoice / PO Follow-Up",
-    "optional": [
+    "optional": [],
+    "required": [
       "invoiceNumber",
       "poNumber",
-      "previousDate",
-      "notes"
-    ],
-    "required": [
-      "topic",
-      "recipientName"
+      "recipientName",
+      "dueDate"
     ]
   },
   "order_confirmation": {
     "description": "Confirm that an order has been received and provide delivery details.",
+    "enums": {},
     "fieldTypes": {
-      "companyName": "string",
-      "deliveryDate": "date",
-      "items": "longtext",
-      "notes": "longtext",
-      "orderNumber": "string",
-      "trackingNumber": "string"
+      "itemsSummary": "longtext",
+      "poNumber": "string",
+      "promisedShip": "date",
+      "recipientName": "string"
     },
     "hints": {
-      "companyName": "e.g., UP Aviation LLC",
-      "deliveryDate": "mm/dd/yyyy",
-      "items": "List main components or SKUs",
-      "notes": "Optional remarks or follow-up context",
-      "orderNumber": "e.g., PO-10832",
-      "trackingNumber": "e.g., 1Z999AA10123456784"
+      "itemsSummary": "e.g., 10 \u00d7 Part A, 5 \u00d7 Part B",
+      "poNumber": "e.g., PO-10832",
+      "promisedShip": "mm/dd/yyyy",
+      "recipientName": "e.g., John Smith"
     },
     "label": "Order Confirmation",
-    "optional": [
-      "items",
-      "trackingNumber",
-      "notes"
-    ],
+    "optional": [],
     "required": [
-      "orderNumber",
-      "companyName",
-      "deliveryDate"
+      "poNumber",
+      "recipientName",
+      "itemsSummary",
+      "promisedShip"
     ]
   },
   "order_request": {
     "description": "Request to process and confirm an order with shipping details.",
+    "enums": {
+      "fedexAccount": [
+        {
+          "label": "MEXICALI/COMPLETIONS",
+          "value": "031400023"
+        },
+        {
+          "label": "EDWARDS",
+          "value": "240920760"
+        },
+        {
+          "label": "DALLAS/FORTH WORTH",
+          "value": "228448800"
+        },
+        {
+          "label": "SPARES/RDCFP (INNOVATION DR)",
+          "value": "805079878"
+        },
+        {
+          "label": "APPLETON",
+          "value": "054900023"
+        },
+        {
+          "label": "CAHOKIA",
+          "value": "335312570"
+        },
+        {
+          "label": "ELISE ST",
+          "value": "161038032"
+        },
+        {
+          "label": "WEST PALM BEACH",
+          "value": "231190686"
+        },
+        {
+          "label": "BRUNSWICK",
+          "value": "158314215"
+        },
+        {
+          "label": "MESA",
+          "value": "323701300"
+        },
+        {
+          "label": "GILL CORP",
+          "value": "091536978"
+        }
+      ]
+    },
     "fieldTypes": {
       "fedexAccount": "enum",
       "notes": "longtext",
@@ -157,47 +195,51 @@ SCHEMA_GENERATED = {
     },
     "hints": {
       "fedexAccount": "Select shipper account number",
-      "notes": "Any special instructions for fulfillment",
+      "fedexAccountLabels": "{\n  \"031400023\": \"MEXICALI/COMPLETIONS\",\n  \"240920760\": \"EDWARDS\",\n  \"228448800\": \"DALLAS/FORTH WORTH\",\n  \"805079878\": \"SPARES/RDCFP (INNOVATION DR)\",\n  \"054900023\": \"APPLETON\",\n  \"335312570\": \"CAHOKIA\",\n  \"161038032\": \"ELISE ST\",\n  \"231190686\": \"WEST PALM BEACH\",\n  \"158314215\": \"BRUNSWICK\",\n  \"323701300\": \"MESA\",\n  \"091536978\": \"GILL CORP\"\n}\n",
+      "notes": "Optional special instructions or comments",
       "parts": "List PN and qty lines",
-      "recipientName": "e.g., \u201cUP Aviation Receiving\u201d",
+      "recipientName": "e.g., \"UP Aviation Receiving\"",
       "shipAddress": "Full street, city, state, zip"
     },
     "label": "Order Request",
-    "optional": [],
+    "optional": [
+      "notes"
+    ],
     "required": [
       "recipientName",
+      "fedexAccount",
       "shipAddress",
-      "parts",
-      "notes",
-      "fedexAccount"
+      "parts"
     ]
   },
   "packing_slip_docs": {
     "description": "Send or request documentation such as a packing slip, invoice, or certificate.",
+    "enums": {},
     "fieldTypes": {
-      "attachment": "string",
-      "documentType": "enum",
+      "customerName": "string",
+      "docsList": "longtext",
       "notes": "longtext",
-      "orderNumber": "string"
+      "poNumber": "string"
     },
     "hints": {
-      "attachment": "Filename or link to uploaded file",
-      "documentType": "e.g., \u201cPacking Slip\u201d or \u201cInvoice\u201d",
-      "notes": "Optional internal comments",
-      "orderNumber": "e.g., PO-10922"
+      "customerName": "e.g., John Smith",
+      "docsList": "e.g., \"Packing Slip, Invoice, CoC\"",
+      "notes": "Optional internal note or context",
+      "poNumber": "e.g., PO-10922"
     },
     "label": "Packing Slip / Documents",
     "optional": [
-      "attachment",
       "notes"
     ],
     "required": [
-      "documentType",
-      "orderNumber"
+      "poNumber",
+      "customerName",
+      "docsList"
     ]
   },
   "qb_order": {
     "description": "QuickBooks order request or confirmation message.",
+    "enums": {},
     "fieldTypes": {
       "orderDate": "date",
       "orderNumber": "string",
@@ -208,133 +250,128 @@ SCHEMA_GENERATED = {
     "hints": {
       "orderDate": "mm/dd/yyyy",
       "orderNumber": "e.g., PO-10941",
-      "recipientName": "e.g., \u201cUP Aviation Accounting\u201d",
-      "senderName": "e.g., \u201cKennedy Harper\u201d",
+      "recipientName": "e.g., \"UP Aviation Accounting\"",
+      "senderName": "e.g., \"Kennedy Harper\"",
       "shipDate": "mm/dd/yyyy"
     },
     "label": "QB Order",
     "optional": [
+      "senderName",
       "orderNumber",
       "orderDate",
       "shipDate"
     ],
     "required": [
-      "recipientName",
-      "senderName"
+      "recipientName"
     ]
   },
   "quote_request": {
-    "description": "Customer requests pricing and availability for an item.",
+    "description": "Request pricing and lead time for a specific part and quantity.",
+    "enums": {},
     "fieldTypes": {
-      "companyName": "string",
-      "contactPerson": "string",
-      "deliveryDate": "date",
-      "destination": "string",
-      "item": "string",
+      "customerName": "string",
+      "needByDate": "date",
       "notes": "longtext",
+      "partNumber": "string",
       "quantity": "string"
     },
     "hints": {
-      "companyName": "e.g., UP Aviation LLC",
-      "contactPerson": "e.g., John Stancel",
-      "deliveryDate": "mm/dd/yyyy",
-      "destination": "e.g., Asheville NC or zip code",
-      "item": "e.g., PN-10423 or \u201cpressure sensor kit\u201d",
-      "notes": "Any special instructions",
-      "quantity": "e.g., 2"
+      "customerName": "e.g., \"John Smith\"",
+      "needByDate": "mm/dd/yyyy (optional target date)",
+      "notes": "Optional context or constraints (e.g., MOQs, alt parts)",
+      "partNumber": "e.g., \"PN-10423\"",
+      "quantity": "e.g., \"2\""
     },
     "label": "Quote Request",
     "optional": [
-      "deliveryDate",
-      "contactPerson",
+      "needByDate",
       "notes"
     ],
     "required": [
-      "companyName",
-      "item",
-      "quantity",
-      "destination"
+      "customerName",
+      "partNumber",
+      "quantity"
     ]
   },
   "shipment_update": {
-    "description": "Notify a customer about shipment/tracking status.",
+    "description": "Notify a customer about shipment or tracking status.",
+    "enums": {
+      "carrier": [
+        {
+          "label": "UPS",
+          "value": "UPS"
+        },
+        {
+          "label": "FedEx",
+          "value": "FedEx"
+        },
+        {
+          "label": "DHL",
+          "value": "DHL"
+        },
+        {
+          "label": "USPS",
+          "value": "USPS"
+        }
+      ]
+    },
     "fieldTypes": {
       "carrier": "enum",
-      "estimatedArrival": "date",
+      "customerName": "string",
+      "items": "longtext",
       "notes": "longtext",
-      "orderNumber": "string",
+      "poNumber": "string",
       "shipDate": "date",
       "trackingNumber": "string"
     },
     "hints": {
       "carrier": "Choose from UPS, FedEx, DHL, USPS",
-      "estimatedArrival": "mm/dd/yyyy",
-      "orderNumber": "Optional, if available",
+      "customerName": "e.g., John Smith",
+      "items": "Optional \u2013 brief list or summary of shipped parts",
+      "notes": "Optional internal comments or context",
+      "poNumber": "e.g., PO-4815",
       "shipDate": "mm/dd/yyyy",
       "trackingNumber": "e.g., 1Z999AA10123456784"
     },
     "label": "Shipment Update",
     "optional": [
-      "estimatedArrival",
-      "orderNumber",
+      "items",
       "notes"
     ],
     "required": [
-      "trackingNumber",
+      "poNumber",
+      "customerName",
       "carrier",
+      "trackingNumber",
       "shipDate"
     ]
   },
   "tax_exempt_certificate": {
-    "description": "Send or request a tax-exempt certificate for purchases.",
+    "description": "Send a tax-exempt certificate with a simple message.",
+    "enums": {},
     "fieldTypes": {
-      "certificateId": "string",
-      "companyName": "string",
-      "expirationDate": "date",
-      "jurisdiction": "string",
-      "notes": "longtext",
       "recipientName": "string"
     },
     "hints": {
-      "certificateId": "e.g., \u201cTX-EX-4921\u201d",
-      "companyName": "e.g., \u201cUP Aviation LLC\u201d",
-      "expirationDate": "mm/dd/yyyy",
-      "jurisdiction": "e.g., \u201cTX\u201d",
-      "notes": "Optional message to include with the certificate",
-      "recipientName": "e.g., \u201cAccounts Payable\u201d"
+      "recipientName": "e.g., \"Accounts Payable\""
     },
     "label": "Tax Exempt Certificate",
-    "optional": [
-      "companyName",
-      "certificateId",
-      "jurisdiction",
-      "expirationDate",
-      "notes"
-    ],
+    "optional": [],
     "required": [
       "recipientName"
     ]
   },
   "tax_exemption": {
-    "description": "Notify a customer about tax-exempt status or request details.",
+    "description": "Notify a customer about tax-exempt status or send a tax-exempt certificate.",
+    "enums": {},
     "fieldTypes": {
-      "companyName": "string",
-      "jurisdiction": "string",
-      "notes": "longtext",
       "recipientName": "string"
     },
     "hints": {
-      "companyName": "e.g., \u201cUP Aviation LLC\u201d",
-      "jurisdiction": "e.g., \u201cFL\u201d or \u201cFlorida\u201d",
-      "notes": "Optional context for the exemption",
-      "recipientName": "e.g., \u201cAccounts Payable\u201d"
+      "recipientName": "e.g., \"Accounts Payable\""
     },
     "label": "Tax Exemption",
-    "optional": [
-      "companyName",
-      "jurisdiction",
-      "notes"
-    ],
+    "optional": [],
     "required": [
       "recipientName"
     ]

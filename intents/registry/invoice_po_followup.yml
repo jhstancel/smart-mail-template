@@ -2,22 +2,20 @@ id: invoice_po_followup
 label: Invoice / PO Follow-Up
 description: Follow up on an invoice or purchase order previously sent or discussed.
 
-required: [invoiceNumber, poNumber, dueDate, recipientName]
-optional: [notes]
+required: [invoiceNumber, poNumber, recipientName, dueDate]
+optional: []
 
 fieldTypes:
   invoiceNumber: string
   poNumber: string
   dueDate: date
   recipientName: string
-  notes: longtext
 
 hints:
   invoiceNumber: e.g., INV-4827
   poNumber: e.g., PO-10892
   dueDate: mm/dd/yyyy
   recipientName: e.g., John Smith
-  notes: Optional internal note or additional context
 
 template:
   subject: "Follow-Up on Invoice {{ invoiceNumber }} / PO {{ poNumber }} — Due {{ dueDate }}"
