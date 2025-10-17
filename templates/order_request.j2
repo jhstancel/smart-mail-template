@@ -1,14 +1,12 @@
-Subject: Order Request – {{ recipientName }}
+Subject: Order Request
 
 Hi {{ recipientName }},
 
 Can you please process the following order for me and let me know when it will ship?
 
-{% if parts %}
-{% for p in parts %}
+{% for p in parts if p.partNumber and p.quantity %}
 • Part Number: {{ p.partNumber }} | Quantity: {{ p.quantity }}
 {% endfor %}
-{% endif %}
 
 Please ship on FedEx account {{ fedexAccount }}.
 Shipping address: {{ shipAddress }}
