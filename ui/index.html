@@ -337,6 +337,31 @@
     opacity:0; transform: translateY(-6px); pointer-events:none; transition: opacity .2s ease, transform .2s ease;
   }
   .splash-tip.show{ opacity:1; transform: translateY(0); }
+// ===== Visible Intents (persist to localStorage) =====
+const VI_KEY = 'sm_visible_intents_v1';
+
+function loadVisibleIntents(){
+  try{
+    const raw = localStorage.getItem(VI_KEY);
+    if(!raw) return null;                 // no preference saved yet
+    const arr = JSON.parse(raw);
+    if(Array.isArray(arr)) return new Set(arr);
+  }catch(_e){}
+  return null;
+}
+function saveVisibleIntents(set){
+  try{
+    const arr = Array.from(set || []);
+    localStorage.setItem(VI_KEY, JSON.stringify(arr));
+  }catch(_e){}
+}
+function isIntentVisible(name, viSet){
+  // Auto-detect is always shown
+  if(name === 'auto_detect') return true;
+  // If never saved, default is "visible"
+  if(!viSet) return true;
+  return viSet.has(name);
+}
 
   /* Rabbit + portal */
   .rabbit{ position:fixed; bottom:18px; left:-40px; width:18px; height:18px; border-radius:50%;
@@ -454,6 +479,10 @@
       <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
     </div>
 <div id="subTyping" class="settings-subpanel">
+
+
+
+
   <div class="settings-row" style="justify-content:space-between; margin:8px 0">
     <div>
       <div class="label">Live Output Preview</div>
@@ -468,6 +497,28 @@
   </label>
   <p class="muted" style="margin:6px 0 0">Note: Minimal themes dampen most animations.</p>
 </div>
+
+
+
+<div class="settings-item" data-item="intents" role="menuitem" tabindex="0">
+  <div>
+    <div class="label">Visible Intents</div>
+    <div class="hint">Choose which templates appear on the home grid</div>
+  </div>
+  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+</div>
+<div id="subIntents" class="settings-subpanel">
+  <div class="label" style="margin:8px 0 6px">Show on home</div>
+  <div id="intentChecks" class="kvs" style="margin:6px 0 10px"></div>
+  <div class="inline" style="margin-top:6px">
+    <button id="vi_save"  class="btn secondary" type="button">Save</button>
+    <button id="vi_all"   class="btn secondary" type="button">Select All</button>
+    <button id="vi_none"  class="btn secondary" type="button">Select None</button>
+    <button id="vi_reset" class="btn secondary" type="button">Reset</button>
+  </div>
+  <p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
+</div>
+
 
 <!-- new Global Defaults section -->
 <div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
@@ -566,7 +617,6 @@
   <div class="panel reveal" style="margin-top:16px">
     <div class="inline">
       <h2 class="title" style="font-size:18px; margin:0">Output</h2>
-      <span class="subtitle">Copy into your email client</span>
     </div>
     <div class="row">
       <div>
@@ -978,7 +1028,13 @@ function makeIntentCard(item){
 function renderIntentGridFromData(list){
   intentGrid.innerHTML = '';
 
-  const visible = Array.isArray(list) ? list.filter(x => !x.hidden) : [];
+  // Read user prefs (Set or null if never saved)
+  const viSet = loadVisibleIntents();
+
+  // Respect .hidden and the user’s visibility set
+  const visible = Array.isArray(list)
+    ? list.filter(x => !x.hidden && isIntentVisible(x.name, viSet))
+    : [];
 
   const normals = visible
     .filter(x => x.name !== 'auto_detect')
@@ -998,6 +1054,78 @@ function renderIntentGridFromData(list){
     const node = makeIntentCard(auto);
     node.style.background = 'linear-gradient(180deg, var(--card-bg1), var(--card-bg2))';
     intentGrid.appendChild(node);
+  }
+}
+function buildIntentsChecklist(){
+  const box = document.getElementById('intentChecks');
+  if(!box) return;
+
+  // Fresh fill each time
+  box.innerHTML = '';
+
+  // Current saved set (null means no saved prefs → default show all)
+  const viSet = loadVisibleIntents();
+
+  // Sort by nice label; skip auto_detect (always shown)
+  const items = (INTENTS || [])
+    .filter(x => x && x.name !== 'auto_detect')
+    .slice()
+    .sort((a,b) => (a.label||a.name).localeCompare(b.label||b.name));
+
+  items.forEach(it=>{
+    const id = `vi_${it.name}`;
+    const wrap = document.createElement('div');
+    wrap.className = 'kv';
+    wrap.innerHTML = `
+      <label class="toggle" for="${id}">
+        <input id="${id}" type="checkbox" ${isIntentVisible(it.name, viSet) ? 'checked':''} />
+        ${it.label || it.name}
+      </label>
+      <div class="muted">${it.description || ''}</div>
+    `;
+    box.appendChild(wrap);
+  });
+
+  // Buttons
+  const btnSave  = document.getElementById('vi_save');
+  const btnAll   = document.getElementById('vi_all');
+  const btnNone  = document.getElementById('vi_none');
+  const btnReset = document.getElementById('vi_reset');
+
+  const allIds = items.map(it => `vi_${it.name}`);
+
+  function collectSetFromUI(){
+    const s = new Set();
+    items.forEach(it=>{
+      const cb = document.getElementById(`vi_${it.name}`);
+      if(cb && cb.checked) s.add(it.name);
+    });
+    return s;
+  }
+
+  if(btnSave){
+    btnSave.onclick = ()=>{
+      const s = collectSetFromUI();
+      saveVisibleIntents(s);
+      renderIntentGridFromData(INTENTS);
+    };
+  }
+  if(btnAll){
+    btnAll.onclick = ()=>{
+      allIds.forEach(id=>{ const cb = document.getElementById(id); if(cb) cb.checked = true; });
+    };
+  }
+  if(btnNone){
+    btnNone.onclick = ()=>{
+      allIds.forEach(id=>{ const cb = document.getElementById(id); if(cb) cb.checked = false; });
+    };
+  }
+  if(btnReset){
+    btnReset.onclick = ()=>{
+      localStorage.removeItem(VI_KEY);
+      buildIntentsChecklist();            // rebuild UI → default all checked
+      renderIntentGridFromData(INTENTS);  // re-render grid
+    };
   }
 }
 
@@ -1373,6 +1501,7 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
 
   const settingsBtn  = document.querySelector('.settings-btn');
   const settingsMenu = document.querySelector('.settings-menu');
+  const subIntents   = document.getElementById('subIntents'); 
   const subTheme     = document.getElementById('subTheme');
   const subTyping    = document.getElementById('subTyping');
   const themeSelect  = document.getElementById('themeSelect');
@@ -1592,6 +1721,7 @@ if (Array.isArray(data) && data.length) {
 }
 
     renderIntentGridFromData(INTENTS);
+    buildIntentsChecklist();
   } catch (err) {
     console.error('Error initializing schema/intents:', err);
     intentGrid.innerHTML = '<div class="muted">Failed to load schema.</div>';
