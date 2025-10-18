@@ -159,6 +159,32 @@
 .parts-plus  { border:1px solid var(--card-border); border-radius:14px; padding:6px 10px; background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); cursor:pointer; }
 .parts-plus-row td { padding-top:4px; }
 .parts-label { font-weight:700; }
+<!-- Item: My Templates -->
+<div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
+  <div>
+    <div class="label">My Templates</div>
+    <div class="hint">Local-only templates saved in this browser</div>
+  </div>
+  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+</div>
+
+<div id="subUserTpls" class="settings-subpanel">
+  <div class="label" style="margin:8px 0 6px">Templates on this device</div>
+  <div class="inline" style="gap:8px; margin:6px 0">
+    <button id="ut_new" class="btn" type="button">+ New</button>
+    <button id="ut_edit" class="btn secondary" type="button" disabled>Edit</button>
+    <button id="ut_dup"  class="btn secondary" type="button" disabled>Duplicate</button>
+    <button id="ut_del"  class="btn danger"    type="button" disabled>Delete</button>
+    <button id="ut_export" class="btn secondary" type="button">Export</button>
+    <label class="btn secondary" style="position:relative; overflow:hidden; cursor:pointer">
+      Import
+      <input id="ut_import" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer">
+    </label>
+  </div>
+
+  <div id="ut_list" class="kvs" style="margin-top:6px"></div>
+  <p class="muted" style="margin:8px 0 0">Tip: These are local only and won’t sync across devices.</p>
+</div>
 
   /* Starfield */
   canvas#stars{position:fixed; inset:0; z-index:-3;}
@@ -421,6 +447,24 @@
   border-bottom: 1px dashed rgba(0,0,0,.06);
 }
 #subIntents .kvs .kv:last-child{ border-bottom: 0; }
+/* Scrollable My Templates drawer */
+#subUserTpls.settings-subpanel{
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+#ut_list .kv{
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(0,0,0,.06);
+}
+#ut_list .kv:last-child{ border-bottom: 0; }
+
+/* Tiny badge for local templates on cards */
+.tpl-badge{
+  font-size: 11px; padding: 2px 6px; border-radius: 999px;
+  background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
+  margin-left: 6px;
+}
 
 </style>
 </head>
@@ -1627,6 +1671,54 @@ if(clearBtn){
 
 
 
+// ===== User Templates (local-only) =====
+const USER_TPLS_KEY = 'sm_user_templates_v1';   // array of {id:'u:xxx', name:'u:xxx', label, description, fields[], subject, body}
+
+function loadUserTemplates(){
+  try{
+    const raw = localStorage.getItem(USER_TPLS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    if(Array.isArray(arr)) return arr;
+  }catch(_e){}
+  return [];
+}
+function saveUserTemplates(list){
+  try{ localStorage.setItem(USER_TPLS_KEY, JSON.stringify(list||[])); }catch(_e){}
+}
+
+// Convert compact field lines into [{name,type,required,hint?}]
+function parseFieldLines(text){
+  const out = [];
+  (text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean).forEach(line=>{
+    const [name, type='string', req=''] = line.split(':').map(x=>x.trim());
+    if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return;
+    out.push({name, type: (type||'string'), required: (req.toLowerCase()==='required')});
+  });
+  return out;
+}
+
+// Escape HTML for safe preview
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Basic {{ field }} interpolation (no logic)
+function renderLocalTemplate(def, data){
+  const re = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
+  const sub = (tpl)=> String(tpl||'').replace(re, (_m, key)=> esc(data[key] ?? ''));
+  return { subject: sub(def.subject || ''), body: sub(def.body || '') };
+}
+
+// Build "intent-like" objects so they mix into the grid
+function userTemplatesAsIntents(){
+  return loadUserTemplates().map(t => ({
+    name: t.id,                      // e.g., u:my_quote
+    label: t.label || t.name || t.id,
+    description: t.description || 'Local template',
+    required: (t.fields||[]).filter(f=>f.required).map(f=>f.name),
+    optional: (t.fields||[]).filter(f=>!f.required).map(f=>f.name),
+    fieldTypes: Object.fromEntries((t.fields||[]).map(f=>[f.name, f.type||'string'])),
+    _local: true,
+  }));
+}
 
 
 
@@ -1702,8 +1794,14 @@ if (Array.isArray(data) && data.length) {
   INTENTS.sort((a, b) => (a.name === 'auto_detect' ? -1 : b.name === 'auto_detect' ? 1 : a.label.localeCompare(b.label)));
 }
 
+    // --- Merge local templates (My Templates) ---
+    const coreIntents = INTENTS;
+    const localIntents = userTemplatesAsIntents();
+    INTENTS = [...coreIntents, ...localIntents];
+
     renderIntentGridFromData(INTENTS);
     buildIntentsChecklist();
+    buildUserTemplatesUI(); // populate the My Templates list
   } catch (err) {
     console.error('Error initializing schema/intents:', err);
     intentGrid.innerHTML = '<div class="muted">Failed to load schema.</div>';
@@ -2126,6 +2224,39 @@ const SRC = window.NYAN_CAT_SRC || 'https://media.tenor.com/rI_0O_9AJ5sAAAAj/nya
   window.spawnNyan = spawnNyan;
 })();
 </script>
+<!-- Simple Editor Dialog for My Templates -->
+<dialog id="ut_editor">
+  <form method="dialog" id="ut_form" style="min-width: min(680px, 90vw)">
+    <h3 style="margin:0 0 10px">Edit Template</h3>
+    <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <label>Internal ID (letters, numbers, underscores; will be prefixed with u:)
+        <input id="ute_id" type="text" placeholder="my_quote" required pattern="[A-Za-z0-9_]{2,64}">
+      </label>
+      <label>Label (shown in grid)
+        <input id="ute_label" type="text" placeholder="My Quote" required>
+      </label>
+    </div>
+    <label>Description
+      <input id="ute_desc" type="text" placeholder="Local-only quote request">
+    </label>
+    <label>Fields (one per line as <name>:<type>[:required]) 
+      <textarea id="ute_fields" rows="4" placeholder="companyName:string:required&#10;item:string:required&#10;quantity:string"></textarea>
+    </label>
+    <div class="grid" style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:6px">
+      <label>Subject (use {{field}} placeholders)
+        <input id="ute_subject" type="text" placeholder="Quote Request — {{ companyName }}: {{ item }}">
+      </label>
+      <label>Body (plain text; {{field}} placeholders allowed)
+        <textarea id="ute_body" rows="8" placeholder="Hello,&#10;&#10>We’d like a quote for {{ item }} (qty {{ quantity }}).&#10;&#10>Thanks,"></textarea>
+      </label>
+    </div>
+
+    <div class="inline" style="justify-content:flex-end; gap:8px; margin-top:10px">
+      <button id="ute_cancel" class="btn secondary" value="cancel">Cancel</button>
+      <button id="ute_save"   class="btn" value="default">Save</button>
+    </div>
+  </form>
+</dialog>
 
 </body>
 </html>
