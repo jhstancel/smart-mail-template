@@ -33,12 +33,29 @@ print("[info] Loaded generated schema and autodetect rules (legacy system remove
 
 
 
-def _env():
-    from jinja2 import Environment, FileSystemLoader
-    env = Environment(loader=FileSystemLoader("templates"))
-    
-    # add a simple date shortener
-    env.filters["shortdate"] = lambda v: str(v)[5:] if v else ""
+def _env() -> Environment:
+    env = Environment(
+        loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
+        autoescape=False,
+        undefined=Undefined,
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
+
+    # Register filters
+    def shortdate(value):
+        from datetime import datetime
+        if not value:
+            return ""
+        s = str(value).strip()
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%Y/%m/%d"):
+            try:
+                return datetime.strptime(s, fmt).strftime("%m/%d/%Y")
+            except Exception:
+                pass
+        return s  # fallback: pass through as-is
+
+    env.filters["shortdate"] = shortdate
     return env
 
 
