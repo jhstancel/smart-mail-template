@@ -337,32 +337,6 @@
     opacity:0; transform: translateY(-6px); pointer-events:none; transition: opacity .2s ease, transform .2s ease;
   }
   .splash-tip.show{ opacity:1; transform: translateY(0); }
-// ===== Visible Intents (persist to localStorage) =====
-const VI_KEY = 'sm_visible_intents_v1';
-
-function loadVisibleIntents(){
-  try{
-    const raw = localStorage.getItem(VI_KEY);
-    if(!raw) return null;                 // no preference saved yet
-    const arr = JSON.parse(raw);
-    if(Array.isArray(arr)) return new Set(arr);
-  }catch(_e){}
-  return null;
-}
-function saveVisibleIntents(set){
-  try{
-    const arr = Array.from(set || []);
-    localStorage.setItem(VI_KEY, JSON.stringify(arr));
-  }catch(_e){}
-}
-function isIntentVisible(name, viSet){
-  // Auto-detect is always shown
-  if(name === 'auto_detect') return true;
-  // If never saved, default is "visible"
-  if(!viSet) return true;
-  return viSet.has(name);
-}
-
   /* Rabbit + portal */
   .rabbit{ position:fixed; bottom:18px; left:-40px; width:18px; height:18px; border-radius:50%;
     background:white; box-shadow: 0 0 16px rgba(255,255,255,.8); z-index:30; animation: hop 1.6s ease-in-out forwards; }
@@ -639,6 +613,31 @@ function isIntentVisible(name, viSet){
 </div>
 
 <script>
+
+// ===== Visible Intents (persist to localStorage) =====
+const VI_KEY = 'sm_visible_intents_v1';
+
+function loadVisibleIntents(){
+  try{
+    const raw = localStorage.getItem(VI_KEY);
+    if(!raw) return null;
+    const arr = JSON.parse(raw);
+    if(Array.isArray(arr)) return new Set(arr);
+  }catch(_e){}
+  return null;
+}
+function saveVisibleIntents(set){
+  try{
+    const arr = Array.from(set || []);
+    localStorage.setItem(VI_KEY, JSON.stringify(arr));
+  }catch(_e){}
+}
+function isIntentVisible(name, viSet){
+  if(name === 'auto_detect') return true;
+  if(!viSet) return true;
+  return viSet.has(name);
+}
+
 /* =========================================================================================
  * Smart Mail Template — Frontend Script (clean + documented)
  * =======================================================================================*/
@@ -1501,25 +1500,19 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
 
   const settingsBtn  = document.querySelector('.settings-btn');
   const settingsMenu = document.querySelector('.settings-menu');
-  const subIntents   = document.getElementById('subIntents'); 
-  const subTheme     = document.getElementById('subTheme');
-  const subTyping    = document.getElementById('subTyping');
-  const themeSelect  = document.getElementById('themeSelect');
-
-
-
-
-
-const subDefaults = document.getElementById('subDefaults'); // add this near subTheme/subTyping
-
+const subIntents   = document.getElementById('subIntents'); 
+const subTheme     = document.getElementById('subTheme');
+const subTyping    = document.getElementById('subTyping');
+...
 function closeAllSubs(){
-  [subTheme, subTyping, subDefaults].forEach(el => el && el.classList.remove('open'));
+  [subTheme, subTyping, subIntents, subDefaults].forEach(el => el && el.classList.remove('open'));
   document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
 }
 function openOnly(which){
   closeAllSubs();
-  if(which==='theme' && subTheme) subTheme.classList.add('open');
-  if(which==='typing' && subTyping) subTyping.classList.add('open');
+  if(which==='theme'    && subTheme)    subTheme.classList.add('open');
+  if(which==='typing'   && subTyping)   subTyping.classList.add('open');
+  if(which==='intents'  && subIntents){ subIntents.classList.add('open'); buildIntentsChecklist(); }
   if(which==='defaults' && subDefaults) subDefaults.classList.add('open');
   document.querySelectorAll('.settings-item').forEach(row=>{
     const chev = row.querySelector('.chev');
