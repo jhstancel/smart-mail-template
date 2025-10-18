@@ -2,8 +2,8 @@ id: shipment_update
 label: Shipment Update
 description: Notify a customer about shipment or tracking status.
 
-required: [poNumber, customerName, carrier, trackingNumber, shipDate]
-optional: [items, notes]
+required: [customerName, poNumber, items, carrier, trackingNumber, shipDate]
+optional: []
 
 fieldTypes:
   poNumber: string

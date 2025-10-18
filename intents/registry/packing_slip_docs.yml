@@ -2,8 +2,8 @@ id: packing_slip_docs
 label: Packing Slip / Documents
 description: Send or request documentation such as a packing slip, invoice, or certificate.
 
-required: [poNumber, customerName, docsList]
-optional: [notes]
+required: [customerName, poNumber, docsList]
+optional: []
 
 fieldTypes:
   poNumber: string

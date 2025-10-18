@@ -3,7 +3,7 @@ label: QB Order
 description: QuickBooks order request or confirmation message.
 
 required: [recipientName]
-optional: [senderName, orderNumber, orderDate, shipDate]
+optional: []
 
 fieldTypes:
   recipientName: string

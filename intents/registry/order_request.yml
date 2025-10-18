@@ -2,7 +2,7 @@ id: order_request
 label: Order Request
 description: Request to process and confirm an order with shipping details.
 
-required: [recipientName, fedexAccount, shipAddress, parts]
+required: [recipientName, parts, fedexAccount, shipAddress]
 optional: [notes]
 
 fieldTypes:

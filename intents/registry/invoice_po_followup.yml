@@ -2,7 +2,7 @@ id: invoice_po_followup
 label: Invoice / PO Follow-Up
 description: Follow up on an invoice or purchase order previously sent or discussed.
 
-required: [invoiceNumber, poNumber, recipientName, dueDate]
+required: [recipientName, invoiceNumber, poNumber, dueDate]
 optional: []
 
 fieldTypes:

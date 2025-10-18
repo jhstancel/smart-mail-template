@@ -3,17 +3,15 @@ label: Follow-up
 description: Send a short follow-up or status-check message on a prior topic.
 
 required: [customerName, context]
-optional: [ask]
+optional: []
 
 fieldTypes:
   customerName: string
   context: longtext
-  ask: longtext
 
 hints:
   customerName: e.g., "John Smith"
   context: e.g., "the quote for PO-10927" or "yesterday’s delivery timing"
-  ask: e.g., "Do you have an update?" or "Could you confirm the new ship date?"
 
 template:
   subject: "Follow-up – {{ context }}"
@@ -30,7 +28,6 @@ tests:
     - fields:
         customerName: "John Smith"
         context: "the quote for PO-10927"
-        ask: "Do you have an update?"
       expectSubjectContains: ["Follow-up", "PO-10927"]
       expectBodyContains: ["Hi John", "checking in", "Do you have an update?"]
 

@@ -2,7 +2,7 @@ id: order_confirmation
 label: Order Confirmation
 description: Confirm that an order has been received and provide delivery details.
 
-required: [poNumber, recipientName, itemsSummary, promisedShip]
+required: [recipientName, poNumber, itemsSummary, promisedShip]
 optional: []
 
 fieldTypes:

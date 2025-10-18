@@ -2,7 +2,7 @@ id: invoice_payment
 label: Invoice Payment
 description: Notify or confirm payment for an invoice.
 
-required: [invoiceNumber, recipientName, amount, paymentMethod, paymentDate]
+required: [recipientName, invoiceNumber, amount, paymentMethod, paymentDate]
 optional: []
 
 fieldTypes:
