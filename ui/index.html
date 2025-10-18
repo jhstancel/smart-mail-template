@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
+.splash-tip.show{ opacity:1; transform: translateY(0); }
 /* Parts card: remove any phantom bar under the title */
 .kv:has(#partsCardBody) .parts-header {
   margin-top: 0;
@@ -409,6 +410,18 @@
 
   /* 🚫 Make the "Required Fields" helper invisible without removing it */
   #fieldsHint{ display:none !important; }
+/* Scrollable Visible Intents drawer */
+#subIntents.settings-subpanel{
+  max-height: 56vh;    /* fits nicely on laptop screens */
+  overflow-y: auto;
+  padding-right: 6px;  /* room for scrollbar */
+}
+#subIntents .kvs .kv{
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(0,0,0,.06);
+}
+#subIntents .kvs .kv:last-child{ border-bottom: 0; }
+
 </style>
 </head>
 <body>
@@ -1023,18 +1036,13 @@ function makeIntentCard(item){
 
   return div;
 }
-
 function renderIntentGridFromData(list){
   intentGrid.innerHTML = '';
 
-  // Read user prefs (Set or null if never saved)
-  const viSet = loadVisibleIntents();
-
-  // Respect .hidden and the user’s visibility set
+  const viSet = loadVisibleIntents(); // Set or null
   const visible = Array.isArray(list)
     ? list.filter(x => !x.hidden && isIntentVisible(x.name, viSet))
     : [];
-
   const normals = visible
     .filter(x => x.name !== 'auto_detect')
     .sort((a,b)=>{
@@ -1059,17 +1067,24 @@ function buildIntentsChecklist(){
   const box = document.getElementById('intentChecks');
   if(!box) return;
 
-  // Fresh fill each time
   box.innerHTML = '';
-
-  // Current saved set (null means no saved prefs → default show all)
-  const viSet = loadVisibleIntents();
-
-  // Sort by nice label; skip auto_detect (always shown)
+  const current = loadVisibleIntents(); // Set or null
   const items = (INTENTS || [])
     .filter(x => x && x.name !== 'auto_detect')
     .slice()
     .sort((a,b) => (a.label||a.name).localeCompare(b.label||b.name));
+
+  // helper to rebuild & render after any change
+  function commitFromUI(){
+    const s = new Set();
+    items.forEach(it=>{
+      const cb = document.getElementById(`vi_${it.name}`);
+      if(cb && cb.checked) s.add(it.name);
+    });
+    saveVisibleIntents(s);
+    renderIntentGridFromData(INTENTS);
+    buildIntentsChecklist();
+  }
 
   items.forEach(it=>{
     const id = `vi_${it.name}`;
@@ -1077,12 +1092,18 @@ function buildIntentsChecklist(){
     wrap.className = 'kv';
     wrap.innerHTML = `
       <label class="toggle" for="${id}">
-        <input id="${id}" type="checkbox" ${isIntentVisible(it.name, viSet) ? 'checked':''} />
+        <input id="${id}" type="checkbox" ${isIntentVisible(it.name, current) ? 'checked':''} />
         ${it.label || it.name}
       </label>
       <div class="muted">${it.description || ''}</div>
     `;
     box.appendChild(wrap);
+
+    // live update on toggle
+    const cb = wrap.querySelector('input[type="checkbox"]');
+    if(cb){
+      cb.addEventListener('change', commitFromUI);
+    }
   });
 
   // Buttons
@@ -1091,41 +1112,10 @@ function buildIntentsChecklist(){
   const btnNone  = document.getElementById('vi_none');
   const btnReset = document.getElementById('vi_reset');
 
-  const allIds = items.map(it => `vi_${it.name}`);
-
-  function collectSetFromUI(){
-    const s = new Set();
-    items.forEach(it=>{
-      const cb = document.getElementById(`vi_${it.name}`);
-      if(cb && cb.checked) s.add(it.name);
-    });
-    return s;
-  }
-
-  if(btnSave){
-    btnSave.onclick = ()=>{
-      const s = collectSetFromUI();
-      saveVisibleIntents(s);
-      renderIntentGridFromData(INTENTS);
-    };
-  }
-  if(btnAll){
-    btnAll.onclick = ()=>{
-      allIds.forEach(id=>{ const cb = document.getElementById(id); if(cb) cb.checked = true; });
-    };
-  }
-  if(btnNone){
-    btnNone.onclick = ()=>{
-      allIds.forEach(id=>{ const cb = document.getElementById(id); if(cb) cb.checked = false; });
-    };
-  }
-  if(btnReset){
-    btnReset.onclick = ()=>{
-      localStorage.removeItem(VI_KEY);
-      buildIntentsChecklist();            // rebuild UI → default all checked
-      renderIntentGridFromData(INTENTS);  // re-render grid
-    };
-  }
+  if(btnSave)  btnSave.onclick  = commitFromUI;
+  if(btnAll)   btnAll.onclick   = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=true; }); commitFromUI(); };
+  if(btnNone)  btnNone.onclick  = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=false;}); commitFromUI(); };
+  if(btnReset) btnReset.onclick = ()=>{ localStorage.removeItem(VI_KEY); buildIntentsChecklist(); renderIntentGridFromData(INTENTS); };
 }
 
 async function loadIntents(){
