@@ -1042,11 +1042,9 @@ async function loadIntents(){
 // === Order Request: Parts editor (Part Number + Quantity with inline +/–) ===
 
 function initOrderRequestPartsEditor(container) {
-// Clear and create card body wrapper to match other fields
+// Clear and use the card itself (same as other fields)
 container.innerHTML = "";
-const cardBody = document.createElement('div');
-cardBody.className = 'card-b';       // same as other cards' inner wrapper
-container.appendChild(cardBody);
+const cardBody = container;
 
 // --- Label row (headers) ---
 const header = document.createElement('div');
@@ -1057,14 +1055,14 @@ header.innerHTML = `
   <div class="h">Quantity</div>
   <div></div>
 `;
-container.appendChild(header);
+cardBody.appendChild(header);
 
   // --- Table for rows ---
   const table = document.createElement('table');
   table.className = 'parts-rows';
   const tbody = document.createElement('tbody');
   table.appendChild(tbody);
-  container.appendChild(table);
+cardBody.appendChild(table);
 
   // Hidden sink used elsewhere in your code (keep the same id if you had one)
   let hidden = container.querySelector('#partsHidden');
@@ -1072,7 +1070,8 @@ container.appendChild(header);
     hidden = document.createElement('textarea');
     hidden.id = 'partsHidden';
     hidden.style.display = 'none';
-    container.appendChild(hidden);
+cardBody.appendChild(hidden);
+
   }
 
   // Local state: array of {partNumber, quantity}
