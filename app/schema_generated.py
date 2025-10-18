@@ -126,8 +126,8 @@ SCHEMA_GENERATED = {
     "label": "Order Confirmation",
     "optional": [],
     "required": [
-      "poNumber",
       "recipientName",
+      "poNumber",
       "itemsSummary",
       "promisedShip"
     ]
@@ -203,9 +203,9 @@ SCHEMA_GENERATED = {
     ],
     "required": [
       "recipientName",
+      "parts",
       "fedexAccount",
-      "shipAddress",
-      "parts"
+      "shipAddress"
     ]
   },
   "packing_slip_docs": {
@@ -224,12 +224,10 @@ SCHEMA_GENERATED = {
       "poNumber": "e.g., PO-10922"
     },
     "label": "Packing Slip / Documents",
-    "optional": [
-      "notes"
-    ],
+    "optional": [],
     "required": [
-      "poNumber",
       "customerName",
+      "poNumber",
       "docsList"
     ]
   },
@@ -251,12 +249,7 @@ SCHEMA_GENERATED = {
       "shipDate": "mm/dd/yyyy"
     },
     "label": "QB Order",
-    "optional": [
-      "senderName",
-      "orderNumber",
-      "orderDate",
-      "shipDate"
-    ],
+    "optional": [],
     "required": [
       "recipientName"
     ]
@@ -331,12 +324,12 @@ SCHEMA_GENERATED = {
     },
     "label": "Shipment Update",
     "optional": [
-      "items",
-      "notes"
+      "items"
     ],
     "required": [
-      "poNumber",
       "customerName",
+      "poNumber",
+      "items",
       "carrier",
       "trackingNumber",
       "shipDate"

@@ -125,8 +125,8 @@
     "label": "Order Confirmation",
     "optional": [],
     "required": [
-      "poNumber",
       "recipientName",
+      "poNumber",
       "itemsSummary",
       "promisedShip"
     ]
@@ -202,9 +202,9 @@
     ],
     "required": [
       "recipientName",
+      "parts",
       "fedexAccount",
-      "shipAddress",
-      "parts"
+      "shipAddress"
     ]
   },
   "packing_slip_docs": {
@@ -223,12 +223,10 @@
       "poNumber": "e.g., PO-10922"
     },
     "label": "Packing Slip / Documents",
-    "optional": [
-      "notes"
-    ],
+    "optional": [],
     "required": [
-      "poNumber",
       "customerName",
+      "poNumber",
       "docsList"
     ]
   },
@@ -250,12 +248,7 @@
       "shipDate": "mm/dd/yyyy"
     },
     "label": "QB Order",
-    "optional": [
-      "senderName",
-      "orderNumber",
-      "orderDate",
-      "shipDate"
-    ],
+    "optional": [],
     "required": [
       "recipientName"
     ]
@@ -330,12 +323,12 @@
     },
     "label": "Shipment Update",
     "optional": [
-      "items",
-      "notes"
+      "items"
     ],
     "required": [
-      "poNumber",
       "customerName",
+      "poNumber",
+      "items",
       "carrier",
       "trackingNumber",
       "shipDate"
