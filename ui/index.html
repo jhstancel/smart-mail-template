@@ -5,46 +5,54 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
-/* Parts inline editor — compact, aligned */
-.parts-header { 
-  display:grid; 
-  grid-template-columns: 1fr 110px 36px; 
-  gap:12px; 
-  align-items:center; 
+/* Equal-width inputs + icon buttons */
+.parts-header{
+  display:grid;
+  grid-template-columns: 1fr 1fr 40px;  /* equal widths, fixed icon column */
+  gap:12px;
+  align-items:center;
   margin-bottom:6px;
 }
-.parts-header .h { font-weight:700; }
-
-.parts-row { 
-  display:grid; 
-  grid-template-columns: 1fr 110px 36px; 
-  gap:12px; 
-  align-items:center; 
+.parts-row{
+  display:grid;
+  grid-template-columns: 1fr 1fr 40px;  /* equal widths */
+  gap:12px;
+  align-items:center;
   margin:6px 0;
 }
+.parts-input{ height:40px; width:100%; }
+.parts-qty{ text-align:center; }
 
-.parts-input { height:40px; }         /* match your form controls */
-.parts-qty   { text-align:center; }
-
-.parts-minus { 
-  width:36px; height:36px; 
-  border:1px solid rgba(255,100,100,.45); 
-  border-radius:999px; 
-  display:flex; align-items:center; justify-content:center; 
-  background:#fff; 
-  cursor:pointer;
-}
-.parts-minus:hover { border-color: rgba(255,80,80,.8); }
-
-.parts-plus {
-  border:1px solid var(--card-border);
+/* Shared icon button */
+.icon-btn{
+  width:40px; height:40px;
   border-radius:999px;
-  padding:10px 14px;
-  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  display:flex; align-items:center; justify-content:center;
+  background:#fff;
   cursor:pointer;
+  font-size:18px; line-height:1;
+  user-select:none;
 }
 
-.parts-plus-row { margin-top:8px; }
+/* – (remove) = soft red ring */
+.parts-minus{
+  border:1px solid rgba(255,100,100,.45);
+}
+.parts-minus:hover{ border-color: rgba(255,80,80,.8); }
+
+/* + (add) = soft green ring */
+.parts-plus{
+  border:1px solid rgba(80,180,120,.45);
+  color:#2f855a;
+  background:#fff;
+}
+.parts-plus:hover{
+  border-color: rgba(60,160,100,.8);
+  color:#276749;
+}
+
+/* Position of the plus row */
+.parts-plus-row{ margin-top:8px; }
 
   /* ===== THEME VARIABLES ===== */
   :root{
@@ -801,7 +809,8 @@ function renderFields(intent){
 
     const label = document.createElement('label');
     label.htmlFor = `f_${key}`;
-    label.textContent = toTitle(key) + (required.includes(key) ? ' *' : '');
+    label.textContent = toTitle(key);
+
     wrap.appendChild(label);
 
     // Special case for 'parts'
@@ -1072,11 +1081,12 @@ parts.forEach((row, idx) => {
   });
 
   // Minus
-  const minus = document.createElement('button');
-  minus.type = 'button';
-  minus.className = 'parts-minus';
-  minus.setAttribute('aria-label','Remove row');
-  minus.textContent = '–';
+ const minus = document.createElement('button');
+minus.type = 'button';
+minus.className = 'icon-btn parts-minus';
+minus.setAttribute('aria-label','Remove row');
+minus.textContent = '–';
+
   minus.addEventListener('click', () => {
     parts.splice(idx, 1);
     render();
@@ -1098,11 +1108,12 @@ tdPlus.colSpan = 3;
 
 const plusWrap = document.createElement('div');
 plusWrap.className = 'parts-plus-row';
-
 const plus = document.createElement('button');
 plus.type = 'button';
-plus.className = 'parts-plus';
-plus.textContent = '+ Add another part';
+plus.className = 'icon-btn parts-plus';
+plus.setAttribute('aria-label','Add part');
+plus.textContent = '+';
+
 plus.addEventListener('click', () => {
   parts.push({ partNumber: '', quantity: '' });
   render();
