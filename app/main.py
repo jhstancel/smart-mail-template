@@ -98,24 +98,29 @@ def _render_subject(env: Environment, intent_schema: Dict[str, Any], intent: str
     return intent_schema.get("label") or intent.replace("_", " ").title()
 
 # ---------- Routes ----------
+
 @app.get("/schema")
 def get_schema() -> Dict[str, Any]:
-    # If Python import worked, use it.
+    # 1) Happy path: module import worked and SCHEMA is populated
     if not _SCHEMA_ERR and SCHEMA:
         return SCHEMA
 
-    # Fallback: try the JSON the UI expects
+    # 2) Fallback: load from public/schema.generated.json so the UI can render
     try:
         json_path = _public_dir() / "schema.generated.json"
         with open(json_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            # return a dict, not None
+            if isinstance(data, dict) and data:
+                return data
     except Exception:
-        # Last resort: tell exactly how to fix
-        raise HTTPException(
-            status_code=503,
-            detail="Schema not loaded. Run: python3.9 -m pip install pyyaml && python3.9 scripts/regen_schemas.py",
-        )
+        pass
 
+    # 3) Final: tell client how to fix; keeps behavior explicit
+    raise HTTPException(
+        status_code=503,
+        detail="Schema not loaded. Run: python3.9 -m pip install pyyaml && python3.9 scripts/regen_schemas.py",
+    )
 @app.post("/autodetect", response_model=AutoDetectResp)
 def autodetect(req: AutoDetectReq) -> AutoDetectResp:
     text = (req.text or "").lower()
