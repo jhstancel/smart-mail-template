@@ -23,7 +23,7 @@ hints:
 
 template:
   subject: "Schedule Update – PO {{ poNumber }} / {{ partNumber }}"
-  bodyPath: "templates/delay_notice.txt"
+  bodyPath: "templates/delay_notice.j2"
 
 autodetect:
   keywords: ["delay", "reschedule", "pushed", "postpone", "new date", "schedule update"]
