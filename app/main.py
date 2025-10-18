@@ -33,6 +33,13 @@ print("[info] Loaded generated schema and autodetect rules (legacy system remove
 
 
 
+def _env():
+    from jinja2 import Environment, FileSystemLoader
+    env = Environment(loader=FileSystemLoader("templates"))
+    
+    # add a simple date shortener
+    env.filters["shortdate"] = lambda v: str(v)[5:] if v else ""
+    return env
 
 
 
@@ -178,6 +185,10 @@ def generate(req: GenerateReq) -> GenerateResp:
         subject = ""
     if not subject.strip():
         subject = "Order Request" if intent == "order_request" else (_label_for(intent) or "Request")
+    for k, v in fields.items():
+        if isinstance(v, str) and len(v) == 10 and v[4] == '-' and v[7] == '-':
+            # matches YYYY-MM-DD
+            fields[k] = v[5:]
 
     # Always 200; include what’s missing so UI can display it
     return GenerateResp(subject=subject, body=body, missing=missing)
