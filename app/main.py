@@ -1,15 +1,20 @@
+# app/main.py
 from __future__ import annotations
 
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from jinja2 import Environment, FileSystemLoader, Undefined, TemplateNotFound
+
+import json
+import re
 
 app = FastAPI(title="Smart Mail Template API")
 
-# Try to mount static UI if present (safe no-op otherwise)
+# --- Static UI (best-effort) ---
 try:
     from fastapi.staticfiles import StaticFiles
     UI_DIR = Path(__file__).resolve().parent.parent / "ui"
@@ -18,143 +23,216 @@ try:
 except Exception:
     pass
 
+# --- Schema loading (import first, file fallback) ---
+def _load_schema() -> Dict[str, Any]:
+    try:
+        # Preferred: generated Python module
+        from app.schema_generated import SCHEMA_GENERATED as SCHEMA  # type: ignore
+        return dict(SCHEMA)
+    except Exception:
+        pass
+    # Fallback: generated JSON (either /public/ or repo root mirror)
+    candidates = [
+        Path(__file__).resolve().parent.parent / "public" / "schema.generated.json",
+        Path(__file__).resolve().parent.parent / "schema.generated.json",
+    ]
+    for p in candidates:
+        try:
+            if p.exists():
+                return json.loads(p.read_text())
+        except Exception:
+            continue
+    return {}
 
+SCHEMA: Dict[str, Any] = _load_schema()
 
+# Build compact intent list for cards (id + label). Always include auto_detect if present.
+def _intents_list() -> List[Dict[str, str]]:
+    items = []
+    for iid, meta in (SCHEMA or {}).items():
+        label = ""
+        if isinstance(meta, dict):
+            label = (meta.get("label") or iid) if isinstance(meta.get("label"), str) else iid
+        items.append({"id": iid, "label": label or iid})
+    # Put Auto Detect first; then alphabetical by label
+    def sort_key(x):
+        return (0 if x["id"] == "auto_detect" else 1, x["label"].lower())
+    items.sort(key=sort_key)
+    return items
 
+def _env() -> Environment:
+    # templates/ should contain one file per intent, e.g., order_request.j2
+    tdir = Path(__file__).resolve().parent.parent / "templates"
+    return Environment(
+        loader=FileSystemLoader(str(tdir)),
+        autoescape=False,
+        undefined=Undefined,   # missing optionals render as empty
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
 
+def _label_for(intent: str) -> str:
+    meta = SCHEMA.get(intent) if isinstance(SCHEMA, dict) else None
+    if isinstance(meta, dict):
+        lab = meta.get("label")
+        if isinstance(lab, str) and lab.strip():
+            return lab
+    return intent
 
-# ===== Schema & rules loading (final) =====
-from app.schema_generated import SCHEMA_GENERATED as SCHEMA
-from app.autodetect_rules_generated import AUTODETECT_GENERATED as AUTODETECT_RULES
-INTENTS_META: list = []
-SUBJECTS: dict = {}
-print("[info] Loaded generated schema and autodetect rules (legacy system removed)")
-# ===== End of schema block =====
-
-
-
-
-
-
-
-# ---------------- Models ----------------
+# --- Models ---
 class GenerateReq(BaseModel):
     intent: str
-    fields: Dict[str, Any] = Field(default_factory=dict)
+    fields: Dict[str, Any] = {}
 
 class GenerateResp(BaseModel):
     subject: str
     body: str
     missing: List[str] = []
 
-# ---------------- Helpers ----------------
-def _label_for(intent: str) -> str:
-    for m in INTENTS_META:
-        if m.get("name") == intent:
-            return m.get("label") or intent
-    return intent
+# --- Utilities ---
+_DATE_RE_YMD = re.compile(r"^\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*$")
+_DATE_RE_MDY = re.compile(r"^\s*(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\s*$")
 
-def _env() -> Environment:
-    return Environment(
-        loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
-        autoescape=False,
-        undefined=Undefined,  # allow missing optional vars to render as empty strings
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
+def _normalize_date(val: str) -> str:
+    """
+    Accepts 'yyyy-mm-dd', 'mm/dd', or 'mm/dd/yyyy'. Returns what the user gave,
+    but converts ISO -> mm/dd/yyyy. If the user omitted the year (mm/dd), we keep it.
+    """
+    if not isinstance(val, str):
+        return ""
+    s = val.strip()
+    if not s:
+        return ""
+    m = _DATE_RE_YMD.match(s)
+    if m:
+        y, mo, d = m.groups()
+        return f"{int(mo):02d}/{int(d):02d}/{int(y):04d}"
+    m = _DATE_RE_MDY.match(s)
+    if m:
+        mo, d, y = m.groups()
+        if y and len(y) == 2:  # normalize 2-digit year
+            y = f"20{y}"
+        return f"{int(mo):02d}/{int(d):02d}/{int(y):04d}" if y else f"{int(mo):02d}/{int(d):02d}"
+    return s  # pass through unknown formats
 
-# ---------------- Routes ----------------
+def _coerce_parts(v: Any) -> List[Dict[str, str]]:
+    """
+    Accepts:
+      - list of {partNumber, quantity}
+      - JSON string of the above
+      - multiline text (defaults qty=1 each line)
+    """
+    if isinstance(v, list):
+        out = []
+        for row in v:
+            if isinstance(row, dict):
+                pn = str(row.get("partNumber", "")).strip()
+                qty = str(row.get("quantity", "")).strip() or "1"
+                if pn:
+                    out.append({"partNumber": pn, "quantity": qty})
+        return out
 
-from fastapi.responses import JSONResponse
+    if isinstance(v, str):
+        s = v.strip()
+        if not s:
+            return []
+        # Try JSON first
+        try:
+            js = json.loads(s)
+            return _coerce_parts(js)
+        except Exception:
+            pass
+        # Fallback: each line is a PN, qty=1
+        lines = [ln.strip() for ln in s.replace("\r", "").split("\n") if ln.strip()]
+        return [{"partNumber": ln, "quantity": "1"} for ln in lines]
 
+    return []
+
+def _strip_subject_line(body: str) -> str:
+    # Remove a leading "Subject:" line if a template includes it
+    if not isinstance(body, str):
+        return ""
+    return re.sub(r"^\s*subject\s*:\s*.*\n+", "", body, flags=re.IGNORECASE)
+
+# --- Routes ---
 @app.get("/schema")
 def get_schema():
-    # Return the generated schema dict to the UI
     return JSONResponse(SCHEMA)
 
 @app.get("/intents")
 def list_intents():
-    # Return compact list for cards, including auto_detect
-    items = [{"id": iid, "label": meta.get("label", iid)} for iid, meta in SCHEMA.items()]
-    # Put Auto Detect first, then alpha by label
-    def sort_key(x):
-        return (0 if x["id"] == "auto_detect" else 1, x["label"].lower())
-    items.sort(key=sort_key)
-    return JSONResponse(items)
+    return JSONResponse(_intents_list())
 
 @app.get("/health")
 def health():
     return {
         "ok": True,
-        "intents_list": [m.get("name") for m in INTENTS_META] if INTENTS_META else list(SCHEMA.keys()),
+        "intents": [x["id"] for x in _intents_list()],
         "templates_dir": str(Path(__file__).resolve().parent.parent / "templates"),
+        "schema_keys": list(SCHEMA.keys()) if isinstance(SCHEMA, dict) else [],
     }
-
-@app.get("/schema")
-def get_schema():
-    return SCHEMA
-@app.get("/intents")
-def list_intents():
-    return INTENTS_META
-@app.post("/generate", response_model=GenerateResp)
-
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
-    # --- inputs ---
     intent = (req.intent or "").strip()
-    fields = dict(req.fields or {})
+    if not intent:
+        raise HTTPException(status_code=400, detail="Missing 'intent'.")
 
-    # --- validate intent exists ---
     if intent not in SCHEMA:
-        raise HTTPException(status_code=400, detail=f"Unknown intent '{intent}'")
+        # allow auto_detect to return a safe stub
+        if intent == "auto_detect":
+            return GenerateResp(
+                subject="Draft",
+                body="Hello,\n\nPlease review the draft and advise the best intent.\n\nThank you.",
+                missing=[],
+            )
+        raise HTTPException(status_code=400, detail=f"Unknown intent: {intent}")
 
-    intent_schema = SCHEMA[intent]
-    required = intent_schema.get("required", [])
+    fields = dict(req.fields or {})
+    meta = SCHEMA.get(intent, {}) if isinstance(SCHEMA, dict) else {}
+    required = meta.get("required", []) if isinstance(meta, dict) else []
+    field_types = meta.get("fieldTypes", {}) if isinstance(meta, dict) else {}
 
-    # --- validate required fields present & truthy ---
-    missing = [k for k in required if not fields.get(k)]
-    if missing:
-        raise HTTPException(status_code=422, detail={"missing": missing})
+    # Normalize date-like fields
+    for k, t in field_types.items():
+        if str(t).lower() == "date" and isinstance(fields.get(k), str):
+            fields[k] = _normalize_date(fields.get(k) or "")
 
-    # --- normalize dates globally: YYYY-MM-DD -> MM-DD ---
-    for k, v in list(fields.items()):
-        if isinstance(v, str) and len(v) == 10 and v[4] == "-" and v[7] == "-":
-            fields[k] = v[5:]
+    # Normalize parts
+    if "parts" in (fields.keys() | field_types.keys()):
+        fields["parts"] = _coerce_parts(fields.get("parts", []))
 
-    # --- jinja environment ---
-    env = _env()  # must be the same Environment used everywhere
+    # Compute missing required (treat empty list/dict/blank as missing)
+    def _is_missing(v: Any) -> bool:
+        if isinstance(v, list):
+            return len(v) == 0
+        if isinstance(v, dict):
+            return len(v) == 0
+        return str(v or "").strip() == ""
 
-    # --- subject template (from schema if provided) ---
-    template_meta = intent_schema.get("template") or {}
-    subject_tpl_str = template_meta.get("subject")
-    if subject_tpl_str:
-        subject = env.from_string(subject_tpl_str).render(**fields)
-    else:
-        # sensible fallback if subject not defined in schema
-        subject = intent_schema.get("label") or intent.replace("_", " ").title()
+    missing = [k for k in required if _is_missing(fields.get(k))]
 
-    # --- body template path: prefer schema bodyPath, else {intent}.j2 ---
-    body_path = template_meta.get("bodyPath") or f"{intent}.j2"
-    # If schema used "templates/..." keep only the filename since loader roots at /templates
-    if body_path.startswith("templates/"):
-        body_path = body_path.split("/", 1)[1]
+    # Render template
+    env = _env()
+    try:
+        tpl = env.get_template(f"{intent}.j2")
+    except TemplateNotFound:
+        # Don’t crash the whole app if a template file is missing
+        raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
 
     try:
-        tpl_body = env.get_template(body_path)
+        body = tpl.render(**fields)
     except Exception as e:
-        # final fallback to {intent}.j2
-        tpl_body = env.get_template(f"{intent}.j2")
+        raise HTTPException(status_code=500, detail=f"Template render error for '{intent}': {e}")
 
-    body = tpl_body.render(**fields)
+    # Clean up body & add polite closing if absent
+    body = _strip_subject_line(body)
+    low = body.lower()
+    if not any(k in low for k in ("thank you", "thanks", "appreciate")):
+        body = body.rstrip() + "\n\nThank you.\n"
 
-    return GenerateResp(subject=subject, body=body)
+    # Subject: prefer schema label, else intent name
+    subject = _label_for(intent)
 
-
-
-
-
-
-
-
+    return GenerateResp(subject=subject, body=body, missing=missing)
 
