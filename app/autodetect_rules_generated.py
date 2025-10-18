@@ -143,17 +143,6 @@ AUTODETECT_GENERATED = {
       "UPS"
     ]
   },
-  "tax_exempt_certificate": {
-    "boosts": {
-      "reply": 0.04
-    },
-    "keywords": [
-      "tax exemption certificate",
-      "resale certificate",
-      "tax exempt",
-      "tax form"
-    ]
-  },
   "tax_exemption": {
     "boosts": {
       "reply": 0.04

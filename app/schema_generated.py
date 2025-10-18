@@ -346,21 +346,6 @@ SCHEMA_GENERATED = {
       "shipDate"
     ]
   },
-  "tax_exempt_certificate": {
-    "description": "Send a tax-exempt certificate with a simple message.",
-    "enums": {},
-    "fieldTypes": {
-      "recipientName": "string"
-    },
-    "hints": {
-      "recipientName": "e.g., \"Accounts Payable\""
-    },
-    "label": "Tax Exempt Certificate",
-    "optional": [],
-    "required": [
-      "recipientName"
-    ]
-  },
   "tax_exemption": {
     "description": "Notify a customer about tax-exempt status or send a tax-exempt certificate.",
     "enums": {},
