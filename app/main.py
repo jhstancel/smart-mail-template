@@ -93,10 +93,32 @@ class GenerateResp(BaseModel):
 _DATE_RE_YMD = re.compile(r"^\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*$")
 _DATE_RE_MDY = re.compile(r"^\s*(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\s*$")
 
-def _normalize_date(val: str) -> str:
+def _shorten_date(val: str) -> str:
     """
-    Accepts 'yyyy-mm-dd', 'mm/dd', or 'mm/dd/yyyy'. Returns what the user gave,
-    but converts ISO -> mm/dd/yyyy. If the user omitted the year (mm/dd), we keep it.
+    Strips the year from a date string in MM/DD/YYYY or YYYY-MM-DD format,
+    returning only MM/DD. Used wherever the UI or schema wants shorter dates.
+    """
+    if not isinstance(val, str):
+        return ""
+    val = val.strip()
+    if not val:
+        return ""
+    # Convert ISO -> MM/DD first
+    m = _DATE_RE_YMD.match(val)
+    if m:
+        _, mo, d = m.groups()
+        return f"{int(mo):02d}/{int(d):02d}"
+    # MM/DD/YYYY -> MM/DD
+    m = _DATE_RE_MDY.match(val)
+    if m:
+        mo, d, _ = m.groups()
+        return f"{int(mo):02d}/{int(d):02d}"
+    return val
+
+def _normalize_date(val: str, shorten: bool = True) -> str:
+    """
+    Accepts 'yyyy-mm-dd', 'mm/dd', or 'mm/dd/yyyy'.
+    Converts ISO -> mm/dd/yyyy and, if shorten=True, strips the year -> mm/dd.
     """
     if not isinstance(val, str):
         return ""
@@ -106,14 +128,16 @@ def _normalize_date(val: str) -> str:
     m = _DATE_RE_YMD.match(s)
     if m:
         y, mo, d = m.groups()
-        return f"{int(mo):02d}/{int(d):02d}/{int(y):04d}"
+        return f"{int(mo):02d}/{int(d):02d}" if shorten else f"{int(mo):02d}/{int(d):02d}/{int(y):04d}"
     m = _DATE_RE_MDY.match(s)
     if m:
         mo, d, y = m.groups()
-        if y and len(y) == 2:  # normalize 2-digit year
+        if shorten:
+            return f"{int(mo):02d}/{int(d):02d}"
+        if y and len(y) == 2:
             y = f"20{y}"
         return f"{int(mo):02d}/{int(d):02d}/{int(y):04d}" if y else f"{int(mo):02d}/{int(d):02d}"
-    return s  # pass through unknown formats
+    return s
 
 def _coerce_parts(v: Any) -> List[Dict[str, str]]:
     """
