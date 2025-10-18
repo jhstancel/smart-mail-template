@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
+.card-b {
+  background: var(--card-bg1);
+  border-radius: 12px;
+  padding: 12px;
+}
+
 /* Parts inputs: same bg as card/page + rounded */
 .parts-row .parts-input{
   background: transparent;        /* lets the card/page bg show through */
@@ -1036,12 +1042,16 @@ async function loadIntents(){
 // === Order Request: Parts editor (Part Number + Quantity with inline +/–) ===
 
 function initOrderRequestPartsEditor(container) {
-  // container is the right-hand "Parts *" card DOM node
-  container.innerHTML = ""; // clear the old slabs/buttons
+// Clear and create card body wrapper to match other fields
+container.innerHTML = "";
+const cardBody = document.createElement('div');
+cardBody.className = 'card-b';       // same as other cards' inner wrapper
+container.appendChild(cardBody);
 
-  // --- Label row (optional headers) ---
+// --- Label row (headers) ---
 const header = document.createElement('div');
 header.className = 'parts-header';
+
 header.innerHTML = `
   <div class="h">Part<br>Number</div>
   <div class="h">Quantity</div>
