@@ -5,6 +5,43 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
+/* Parts inputs: same bg as card/page + rounded */
+.parts-row .parts-input{
+  background: transparent;        /* lets the card/page bg show through */
+  border-radius: 12px;            /* rounded rectangles */
+  height: 44px;                   /* slightly taller, like other fields */
+  width: 100%;
+}
+.parts-row .parts-qty{
+  text-align: center;
+}
+
+.parts-header{                    /* keep header grid tidy */
+  display:grid;
+  grid-template-columns: 1fr 1fr 40px;
+  gap:12px;
+  align-items:center;
+  margin-bottom:6px;
+}
+.parts-row{
+  display:grid;
+  grid-template-columns: 1fr 1fr 40px;
+  gap:12px;
+  align-items:center;
+  margin:8px 0;
+}
+
+/* icon buttons (minus + plus) – unchanged size, just here for completeness */
+.icon-btn{
+  width:40px; height:40px; border-radius:999px;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff; font-size:18px; line-height:1; cursor:pointer;
+}
+.parts-minus{ border:1px solid rgba(255,100,100,.45); }
+.parts-plus{  border:1px solid rgba(80,180,120,.45); color:#2f855a; }
+.parts-minus:hover{ border-color: rgba(255,80,80,.8); }
+.parts-plus:hover{  border-color: rgba(60,160,100,.8); color:#276749; }
+
 /* Equal-width inputs + icon buttons */
 .parts-header{
   display:grid;
@@ -1061,7 +1098,6 @@ parts.forEach((row, idx) => {
   // PN
   const pn = document.createElement('input');
   pn.className = 'input parts-input';
-  pn.placeholder = 'e.g., PN-1402';
   pn.value = row.partNumber || '';
   pn.addEventListener('input', e => {
     parts[idx].partNumber = e.target.value;
@@ -1071,7 +1107,6 @@ parts.forEach((row, idx) => {
   // Qty
   const qty = document.createElement('input');
   qty.className = 'input parts-input parts-qty';
-  qty.placeholder = 'Quantity';
   qty.inputMode = 'numeric';
   qty.value = row.quantity || '';
   qty.addEventListener('input', e => {
@@ -1079,6 +1114,8 @@ parts.forEach((row, idx) => {
     parts[idx].quantity = e.target.value;
     syncPartsHidden();
   });
+pn.placeholder = '';
+qty.placeholder = '';
 
   // Minus
  const minus = document.createElement('button');
