@@ -42,19 +42,15 @@
     "description": "Send a short follow-up or status-check message on a prior topic.",
     "enums": {},
     "fieldTypes": {
-      "ask": "longtext",
       "context": "longtext",
       "customerName": "string"
     },
     "hints": {
-      "ask": "e.g., \"Do you have an update?\" or \"Could you confirm the new ship date?\"",
       "context": "e.g., \"the quote for PO-10927\" or \"yesterday\u2019s delivery timing\"",
       "customerName": "e.g., \"John Smith\""
     },
     "label": "Follow-up",
-    "optional": [
-      "ask"
-    ],
+    "optional": [],
     "required": [
       "customerName",
       "context"
