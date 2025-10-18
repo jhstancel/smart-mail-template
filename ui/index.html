@@ -229,6 +229,9 @@
     box-shadow: 0 0 0 0 rgba(0,0,0,0);
     transition: box-shadow .25s ease, border-color .25s ease, background .25s ease, transform .25s ease;
   }
+:root {
+  --accent: #639cff;
+}
 
   /* Native date input tweaks */
   input[type="date"]{
@@ -1631,6 +1634,33 @@ if (Array.isArray(data) && data.length) {
   @media (max-width:520px){
     .evil-larry{ width:260px; height:260px; transform:translate(-50%,-260px) rotate(0deg); }
   }
+
+/* make Parts inputs follow theme text color */
+.parts-input {
+  color: inherit;                /* match surrounding theme text */
+  background: transparent;
+  border: 1px solid var(--card-border, rgba(255,255,255,.1));
+  border-radius: 12px;
+  height: 44px;
+  width: 100%;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.parts-input:focus {
+  border-color: var(--accent, #639cff);
+  box-shadow: 0 0 0 2px rgba(99,156,255,.25);
+  outline: none;
+}
+.parts-input::placeholder {
+  color: transparent;            /* ensures hidden placeholder stays hidden */
+}
+
+/* ensure icons stay visible in both modes */
+.icon-btn.parts-plus,
+.icon-btn.parts-minus {
+  background: var(--card-bg2, #fff);
+  color: inherit;
+}
+
 </style>
 
 <script>
