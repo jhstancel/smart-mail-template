@@ -5,6 +5,23 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
+/* Parts card: remove any phantom bar under the title */
+.kv:has(#partsCardBody) .parts-header {
+  margin-top: 0;
+  padding: 0;
+  background: transparent;
+  min-height: 0;  /* prevents a ‘bar’ look */
+}
+
+/* Tighten spacing between title and header */
+.kv:has(#partsCardBody) label + #partsCardBody { margin-top: 0; }
+.kv:has(#partsCardBody) .parts-header { margin-bottom: 6px; }
+
+/* Ensure no stray backgrounds in the header cells */
+.kv:has(#partsCardBody) .parts-header > * {
+  background: transparent !important;
+}
+
 .card-b {
   background: var(--card-bg1);
   border-radius: 12px;
