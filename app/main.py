@@ -33,30 +33,6 @@ print("[info] Loaded generated schema and autodetect rules (legacy system remove
 
 
 
-def _env() -> Environment:
-    env = Environment(
-        loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
-        autoescape=False,
-        undefined=Undefined,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
-
-    # Register filters
-    def shortdate(value):
-        from datetime import datetime
-        if not value:
-            return ""
-        s = str(value).strip()
-        for fmt in ("%m/%d/%Y", "%Y-%m-%d", "%Y/%m/%d"):
-            try:
-                return datetime.strptime(s, fmt).strftime("%m/%d/%Y")
-            except Exception:
-                pass
-        return s  # fallback: pass through as-is
-
-    env.filters["shortdate"] = shortdate
-    return env
 
 
 
@@ -121,92 +97,63 @@ def get_schema():
 def list_intents():
     return INTENTS_META
 @app.post("/generate", response_model=GenerateResp)
+
+
+@app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
+    # --- inputs ---
     intent = (req.intent or "").strip()
-    fields: Dict[str, Any] = dict(req.fields or {})
+    fields = dict(req.fields or {})
 
-    # 1) Validate intent exists
+    # --- validate intent exists ---
     if intent not in SCHEMA:
-        raise HTTPException(status_code=400, detail=f"Unknown intent: {intent}")
+        raise HTTPException(status_code=400, detail=f"Unknown intent '{intent}'")
 
-    # 2) Normalize special fields (Order Request → parts)
-    def _normalize_parts(v: Any) -> list[dict]:
-        import json, re
-        rows: list[dict] = []
-        if isinstance(v, list):
-            rows = v
-        elif isinstance(v, str):
-            s = v.strip()
-            if s:
-                try:
-                    parsed = json.loads(s)
-                    if isinstance(parsed, list):
-                        rows = parsed
-                except Exception:
-                    lines = [ln.strip() for ln in s.splitlines() if ln.strip()]
-                    for ln in lines:
-                        if "\t" in ln:
-                            a, *rest = ln.split("\t")
-                            b = rest[0] if rest else ""
-                            pn, qty = a.strip(), b.strip()
-                        elif "," in ln:
-                            a, *rest = ln.split(",")
-                            b = rest[0] if rest else ""
-                            pn, qty = a.strip(), b.strip()
-                        else:
-                            m = re.search(r"^\s*(.+?)\s*(?:x|\s)\s*(\d+)\s*$", ln, re.I)
-                            if m:
-                                pn, qty = m.group(1).strip(), m.group(2).strip()
-                            else:
-                                pn, qty = ln, ""
-                        if pn and qty:
-                            rows.append({"partNumber": pn, "quantity": qty})
-        # gate complete rows
-        good = []
-        for r in rows:
-            pn = str(r.get("partNumber", "")).strip()
-            qty = str(r.get("quantity", "")).strip()
-            if pn and qty:
-                good.append({"partNumber": pn, "quantity": qty})
-        return good
+    intent_schema = SCHEMA[intent]
+    required = intent_schema.get("required", [])
 
-    if intent == "order_request":
-        fields["parts"] = _normalize_parts(fields.get("parts", ""))
+    # --- validate required fields present & truthy ---
+    missing = [k for k in required if not fields.get(k)]
+    if missing:
+        raise HTTPException(status_code=422, detail={"missing": missing})
 
-    # 3) Soft validation: compute 'missing' but DO NOT raise
-    meta = SCHEMA.get(intent, {}) if isinstance(SCHEMA.get(intent, {}), dict) else {}
-    required = meta.get("required", []) if isinstance(meta, dict) else []
-    missing: list[str] = []
-    for k in required:
-        val = fields.get(k, None)
-        if k == "parts":
-            if not isinstance(val, list) or len(val) == 0:
-                missing.append(k)
-        else:
-            sval = "" if val is None else str(val)
-            if not sval.strip():
-                missing.append(k)
-
-    # 4) Render from Jinja2 template (guards already in template avoid ugly bullets)
-    env = _env()
-    try:
-        tpl = env.get_template(f"{intent}.j2")
-        body = tpl.render(**fields)
-    except TemplateNotFound:
-        body = "Hello,\n\nDraft is missing its template.\n\nThanks."
-
-    # 5) Subject fallback
-    try:
-        subject = SUBJECTS.get(intent, "")
-    except NameError:
-        subject = ""
-    if not subject.strip():
-        subject = "Order Request" if intent == "order_request" else (_label_for(intent) or "Request")
-    for k, v in fields.items():
-        if isinstance(v, str) and len(v) == 10 and v[4] == '-' and v[7] == '-':
-            # matches YYYY-MM-DD
+    # --- normalize dates globally: YYYY-MM-DD -> MM-DD ---
+    for k, v in list(fields.items()):
+        if isinstance(v, str) and len(v) == 10 and v[4] == "-" and v[7] == "-":
             fields[k] = v[5:]
 
-    # Always 200; include what’s missing so UI can display it
-    return GenerateResp(subject=subject, body=body, missing=missing)
+    # --- jinja environment ---
+    env = _env()  # must be the same Environment used everywhere
+
+    # --- subject template (from schema if provided) ---
+    template_meta = intent_schema.get("template") or {}
+    subject_tpl_str = template_meta.get("subject")
+    if subject_tpl_str:
+        subject = env.from_string(subject_tpl_str).render(**fields)
+    else:
+        # sensible fallback if subject not defined in schema
+        subject = intent_schema.get("label") or intent.replace("_", " ").title()
+
+    # --- body template path: prefer schema bodyPath, else {intent}.j2 ---
+    body_path = template_meta.get("bodyPath") or f"{intent}.j2"
+    # If schema used "templates/..." keep only the filename since loader roots at /templates
+    if body_path.startswith("templates/"):
+        body_path = body_path.split("/", 1)[1]
+
+    try:
+        tpl_body = env.get_template(body_path)
+    except Exception as e:
+        # final fallback to {intent}.j2
+        tpl_body = env.get_template(f"{intent}.j2")
+
+    body = tpl_body.render(**fields)
+
+    return GenerateResp(subject=subject, body=body)
+
+
+
+
+
+
+
 
