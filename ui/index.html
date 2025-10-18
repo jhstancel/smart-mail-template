@@ -1503,7 +1503,6 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
 const subIntents   = document.getElementById('subIntents'); 
 const subTheme     = document.getElementById('subTheme');
 const subTyping    = document.getElementById('subTyping');
-...
 function closeAllSubs(){
   [subTheme, subTyping, subIntents, subDefaults].forEach(el => el && el.classList.remove('open'));
   document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
