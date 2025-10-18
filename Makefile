@@ -158,4 +158,18 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@rm -rf .pytest_cache .mypy_cache build dist
 	@echo "✅ Cleanup complete."
+.PHONY: schema-update
+schema-update:
+	python3.9 -m pip install --quiet --disable-pip-version-check pyyaml
+	python3.9 scripts/regen_schemas.py
+	@if ! git diff --quiet -- app/schema_generated.py app/autodetect_rules_generated.py public/schema.generated.json; then \
+		echo "Staging regenerated schema files..."; \
+		git add app/schema_generated.py app/autodetect_rules_generated.py public/schema.generated.json; \
+		echo "Committing…"; \
+		git commit -m "chore(schema): regenerate schemas and rules after removing intent"; \
+		echo "Pushing…"; \
+		git push; \
+	else \
+		echo "No schema changes detected. Skipping commit/push."; \
+	fi
 
