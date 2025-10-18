@@ -102,9 +102,9 @@ SCHEMA_GENERATED = {
     "label": "Invoice / PO Follow-Up",
     "optional": [],
     "required": [
+      "recipientName",
       "invoiceNumber",
       "poNumber",
-      "recipientName",
       "dueDate"
     ]
   },
