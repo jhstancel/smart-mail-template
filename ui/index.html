@@ -22,23 +22,8 @@
   background: transparent !important;
 }
 
-.card-b {
-  background: var(--card-bg1);
-  border-radius: 12px;
-  padding: 12px;
-}
 
 /* Parts inputs: same bg as card/page + rounded */
-.parts-row .parts-input{
-  background: transparent;        /* lets the card/page bg show through */
-  border-radius: 12px;            /* rounded rectangles */
-  height: 44px;                   /* slightly taller, like other fields */
-  width: 100%;
-}
-.parts-row .parts-qty{
-  text-align: center;
-}
-
 .parts-header{                    /* keep header grid tidy */
   display:grid;
   grid-template-columns: 1fr 1fr 40px;
@@ -65,34 +50,9 @@
 .parts-minus:hover{ border-color: rgba(255,80,80,.8); }
 .parts-plus:hover{  border-color: rgba(60,160,100,.8); color:#276749; }
 
-/* Equal-width inputs + icon buttons */
-.parts-header{
-  display:grid;
-  grid-template-columns: 1fr 1fr 40px;  /* equal widths, fixed icon column */
-  gap:12px;
-  align-items:center;
-  margin-bottom:6px;
-}
-.parts-row{
-  display:grid;
-  grid-template-columns: 1fr 1fr 40px;  /* equal widths */
-  gap:12px;
-  align-items:center;
-  margin:6px 0;
-}
 .parts-input{ height:40px; width:100%; }
 .parts-qty{ text-align:center; }
 
-/* Shared icon button */
-.icon-btn{
-  width:40px; height:40px;
-  border-radius:999px;
-  display:flex; align-items:center; justify-content:center;
-  background:#fff;
-  cursor:pointer;
-  font-size:18px; line-height:1;
-  user-select:none;
-}
 
 /* – (remove) = soft red ring */
 .parts-minus{
@@ -1945,6 +1905,109 @@ if (Array.isArray(data) && data.length) {
   }
 })();
 </script>
+<style>
+  /* Nyan Cat + trail */
+  .nyan-cat{
+    position:fixed; left:-100px; top:0;
+    width:96px; height:auto; z-index:9998;
+    pointer-events:none; will-change:transform,opacity;
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,.35));
+  }
+  .nyan-ribbon{
+    position:fixed; left:0; top:0; z-index:9997;
+    pointer-events:none; will-change:transform,opacity;
+    border-radius:3px; opacity:.95; mix-blend-mode:screen;
+    animation: nyanFade 1.8s ease-out forwards;
+    box-shadow: 0 0 10px rgba(255,255,255,.25);
+    filter: blur(.3px);
+  }
+  @keyframes nyanFade{
+    to{ opacity:0; transform: translateX(-16px) scaleX(1.2) scaleY(.9); filter: blur(3px); }
+  }
+</style>
+<script>
+/* === Nyan-on-"kitty" Easter egg ========================================= */
+(function(){
+  // Change if you want a local asset instead of the hosted gif:
+  // window.NYAN_CAT_SRC = 'img/nyan.gif';
+  const SRC = window.NYAN_CAT_SRC || 'https://media.giphy.com/media/sIIhZliB2McAo/giphy.gif';
+
+  let lastLaunch = 0;            // simple cooldown
+  const COOLDOWN_MS = 3500;      // avoid spam if "kitty" appears many times
+
+  function spawnNyan(){
+    const now = Date.now();
+    if(now - lastLaunch < COOLDOWN_MS) return;
+    lastLaunch = now;
+
+    const img = document.createElement('img');
+    img.className = 'nyan-cat';
+    img.alt = 'Nyan Cat';
+    img.src = SRC;
+    document.body.appendChild(img);
+
+    // Size & path params
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+    const size = Math.max(72, Math.min(120, Math.round(W * 0.09)));
+    img.style.width = size + 'px';
+
+    const startY = H * (0.25 + Math.random() * 0.5);       // somewhere mid-screen
+    const amp    = Math.max(50, Math.min(100, H * 0.12));  // sine amplitude
+    const periodPx = Math.max(300, Math.min(900, W * 0.8));// sine wavelength
+    const k = (2 * Math.PI) / periodPx;
+
+    const pxPerSec = Math.max(280, Math.min(520, W * 0.32)); // speed
+    let t0 = null;
+
+    function rainbowDroplet(x, y){
+      const d = document.createElement('div');
+      d.className = 'nyan-ribbon';
+      d.style.left   = (x - size*0.2) + 'px';
+      d.style.top    = (y + size*0.35) + 'px';
+      d.style.width  = Math.max(80, size * 1.7) + 'px';
+      d.style.height = Math.max(6,  Math.round(size * 0.10)) + 'px';
+      d.style.background = 'linear-gradient(90deg,#ff0018,#ffa52c,#ffff41,#008018,#0000f9,#86007d)';
+      document.body.appendChild(d);
+      setTimeout(()=> d.remove(), 1900);
+    }
+
+    function tick(ts){
+      if(!t0) t0 = ts;
+      const dt = (ts - t0) / 1000;            // seconds
+      const x  = dt * pxPerSec - size;        // start off-screen left
+      const y  = startY + Math.sin(x * k) * amp;
+
+      // Leave a rainbow "breadcrumb" most frames
+      if (Math.random() < 0.9) rainbowDroplet(x, y);
+
+      img.style.transform = `translate(${x}px, ${y}px)`;
+      if (x < W + size * 1.2){
+        requestAnimationFrame(tick);
+      } else {
+        img.style.transition = 'opacity .45s ease';
+        img.style.opacity = '0';
+        setTimeout(()=> img.remove(), 460);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // Fire when any input/textarea contains "kitty" (case-insensitive)
+  function onAnyInput(e){
+    const el = e.target;
+    if(!el || !('value' in el)) return;
+    const v = String(el.value || '').toLowerCase();
+    if (v.includes('kitty')) spawnNyan();
+  }
+
+  document.addEventListener('input', onAnyInput, { passive: true });
+
+  // Optional: expose a manual trigger for testing in console
+  window.spawnNyan = spawnNyan;
+})();
+</script>
+
 </body>
 </html>
 
