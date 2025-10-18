@@ -77,8 +77,8 @@ SCHEMA_GENERATED = {
     "label": "Invoice Payment",
     "optional": [],
     "required": [
-      "invoiceNumber",
       "recipientName",
+      "invoiceNumber",
       "amount",
       "paymentMethod",
       "paymentDate"
