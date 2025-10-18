@@ -323,9 +323,7 @@ SCHEMA_GENERATED = {
       "trackingNumber": "e.g., 1Z999AA10123456784"
     },
     "label": "Shipment Update",
-    "optional": [
-      "items"
-    ],
+    "optional": [],
     "required": [
       "customerName",
       "poNumber",
