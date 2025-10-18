@@ -1,193 +1,160 @@
-# app/main.py
 from __future__ import annotations
-import json
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from starlette.responses import RedirectResponse
-from pydantic import BaseModel
-from jinja2 import Environment, FileSystemLoader, Undefined
+from pydantic import BaseModel, Field
+from jinja2 import Environment, FileSystemLoader, Undefined, TemplateNotFound
 
-# ---------- generated schema/rules (lazy: don't crash server if missing) ----------
-try:
-    from app.schema_generated import SCHEMA  # type: ignore
-    _SCHEMA_ERR: Optional[str] = None
-except Exception as e:
-    SCHEMA: Dict[str, Any] = {}
-    _SCHEMA_ERR = str(e)
-
-try:
-    from app.autodetect_rules_generated import RULES  # type: ignore
-except Exception:
-    RULES: Dict[str, Any] = {}
-
-# ---------- FastAPI ----------
 app = FastAPI(title="Smart Mail Template API")
 
-# ---------- Path helpers ----------
-def _repo_root() -> Path:
-    return Path(__file__).resolve().parent.parent
+# Try to mount static UI if present (safe no-op otherwise)
+try:
+    from fastapi.staticfiles import StaticFiles
+    UI_DIR = Path(__file__).resolve().parent.parent / "ui"
+    if UI_DIR.exists():
+        app.mount("/ui", StaticFiles(directory=str(UI_DIR), html=True), name="ui")
+except Exception:
+    pass
 
-def _templates_dir() -> Path:
-    return (_repo_root() / "templates").resolve()
 
-def _ui_dir() -> Path:
-    return (_repo_root() / "ui").resolve()
 
-def _public_dir() -> Path:
-    return (_repo_root() / "public").resolve()
 
-# ---------- Jinja environment ----------
-def _env() -> Environment:
-    return Environment(
-        loader=FileSystemLoader(str(_templates_dir())),
-        autoescape=False,
-        undefined=Undefined,
-        trim_blocks=True,
-        lstrip_blocks=True,
-    )
 
-# ---------- Static UI mounts ----------
-app.mount("/ui", StaticFiles(directory=str(_ui_dir()), html=True), name="ui")
-app.mount("/public", StaticFiles(directory=str(_public_dir())), name="public")
 
-@app.get("/")
-def root():
-    return RedirectResponse(url="/ui/")
+# ===== Schema & rules loading (final) =====
+from app.schema_generated import SCHEMA_GENERATED as SCHEMA
+from app.autodetect_rules_generated import AUTODETECT_GENERATED as AUTODETECT_RULES
+INTENTS_META: list = []
+SUBJECTS: dict = {}
+print("[info] Loaded generated schema and autodetect rules (legacy system removed)")
+# ===== End of schema block =====
 
-# ---------- DTOs ----------
+
+
+
+
+
+
+# ---------------- Models ----------------
 class GenerateReq(BaseModel):
     intent: str
-    fields: Dict[str, Any] = {}
+    fields: Dict[str, Any] = Field(default_factory=dict)
 
 class GenerateResp(BaseModel):
     subject: str
     body: str
+    missing: List[str] = []
 
-class AutoDetectReq(BaseModel):
-    text: str
+# ---------------- Helpers ----------------
+def _label_for(intent: str) -> str:
+    for m in INTENTS_META:
+        if m.get("name") == intent:
+            return m.get("label") or intent
+    return intent
 
-class AutoDetectResp(BaseModel):
-    intent: Optional[str]
-    confidence: float = 0.0
-    candidates: List[Dict[str, Any]] = []
+def _env() -> Environment:
+    return Environment(
+        loader=FileSystemLoader(str(Path(__file__).resolve().parent.parent / "templates")),
+        autoescape=False,
+        undefined=Undefined,  # allow missing optional vars to render as empty strings
+        trim_blocks=True,
+        lstrip_blocks=True,
+    )
 
-# ---------- Helpers (only for render reliability) ----------
-def _shorten_iso_dates_inplace(fields: Dict[str, Any]) -> None:
-    """Convert 'YYYY-MM-DD' -> 'MM-DD' across string fields."""
-    for k, v in list(fields.items()):
-        if isinstance(v, str) and len(v) == 10 and v[4] == "-" and v[7] == "-":
-            fields[k] = v[5:]
+# ---------------- Routes ----------------
 
-def _resolve_body_path(template_meta: Dict[str, Any], intent: str) -> str:
-    """Prefer schema.template.bodyPath; fallback to '{intent}.j2'.
-       Accepts 'templates/foo.j2' or 'foo.j2'."""
-    body_path = (template_meta or {}).get("bodyPath") or f"{intent}.j2"
-    if body_path.startswith("templates/"):
-        body_path = body_path.split("/", 1)[1]
-    return body_path
-
-def _render_subject(env: Environment, intent_schema: Dict[str, Any], intent: str, fields: Dict[str, Any]) -> str:
-    tpl_meta = intent_schema.get("template") or {}
-    subject_tpl = tpl_meta.get("subject")
-    if subject_tpl:
-        return env.from_string(subject_tpl).render(**fields)
-    return intent_schema.get("label") or intent.replace("_", " ").title()
-
-# ---------- Routes ----------
+from fastapi.responses import JSONResponse
 
 @app.get("/schema")
-def get_schema() -> Dict[str, Any]:
-    # 1) Happy path: module import worked and SCHEMA is populated
-    if not _SCHEMA_ERR and SCHEMA:
-        return SCHEMA
+def get_schema():
+    # Return the generated schema dict to the UI
+    return JSONResponse(SCHEMA)
 
-    # 2) Fallback: load from public/schema.generated.json so the UI can render
-    try:
-        json_path = _public_dir() / "schema.generated.json"
-        with open(json_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            # return a dict, not None
-            if isinstance(data, dict) and data:
-                return data
-    except Exception:
-        pass
+@app.get("/intents")
+def list_intents():
+    # Return compact list for cards, including auto_detect
+    items = [{"id": iid, "label": meta.get("label", iid)} for iid, meta in SCHEMA.items()]
+    # Put Auto Detect first, then alpha by label
+    def sort_key(x):
+        return (0 if x["id"] == "auto_detect" else 1, x["label"].lower())
+    items.sort(key=sort_key)
+    return JSONResponse(items)
 
-    # 3) Final: tell client how to fix; keeps behavior explicit
-    raise HTTPException(
-        status_code=503,
-        detail="Schema not loaded. Run: python3.9 -m pip install pyyaml && python3.9 scripts/regen_schemas.py",
-    )
-@app.post("/autodetect", response_model=AutoDetectResp)
-def autodetect(req: AutoDetectReq) -> AutoDetectResp:
-    text = (req.text or "").lower()
-    if not text or not RULES:
-        return AutoDetectResp(intent=None, confidence=0.0, candidates=[])
-    best_intent, best_score = None, 0
-    candidates: List[Dict[str, Any]] = []
-    for intent, rule in RULES.items():
-        kws = (rule or {}).get("keywords", [])
-        score = sum(1 for k in kws if k and str(k).lower() in text)
-        if score > 0:
-            candidates.append({"intent": intent, "score": score})
-            if score > best_score:
-                best_intent, best_score = intent, score
-    return AutoDetectResp(intent=best_intent, confidence=float(best_score), candidates=candidates)
+@app.get("/health")
+def health():
+    return {
+        "ok": True,
+        "intents_list": [m.get("name") for m in INTENTS_META] if INTENTS_META else list(SCHEMA.keys()),
+        "templates_dir": str(Path(__file__).resolve().parent.parent / "templates"),
+    }
+
+@app.get("/schema")
+def get_schema():
+    return SCHEMA
+@app.get("/intents")
+def list_intents():
+    return INTENTS_META
+@app.post("/generate", response_model=GenerateResp)
+
 
 @app.post("/generate", response_model=GenerateResp)
 def generate(req: GenerateReq) -> GenerateResp:
-    # Require schema at request time (so server still starts if missing)
-    if _SCHEMA_ERR or not SCHEMA:
-        raise HTTPException(
-            status_code=503,
-            detail="Schema not loaded. Run scripts/regen_schemas.py and restart.",
-        )
-
+    # --- inputs ---
     intent = (req.intent or "").strip()
     fields = dict(req.fields or {})
 
-    # Validate intent & required fields
+    # --- validate intent exists ---
     if intent not in SCHEMA:
         raise HTTPException(status_code=400, detail=f"Unknown intent '{intent}'")
+
     intent_schema = SCHEMA[intent]
-    required = intent_schema.get("required", []) or []
+    required = intent_schema.get("required", [])
+
+    # --- validate required fields present & truthy ---
     missing = [k for k in required if not fields.get(k)]
     if missing:
         raise HTTPException(status_code=422, detail={"missing": missing})
 
-    # Normalize ISO dates (no Jinja filter dependency)
-    _shorten_iso_dates_inplace(fields)
+    # --- normalize dates globally: YYYY-MM-DD -> MM-DD ---
+    for k, v in list(fields.items()):
+        if isinstance(v, str) and len(v) == 10 and v[4] == "-" and v[7] == "-":
+            fields[k] = v[5:]
 
-    env = _env()
+    # --- jinja environment ---
+    env = _env()  # must be the same Environment used everywhere
 
-    # Subject (from schema if provided)
-    subject = _render_subject(env, intent_schema, intent, fields)
+    # --- subject template (from schema if provided) ---
+    template_meta = intent_schema.get("template") or {}
+    subject_tpl_str = template_meta.get("subject")
+    if subject_tpl_str:
+        subject = env.from_string(subject_tpl_str).render(**fields)
+    else:
+        # sensible fallback if subject not defined in schema
+        subject = intent_schema.get("label") or intent.replace("_", " ").title()
 
-    # Body path (bodyPath or {intent}.j2), with robust fallback & clear errors
-    body_path = _resolve_body_path(intent_schema.get("template") or {}, intent)
-    try:
-        tpl = env.get_template(body_path)
-    except Exception as e_first:
-        try:
-            tpl = env.get_template(f"{intent}.j2")
-        except Exception as e_second:
-            raise HTTPException(
-                status_code=500,
-                detail={
-                    "error": "TemplateNotFound",
-                    "tried": [body_path, f"{intent}.j2"],
-                    "msg1": str(e_first),
-                    "msg2": str(e_second),
-                },
-            )
+    # --- body template path: prefer schema bodyPath, else {intent}.j2 ---
+    body_path = template_meta.get("bodyPath") or f"{intent}.j2"
+    # If schema used "templates/..." keep only the filename since loader roots at /templates
+    if body_path.startswith("templates/"):
+        body_path = body_path.split("/", 1)[1]
 
     try:
-        body = tpl.render(**fields)
+        tpl_body = env.get_template(body_path)
     except Exception as e:
-        raise HTTPException(status_code=500, detail={"error": "TemplateRenderError", "msg": str(e)})
+        # final fallback to {intent}.j2
+        tpl_body = env.get_template(f"{intent}.j2")
+
+    body = tpl_body.render(**fields)
 
     return GenerateResp(subject=subject, body=body)
+
+
+
+
+
+
+
+
 
