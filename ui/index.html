@@ -664,6 +664,39 @@
     </div>
   </div>
 </div>
+<!-- Simple Editor Dialog for My Templates -->
+<dialog id="ut_editor">
+  <form method="dialog" id="ut_form" style="min-width: min(680px, 90vw)">
+    <h3 style="margin:0 0 10px">Edit Template</h3>
+    <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <label>Internal ID (letters, numbers, underscores; will be prefixed with u:)
+        <input id="ute_id" type="text" placeholder="my_quote" required pattern="[A-Za-z0-9_]{2,64}">
+      </label>
+      <label>Label (shown in grid)
+        <input id="ute_label" type="text" placeholder="My Quote" required>
+      </label>
+    </div>
+    <label>Description
+      <input id="ute_desc" type="text" placeholder="Local-only quote request">
+    </label>
+    <label>Fields (one per line as <name>:<type>[:required]) 
+      <textarea id="ute_fields" rows="4" placeholder="companyName:string:required&#10;item:string:required&#10;quantity:string"></textarea>
+    </label>
+    <div class="grid" style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:6px">
+      <label>Subject (use {{field}} placeholders)
+        <input id="ute_subject" type="text" placeholder="Quote Request — {{ companyName }}: {{ item }}">
+      </label>
+      <label>Body (plain text; {{field}} placeholders allowed)
+        <textarea id="ute_body" rows="8" placeholder="Hello,&#10;&#10>We’d like a quote for {{ item }} (qty {{ quantity }}).&#10;&#10>Thanks,"></textarea>
+      </label>
+    </div>
+
+    <div class="inline" style="justify-content:flex-end; gap:8px; margin-top:10px">
+      <button id="ute_cancel" class="btn secondary" value="cancel">Cancel</button>
+      <button id="ute_save"   class="btn" value="default">Save</button>
+    </div>
+  </form>
+</dialog>
 
 <script>
 
@@ -2463,40 +2496,6 @@ const SRC = window.NYAN_CAT_SRC || 'https://media.tenor.com/rI_0O_9AJ5sAAAAj/nya
   window.spawnNyan = spawnNyan;
 })();
 </script>
-<!-- Simple Editor Dialog for My Templates -->
-<dialog id="ut_editor">
-  <form method="dialog" id="ut_form" style="min-width: min(680px, 90vw)">
-    <h3 style="margin:0 0 10px">Edit Template</h3>
-    <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-      <label>Internal ID (letters, numbers, underscores; will be prefixed with u:)
-        <input id="ute_id" type="text" placeholder="my_quote" required pattern="[A-Za-z0-9_]{2,64}">
-      </label>
-      <label>Label (shown in grid)
-        <input id="ute_label" type="text" placeholder="My Quote" required>
-      </label>
-    </div>
-    <label>Description
-      <input id="ute_desc" type="text" placeholder="Local-only quote request">
-    </label>
-    <label>Fields (one per line as <name>:<type>[:required]) 
-      <textarea id="ute_fields" rows="4" placeholder="companyName:string:required&#10;item:string:required&#10;quantity:string"></textarea>
-    </label>
-    <div class="grid" style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:6px">
-      <label>Subject (use {{field}} placeholders)
-        <input id="ute_subject" type="text" placeholder="Quote Request — {{ companyName }}: {{ item }}">
-      </label>
-      <label>Body (plain text; {{field}} placeholders allowed)
-        <textarea id="ute_body" rows="8" placeholder="Hello,&#10;&#10>We’d like a quote for {{ item }} (qty {{ quantity }}).&#10;&#10>Thanks,"></textarea>
-      </label>
-    </div>
-
-    <div class="inline" style="justify-content:flex-end; gap:8px; margin-top:10px">
-      <button id="ute_cancel" class="btn secondary" value="cancel">Cancel</button>
-      <button id="ute_save"   class="btn" value="default">Save</button>
-    </div>
-  </form>
-</dialog>
-
 </body>
 </html>
 
