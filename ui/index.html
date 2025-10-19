@@ -159,32 +159,6 @@
 .parts-plus  { border:1px solid var(--card-border); border-radius:14px; padding:6px 10px; background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); cursor:pointer; }
 .parts-plus-row td { padding-top:4px; }
 .parts-label { font-weight:700; }
-<!-- Item: My Templates -->
-<div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
-  <div>
-    <div class="label">My Templates</div>
-    <div class="hint">Local-only templates saved in this browser</div>
-  </div>
-  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
-</div>
-
-<div id="subUserTpls" class="settings-subpanel">
-  <div class="label" style="margin:8px 0 6px">Templates on this device</div>
-  <div class="inline" style="gap:8px; margin:6px 0">
-    <button id="ut_new" class="btn" type="button">+ New</button>
-    <button id="ut_edit" class="btn secondary" type="button" disabled>Edit</button>
-    <button id="ut_dup"  class="btn secondary" type="button" disabled>Duplicate</button>
-    <button id="ut_del"  class="btn danger"    type="button" disabled>Delete</button>
-    <button id="ut_export" class="btn secondary" type="button">Export</button>
-    <label class="btn secondary" style="position:relative; overflow:hidden; cursor:pointer">
-      Import
-      <input id="ut_import" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer">
-    </label>
-  </div>
-
-  <div id="ut_list" class="kvs" style="margin-top:6px"></div>
-  <p class="muted" style="margin:8px 0 0">Tip: These are local only and won’t sync across devices.</p>
-</div>
 
   /* Starfield */
   canvas#stars{position:fixed; inset:0; z-index:-3;}
@@ -550,7 +524,29 @@
   <p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
 </div>
 
-
+<div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
+  <div>
+    <div class="label">My Templates</div>
+    <div class="hint">Local-only templates saved in this browser</div>
+  </div>
+  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+</div>
+<div id="subUserTpls" class="settings-subpanel">
+  <div class="label" style="margin:8px 0 6px">Templates on this device</div>
+  <div class="inline" style="gap:8px; margin:6px 0">
+    <button id="ut_new" class="btn" type="button">+ New</button>
+    <button id="ut_edit" class="btn secondary" type="button" disabled>Edit</button>
+    <button id="ut_dup"  class="btn secondary" type="button" disabled>Duplicate</button>
+    <button id="ut_del"  class="btn danger"    type="button" disabled>Delete</button>
+    <button id="ut_export" class="btn secondary" type="button">Export</button>
+    <label class="btn secondary" style="position:relative; overflow:hidden; cursor:pointer">
+      Import
+      <input id="ut_import" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer">
+    </label>
+  </div>
+  <div id="ut_list" class="kvs" style="margin-top:6px"></div>
+  <p class="muted" style="margin:8px 0 0">Tip: These are local only and won’t sync across devices.</p>
+</div>
 <!-- new Global Defaults section -->
 <div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
   <div>
@@ -918,7 +914,64 @@ function formatDateForOutput(yyyy_mm_dd){
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
 
-  if(!intent || !SCHEMA || !SCHEMA[intent]){
+  if(!intent){
+    if(fieldsHint) fieldsHint.textContent = '';
+    return;
+  }
+
+  // --- Local templates (u:...) -> build fields from local def, not SCHEMA
+  if (intent.startsWith('u:')) {
+    if(fieldsHint) fieldsHint.textContent = '';
+    const def = loadUserTemplates().find(t => t.id === intent);
+    if(!def){
+      return;
+    }
+
+    const required = (def.fields || []).filter(f => f.required).map(f => f.name);
+    const optional = (def.fields || []).filter(f => !f.required).map(f => f.name);
+    const allKeys  = [...required, ...optional];
+    const types    = Object.fromEntries((def.fields || []).map(f => [f.name, (f.type || 'string').toLowerCase()]));
+
+    for(const key of allKeys){
+      const wrap  = document.createElement('div');
+      wrap.className = 'kv';
+
+      const label = document.createElement('label');
+      label.htmlFor = `f_${key}`;
+      label.textContent = toTitle(key);
+      wrap.appendChild(label);
+
+      const t = String(types[key] || '').toLowerCase();
+      if (t === 'date') {
+        const input = document.createElement('input');
+        input.type = 'date';
+        input.id = `f_${key}`;
+        input.className = 'input';
+        wrap.appendChild(input);
+      } else if (t === 'longtext' || t === 'text' || t === 'textarea') {
+        const ta = document.createElement('textarea');
+        ta.id = `f_${key}`;
+        ta.rows = 4;
+        ta.className = 'input';
+        wrap.appendChild(ta);
+      } else {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = `f_${key}`;
+        input.className = 'input';
+        wrap.appendChild(input);
+      }
+
+      fieldsWrap.appendChild(wrap);
+    }
+
+    const first = fieldsWrap.querySelector('input:not([type="hidden"]), select, textarea');
+    if (first) first.focus();
+    return; // ✅ handled local template path
+  }
+
+  // --- Server templates (schema-backed) as before
+  if(!SCHEMA || !SCHEMA[intent]){
     if(fieldsHint) fieldsHint.textContent = '';
     return;
   }
@@ -1053,6 +1106,13 @@ function makeIntentCard(item){
     <div class="intent-name">${label}</div>
     <div class="intent-desc">${desc}</div>
   `;
+
+  if (item._local) {
+    const badge = document.createElement('span');
+    badge.className = 'tpl-badge';
+    badge.textContent = 'local';
+    div.querySelector('.intent-name')?.appendChild(badge);
+  }
 
   div.addEventListener('click', ()=>{
     const isActive = div.classList.contains('active');
@@ -1386,7 +1446,25 @@ async function doGenerate(){
   try{
     if(btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); }
 
+    // Local template? Render on the client and return early
+    if(SELECTED_INTENT && SELECTED_INTENT.startsWith('u:')){
+      const defs = loadUserTemplates();
+      const def  = defs.find(t=>t.id===SELECTED_INTENT);
+      if(def){
+        const out = renderLocalTemplate(def, collectFields(SELECTED_INTENT));
+        if(liveState.compose){
+          await typeInto(outSubject, out.subject || '');
+          await typeInto(outBody,    out.body || '');
+        }else{
+          if(outSubject) outSubject.textContent = out.subject || '';
+          if(outBody)    outBody.textContent    = out.body || '';
+        }
+        return; // ✅ skip server
+      }
+    }
+
     const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
+    // …
 
     // Build payload: ALWAYS send a string intent
     const intent = usingAuto ? 'auto_detect' : SELECTED_INTENT;
@@ -1532,21 +1610,26 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
   document.getElementById('subject')?.addEventListener('input', ()=> scheduleLiveGenerate(300));
   document.getElementById('hint')?.addEventListener('input',    ()=> scheduleLiveGenerate(300));
 
-  const settingsBtn  = document.querySelector('.settings-btn');
-  const settingsMenu = document.querySelector('.settings-menu');
-const subIntents   = document.getElementById('subIntents'); 
-const subTheme     = document.getElementById('subTheme');
-const subTyping    = document.getElementById('subTyping');
+const settingsBtn   = document.querySelector('.settings-btn');
+const settingsMenu  = document.querySelector('.settings-menu');
+const subIntents    = document.getElementById('subIntents'); 
+const subUserTpls   = document.getElementById('subUserTpls');   // NEW
+const subTheme      = document.getElementById('subTheme');
+const subTyping     = document.getElementById('subTyping');
+const subDefaults   = document.getElementById('subDefaults');    // NEW
+const themeSelect   = document.getElementById('themeSelect');    // NEW
+
 function closeAllSubs(){
-  [subTheme, subTyping, subIntents, subDefaults].forEach(el => el && el.classList.remove('open'));
+  [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
   document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
 }
 function openOnly(which){
   closeAllSubs();
-  if(which==='theme'    && subTheme)    subTheme.classList.add('open');
-  if(which==='typing'   && subTyping)   subTyping.classList.add('open');
-  if(which==='intents'  && subIntents){ subIntents.classList.add('open'); buildIntentsChecklist(); }
-  if(which==='defaults' && subDefaults) subDefaults.classList.add('open');
+  if(which==='theme'     && subTheme)     subTheme.classList.add('open');
+  if(which==='typing'    && subTyping)    subTyping.classList.add('open');
+  if(which==='intents'   && subIntents)  { subIntents.classList.add('open');  buildIntentsChecklist(); }
+  if(which==='usertpls'  && subUserTpls) { subUserTpls.classList.add('open'); buildUserTemplatesUI(); } // NEW
+  if(which==='defaults'  && subDefaults)  subDefaults.classList.add('open');
   document.querySelectorAll('.settings-item').forEach(row=>{
     const chev = row.querySelector('.chev');
     if(!chev) return;
@@ -1719,6 +1802,162 @@ function userTemplatesAsIntents(){
     _local: true,
   }));
 }
+// ===== My Templates UI (Settings) =====
+const dlgUT   = document.getElementById('ut_editor');
+const utList  = document.getElementById('ut_list');
+const utNew   = document.getElementById('ut_new');
+const utEdit  = document.getElementById('ut_edit');
+const utDup   = document.getElementById('ut_dup');
+const utDel   = document.getElementById('ut_del');
+const utExport= document.getElementById('ut_export');
+const utImport= document.getElementById('ut_import');
+
+const fId     = document.getElementById('ute_id');
+const fLabel  = document.getElementById('ute_label');
+const fDesc   = document.getElementById('ute_desc');
+const fFields = document.getElementById('ute_fields');
+const fSubj   = document.getElementById('ute_subject');
+const fBody   = document.getElementById('ute_body');
+
+let _ut_selected = null;  // selected id (u:xxx)
+
+function buildUserTemplatesUI(){
+  if(!utList) return;
+  const all = loadUserTemplates();
+  utList.innerHTML = '';
+
+  all.forEach(t=>{
+    const row = document.createElement('div');
+    row.className = 'kv';
+    row.setAttribute('data-id', t.id);
+    row.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
+        <div>
+          <div class="label">${esc(t.label || t.id)} <span class="tpl-badge">local</span></div>
+          <div class="hint">${esc(t.description || '')}</div>
+        </div>
+        <div class="muted">${esc(t.id)}</div>
+      </div>
+    `;
+    row.addEventListener('click', ()=>{
+      _ut_selected = t.id;
+      utList.querySelectorAll('.kv').forEach(k => k.classList.toggle('selected', k===row));
+      [utEdit, utDup, utDel].forEach(b=> b && (b.disabled=false));
+    });
+    utList.appendChild(row);
+  });
+
+  if(all.length===0){
+    const empty = document.createElement('div');
+    empty.className = 'muted';
+    empty.textContent = 'No local templates yet.';
+    utList.appendChild(empty);
+    [utEdit, utDup, utDel].forEach(b=> b && (b.disabled=true));
+  }
+}
+
+function openEditor(mode, existing){
+  fId.value     = existing ? (existing.id.replace(/^u:/,'') + (mode==='dup' ? '_copy' : '')) : '';
+  fLabel.value  = existing ? (existing.label || '') : '';
+  fDesc.value   = existing ? (existing.description || '') : '';
+  fFields.value = (existing && existing.fields ? existing.fields.map(f=>`${f.name}:${f.type||'string'}${f.required?':required':''}`).join('\n') : '');
+  fSubj.value   = existing ? (existing.subject || '') : '';
+  fBody.value   = existing ? (existing.body || '') : '';
+  dlgUT?.showModal();
+}
+
+function collectEditor(){
+  const rawId = fId.value.trim();
+  if(!rawId || !/^[A-Za-z0-9_]{2,64}$/.test(rawId)) return null;
+  const id = `u:${rawId}`;
+  const label = fLabel.value.trim() || rawId;
+  const description = fDesc.value.trim();
+  const fields = parseFieldLines(fFields.value);
+  return { id, name:id, label, description, fields, subject: fSubj.value || '', body: fBody.value || '' };
+}
+
+function upsertTemplate(def){
+  const all = loadUserTemplates();
+  const i = all.findIndex(x=>x.id===def.id);
+  if(i>=0) all[i]=def; else all.push(def);
+  saveUserTemplates(all);
+  // refresh combined intents + UI + visibility list
+  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
+  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+  renderIntentGridFromData(INTENTS);
+  buildIntentsChecklist();
+  buildUserTemplatesUI();
+}
+
+utNew?.addEventListener('click', ()=> openEditor('new', null));
+utEdit?.addEventListener('click', ()=>{
+  if(!_ut_selected) return;
+  const ex = loadUserTemplates().find(t=>t.id===_ut_selected);
+  if(ex) openEditor('edit', ex);
+});
+utDup?.addEventListener('click', ()=>{
+  if(!_ut_selected) return;
+  const ex = loadUserTemplates().find(t=>t.id===_ut_selected);
+  if(ex) openEditor('dup', ex);
+});
+utDel?.addEventListener('click', ()=>{
+  if(!_ut_selected) return;
+  const all = loadUserTemplates().filter(t=>t.id!==_ut_selected);
+  saveUserTemplates(all);
+  // remove from visible intents set if present
+  const vi = loadVisibleIntents();
+  if(vi && vi.has(_ut_selected)){ vi.delete(_ut_selected); saveVisibleIntents(vi); }
+  // refresh
+  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
+  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+  renderIntentGridFromData(INTENTS);
+  buildIntentsChecklist();
+  buildUserTemplatesUI();
+  _ut_selected = null;
+});
+
+utExport?.addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify({version:1, templates: loadUserTemplates()}, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'my-templates.json';
+  a.click();
+});
+
+utImport?.addEventListener('change', (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  const fr = new FileReader();
+  fr.onload = ()=>{
+    try{
+      const obj = JSON.parse(String(fr.result||''));
+      const arr = Array.isArray(obj?.templates) ? obj.templates : (Array.isArray(obj) ? obj : []);
+      const clean = [];
+      arr.forEach(t=>{
+        if(!t || typeof t!=='object') return;
+        const id = String(t.id||t.name||'').startsWith('u:') ? String(t.id||t.name) : `u:${String(t.id||t.name||'tpl')}`;
+        const fields = Array.isArray(t.fields) ? t.fields.filter(f=>f && f.name) : [];
+        clean.push({ id, name:id, label: t.label||id, description: t.description||'', fields, subject: t.subject||'', body: t.body||'' });
+      });
+      saveUserTemplates(clean);
+      const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
+      INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+      renderIntentGridFromData(INTENTS);
+      buildIntentsChecklist();
+      buildUserTemplatesUI();
+    }catch(_e){}
+  };
+  fr.readAsText(file);
+});
+
+dlgUT?.querySelector('#ute_cancel')?.addEventListener('click', ()=> dlgUT.close());
+dlgUT?.querySelector('#ute_save')?.addEventListener('click', (ev)=>{
+  ev.preventDefault();
+  const def = collectEditor();
+  if(!def) return;
+  upsertTemplate(def);
+  dlgUT.close();
+});
 
 
 
