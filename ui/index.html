@@ -2097,9 +2097,8 @@ function userTemplatesAsIntents(){
 }
 function openEditor(mode, existing){
   if (mode === 'new' && !existing){
-    const seed = 'tpl_' + Math.floor(Date.now()/1000);
-    fId.value     = seed;                // valid starter id
-    fLabel.value  = 'New Template';
+    fId.value     = '';                // valid starter id
+    fLabel.value  = '';
     fDesc.value   = '';
     fFields.value = '';
     fSubj.value   = '';
