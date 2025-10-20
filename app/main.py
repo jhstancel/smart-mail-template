@@ -258,5 +258,106 @@ def generate(req: GenerateReq) -> GenerateResp:
     # Subject: prefer schema label, else intent name
     subject = _label_for(intent)
 
+
     return GenerateResp(subject=subject, body=body, missing=missing)
 
+
+# ===== Predict / Auto-detect endpoint (keyword scoring) =====
+from typing import List as _List, Optional as _Optional
+from pydantic import BaseModel as _BM
+
+# Try to use generated rules if available; fall back to naive matching
+try:
+    # expected structure: RULES = {"intent_name": {"keywords": ["...","..."], "threshold": 0.0}}
+    from app.autodetect_rules_generated import RULES as _GEN_RULES
+except Exception:
+    _GEN_RULES = {}
+
+# Use schema to list valid intents
+try:
+    from app.schema_generated import SCHEMA as _GEN_SCHEMA
+except Exception:
+    _GEN_SCHEMA = {}
+
+class _PredictIn(_BM):
+    # UI may send either {text} OR {to,subject,body_hint}
+    text: _Optional[str] = None
+    to: _Optional[str] = None
+    subject: _Optional[str] = None
+    body_hint: _Optional[str] = None
+
+class _TopKItem(_BM):
+    label: str
+    score: float
+
+class _PredictOut(_BM):
+    intent: str
+    confidence: float
+    top_k: _List[_TopKItem] = []
+    message: str = ""
+
+def _tok(s: str) -> _List[str]:
+    import re as _re
+    return _re.findall(r"[a-z0-9]+", (s or "").lower())
+
+def _score_with_rules(text: str):
+    """Return list[(intent, score)] from generated keyword rules (if present)."""
+    if not _GEN_RULES:
+        return []
+    toks = set(_tok(text))
+    scored = []
+    for intent, rule in _GEN_RULES.items():
+        kws = rule.get("keywords") or rule.get("kw") or []
+        hits = sum(1 for k in kws if k.lower() in toks)
+        scored.append((intent, float(hits)))
+    total = sum(s for _, s in scored) or 1.0
+    scored = [(i, s / total) for i, s in scored]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored
+
+def _score_naive(text: str):
+    """Fallback: score by presence of intent words in text."""
+    toks = set(_tok(text))
+    intents = list(_GEN_SCHEMA.keys()) or [
+        "delay_notice","followup","invoice_payment","invoice_po_followup",
+        "order_confirmation","order_request","packing_slip_docs","qb_order",
+        "quote_request","shipment_update","tax_exemption","auto_detect"
+    ]
+    scored = []
+    for intent in intents:
+        parts = [p for p in intent.replace("/", "_").replace("-", "_").split("_") if p]
+        hits = sum(1 for p in parts if p in toks)
+        scored.append((intent, float(hits)))
+    total = sum(s for _, s in scored) or 1.0
+    scored = [(i, s / total) for i, s in scored]
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored
+
+@app.post("/predict", response_model=_PredictOut)
+def predict(body: _PredictIn):
+    # unify payload to a single text blob
+    text = (body.text or "").strip()
+    if not text:
+        text = " ".join(filter(None, [body.subject, body.body_hint, body.to])).strip()
+
+    if not text:
+        return _PredictOut(intent="", confidence=0.0, top_k=[], message="Empty input")
+
+    scored = _score_with_rules(text) or _score_naive(text)
+
+    top_k = [_TopKItem(label=i, score=float(s)) for i, s in scored[:5]]
+    best_intent, best_score = scored[0] if scored else ("", 0.0)
+
+    # never return auto_detect as the prediction itself
+    if best_intent == "auto_detect" and len(scored) > 1:
+        best_intent, best_score = scored[1]
+
+    return _PredictOut(
+        intent=best_intent,
+        confidence=float(best_score),
+        top_k=top_k,
+        message=""
+    )
+# ===== end /predict =====
+
+    return GenerateResp(subject=subject, body=body, missing=missing)
