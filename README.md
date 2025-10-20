@@ -1,9 +1,7 @@
 # Smart Mail Template
 
 Smart Mail Template is a project for generating clean, structured emails from pre-defined templates.  
-It started as a tool for logistics and aerospace work, but it can be used anywhere — manufacturing, shipping, finance, or support — basically anywhere people send the same kinds of emails over and over.
-
----
+It started as a tool for logistics and aerospace work, but it can be used anywhere — manufacturing, shipping, finance, or support (basically anywhere people send the same kinds of emails over and over).
 
 ## What It Does
 
@@ -19,15 +17,11 @@ YAML intent → preprocess.py → schema + templates → FastAPI → UI → Emai
 
 ````
 
----
-
 ## Vision
 
 The goal is to make this work for any company or industry without code changes.  
 You could build a new set of templates for quotes, orders, invoices, or customer follow-ups, and it would just work after running one command.  
-It’s meant to feel simple — fill out boxes, hit generate, copy, send.
-
----
+It’s meant to feel simple (fill out boxes, hit generate, copy, send).
 
 ## Getting Started
 
@@ -58,8 +52,6 @@ python3 scripts/new_intent.py
 
 It’ll walk you through everything and rebuild the schema.
 
----
-
 ## Project Layout
 
 ```
@@ -72,18 +64,14 @@ model/         Intent detection model
 tests/         Basic tests
 ```
 
----
-
 ## Workflow
 
 * Write or edit a `.yml` intent file
 * Run `make regen` to rebuild schema files
-* Start the app → `/generate`, `/schema`, `/autodetect` endpoints
-* Open the UI → fill fields → preview → copy → send
+* Start the app, which exposes `/generate`, `/schema`, and `/autodetect`
+* Open the UI, fill fields, preview, copy, send
 
-The frontend also supports auto-detect — you can type a quick draft and it will guess the right intent.
-
----
+The frontend also supports auto-detect (you can type a quick draft and it will guess the right intent).
 
 ## AI-Assisted Development
 
@@ -91,9 +79,7 @@ I use ChatGPT to help write updates, format commits, and fix logic quickly.
 Every change still goes through human review and testing.
 It’s basically a co-pilot that speeds things up and keeps the repo clean.
 
----
-
 ## License
 
-MIT — free to use, fork, and build on.
+MIT (free to use, fork, and build on)
 
