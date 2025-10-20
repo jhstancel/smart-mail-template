@@ -1500,19 +1500,38 @@ async function doGenerate(){
         return; // ✅ skip server
       }
     }
+const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
 
-    const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
-    // …
+let intent = SELECTED_INTENT;
+let fields = {};
 
-    // Build payload: ALWAYS send a string intent
-    const intent = usingAuto ? 'auto_detect' : SELECTED_INTENT;
-    if(!intent){
-      if(fieldsHint) fieldsHint.textContent = ''; // invisible anyway
-      return;
-    }
+if (usingAuto){
+  // ask backend to pick the intent from subject + hint
+  const subject = document.getElementById('subject')?.value || '';
+  const hint    = document.getElementById('hint')?.value || '';
+  const text    = (subject + '\n' + hint).trim();
 
-    const fields = usingAuto ? {} : collectFields(intent);
-    const payload = { intent, fields };
+  try{
+    const res = await fetch('/autodetect', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ text })
+    });
+    const pick = await res.json();
+    intent = pick?.intent || '';
+  }catch(_e){ intent = ''; }
+
+  if(!intent){
+    // nothing confident → bail gracefully
+    if(fieldsHint) fieldsHint.textContent = '';
+    return;
+  }
+}
+
+// now collect fields for whichever intent we’re using
+fields = collectFields(intent);
+const payload = { intent, fields };
+
     const missing = listMissing(intent, fields);
     if(missing.length){
       console.warn('[Missing required fields]', missing);
@@ -2001,51 +2020,6 @@ async function runCorruption(){
   document.body.classList.remove('corrupting');
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 }
-/* ===== Autodetect (client wiring) ===== */
-const inputBodyHint     = document.getElementById('hint');
-const inputSubjectDraft = document.getElementById('subject');
-const predLabel         = document.getElementById('predIntent');
-const predBar           = document.getElementById('predBadge'); // reuse badge pill
-
-function setPrediction(res){
-  if(!predLabel) return;
-  if(!res || !res.intent){
-    predLabel.textContent = '—';
-    if(predBar) predBar.textContent = '0%';
-    return;
-  }
-  const pct = Math.round((res.confidence || 0) * 100);
-  predLabel.textContent = res.intent;
-  if(predBar) predBar.textContent = pct + '%';
-}
-
-function scheduleAutodetect(){
-  clearTimeout(scheduleAutodetect.t);
-  scheduleAutodetect.t = setTimeout(runAutodetect, 250);
-}
-
-async function runAutodetect(){
-  try{
-    const subject = inputSubjectDraft?.value || '';
-    const hint    = inputBodyHint?.value || '';
-    const text    = (subject + '\n' + hint).trim();
-    if(!text){ setPrediction(null); return; }
-
-    const res = await fetch('/autodetect', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ text })
-    });
-    if(!res.ok){ setPrediction(null); return; }
-    const json = await res.json();
-    setPrediction(json);
-  }catch(_e){
-    setPrediction(null);
-  }
-}
-
-inputBodyHint?.addEventListener('input', scheduleAutodetect);
-inputSubjectDraft?.addEventListener('input', scheduleAutodetect);
 
 /* =========================================================================================
  * Init (modernized for YAML schema)
@@ -2353,34 +2327,26 @@ if (Array.isArray(data) && data.length) {
     }
   }
 
-  async function predictNow(hintVal){
-    if(inflight){ try{ inflight.abort(); }catch{} }
-    inflight = new AbortController();
+async function predictNow(hintVal){
+  ...
+  const payload = {
+    to: (els.to?.value || '').trim(),
+    subject: (els.subject?.value || '').trim(),
+    body_hint: hintVal
+  };
 
-    const payload = {
-      to: (els.to?.value || '').trim(),
-      subject: (els.subject?.value || '').trim(),
-      body_hint: hintVal
-    };
-
-    setPredictStatus('Predicting…');
-    try{
-      const res = await fetch('/predict', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload),
-        signal: inflight.signal
-      });
-      const data = await res.json();
-      updatePredictUI(data);
-      setPredictStatus('');
-    }catch(err){
-      if(err?.name === 'AbortError') return;
-      setPredictStatus('Prediction failed.');
-      hidePredictInfo();
-    }
-  }
-
+  setPredictStatus('Predicting…');
+  try{
+    const res = await fetch('/predict', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(payload),
+      signal: inflight.signal
+    });
+    const data = await res.json();
+    updatePredictUI(data);
+    setPredictStatus('');
+  }catch(err){
   function onType(){
     if(!currentHintEl) return;
     const hint = (currentHintEl.value || '').trim();
