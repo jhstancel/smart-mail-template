@@ -1,7 +1,7 @@
 # Smart Mail Template
 
 Smart Mail Template helps you write clear, professional emails using saved templates.  
-You can load built-in ones, make your own, or drop in new templates right from the browser.  
+You can load built-in ones or make your own right in the app.  
 It’s made to save time for people who send similar messages all the time (like in logistics, sales, or customer support).
 
 ## What It Does
