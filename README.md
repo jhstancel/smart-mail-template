@@ -18,12 +18,6 @@ You can also:
 - Select the intents you like, remove the ones you don't
 - Use the Auto Detect feature! 
 
-```
-
-YAML intent/Local UI Generation → schema → template → live email preview
-
-````
-
 ## Vision
 
 The goal is to make structured communication simple and reusable.  
