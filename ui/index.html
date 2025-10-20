@@ -2067,11 +2067,11 @@ if (Array.isArray(data) && data.length) {
     const coreIntents = INTENTS;
     const localIntents = userTemplatesAsIntents();
     INTENTS = [...coreIntents, ...localIntents];
+renderIntentGridFromData(INTENTS);
+buildIntentsChecklist();
+buildUserTemplatesUI(); // populate the My Templates list
+if (window.scheduleAutodetect) window.scheduleAutodetect();
 
-    renderIntentGridFromData(INTENTS);
-    buildIntentsChecklist();
-    buildUserTemplatesUI(); // populate the My Templates list
-    scheduleAutodetect();
   } catch (err) {
     console.error('Error initializing schema/intents:', err);
     intentGrid.innerHTML = '<div class="muted">Failed to load schema.</div>';
@@ -2326,27 +2326,32 @@ if (Array.isArray(data) && data.length) {
       }, 60);
     }
   }
-
 async function predictNow(hintVal){
-  ...
-  const payload = {
-    to: (els.to?.value || '').trim(),
-    subject: (els.subject?.value || '').trim(),
-    body_hint: hintVal
-  };
+  if(inflight){ try{ inflight.abort(); }catch{} }
+  inflight = new AbortController();
+
+  const subject = (els.subject?.value || '').trim();
+  const text    = (subject + '\n' + (hintVal || '')).trim();
+  if(!text){ setPredictStatus(''); hidePredictInfo(); return; }
 
   setPredictStatus('Predicting…');
   try{
-    const res = await fetch('/predict', {
+    const res = await fetch('/autodetect', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ text }),
       signal: inflight.signal
     });
     const data = await res.json();
     updatePredictUI(data);
     setPredictStatus('');
   }catch(err){
+    if(err?.name === 'AbortError') return;
+    setPredictStatus('Prediction failed.');
+    hidePredictInfo();
+  }
+}
+
   function onType(){
     if(!currentHintEl) return;
     const hint = (currentHintEl.value || '').trim();
@@ -2484,6 +2489,14 @@ const SRC = window.NYAN_CAT_SRC || 'https://media.tenor.com/rI_0O_9AJ5sAAAAj/nya
 
   // Optional: expose a manual trigger for testing in console
   window.spawnNyan = spawnNyan;
+// Allow init() to kick a first prediction if text exists
+window.scheduleAutodetect = function(){
+  const el = document.getElementById('hint');
+  const hint = (el?.value || '').trim();
+  if(hint) predictNow(hint);
+  else { setPredictStatus(''); hidePredictInfo(); }
+};
+
 })();
 </script>
 </body>
