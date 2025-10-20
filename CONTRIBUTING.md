@@ -10,7 +10,8 @@ You can add your own email types, test them, and share them back.
 3. Rename it and update its fields (use clear names and hints)  
 4. Add a matching Jinja2 file under `templates/` with the same name  
 5. Run:
-   ```bash
+
+```bash
    make regen
 ```
 
