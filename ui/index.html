@@ -331,12 +331,15 @@
     position:relative;
   }
   .settings-btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-2); }
-  .settings-menu{
-    margin-top:8px; min-width:260px; max-width:320px;
-    display:none; flex-direction:column; gap:8px;
-    padding:10px; border-radius:14px; border:1px solid var(--panel-border);
-    background:var(--glass); box-shadow: var(--shadow-2);
-  }
+  
+.settings-menu{
+  margin-top:8px; min-width:260px; max-width:320px;
+  display:none; flex-direction:column; gap:6px;          /* tighter */
+  padding:10px; border-radius:14px; border:1px solid var(--panel-border);
+  background:var(--glass); box-shadow: var(--shadow-2);
+  max-height:70vh; overflow:auto;                        /* scrollable */
+}
+
   .settings-menu.open{ display:flex; }
   .settings-item{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -474,6 +477,25 @@
   background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
   margin-left: 6px;
 }
+/* --- My Templates list --- */
+.tpl-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.btn.small{ padding:8px 12px; border-radius:10px; font-weight:800; }
+.btn.ghost{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none; }
+
+.tpl-list{ display:flex; flex-direction:column; gap:8px; }
+.tpl-card{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+  padding:10px 12px; border-radius:12px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  border:1px solid var(--card-border); box-shadow: var(--shadow-1);
+}
+.tpl-main{ display:flex; align-items:center; gap:10px; min-width:0; }
+.tpl-title{ font-weight:800; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tpl-badge{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--panel-border); color:var(--muted); background:color-mix(in srgb, var(--bg) 85%, white 15%); }
+.tpl-desc{ color:var(--muted); font-size:12px; margin-top:2px; }
+.tpl-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+.tpl-actions .btn{ padding:7px 10px; border-radius:9px; }
+.tpl-actions .danger{ background: linear-gradient(180deg, var(--bad), color-mix(in srgb, var(--bad) 80%, black 20%)); color:#fff; }
 
 </style>
 
@@ -632,6 +654,22 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
   <div id="ut_list" class="kvs" style="margin-top:6px"></div>
   <p class="muted" style="margin:8px 0 0">Tip: These are local only and won’t sync across devices.</p>
 </div>
+<div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
+  <div>
+    <div class="label">My Templates</div>
+    <div class="hint">Local-only templates saved in this browser</div>
+  </div>
+  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
+</div>
+<div id="subUserTpls" class="settings-subpanel">
+  <div class="tpl-head">
+    <div class="label">Templates on this device</div>
+    <button id="tplNew" type="button" class="btn small">+ New</button>
+  </div>
+  <div id="userTplList" class="tpl-list"></div>
+  <p class="muted" style="margin-top:6px">Tip: These are local only and won’t sync across devices.</p>
+</div>
+
 <!-- new Global Defaults section -->
 <div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
   <div>
@@ -1753,6 +1791,80 @@ function initComposeModeUI(){
     applyComposeMode(b.dataset.mode);
   });
 }
+const TPL_KEY = 'sm_user_templates_v1'; // [{id,label,desc,body}, ...]
+
+function readUserTpls(){
+  try{ return JSON.parse(localStorage.getItem(TPL_KEY) || '[]'); } catch(_) { return []; }
+}
+function writeUserTpls(list){
+  try{ localStorage.setItem(TPL_KEY, JSON.stringify(list || [])); }catch(_){}
+}
+function buildUserTemplatesUI(){
+  const wrap = document.getElementById('userTplList');
+  if(!wrap) return;
+
+  const list = readUserTpls();
+  wrap.innerHTML = '';
+
+  if(!list.length){
+    const empty = document.createElement('div');
+    empty.className = 'tpl-card';
+    empty.innerHTML = `<div class="tpl-main">
+        <div>
+          <div class="tpl-title">No templates yet</div>
+          <div class="tpl-desc">Click “+ New” to create your first local template.</div>
+        </div>
+      </div>`;
+    wrap.appendChild(empty);
+    return;
+  }
+
+  list.forEach(t=>{
+    const card = document.createElement('div');
+    card.className = 'tpl-card';
+    card.innerHTML = `
+      <div class="tpl-main">
+        <span class="tpl-badge">local</span>
+        <div>
+          <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
+          ${t.desc ? `<div class="tpl-desc">${t.desc}</div>` : ''}
+        </div>
+      </div>
+      <div class="tpl-actions">
+        <button class="btn ghost" type="button">Edit</button>
+        <button class="btn ghost" type="button">Duplicate</button>
+        <button class="btn danger" type="button">Delete</button>
+      </div>
+    `;
+    const [btnEdit, btnDup, btnDel] = card.querySelectorAll('.tpl-actions .btn');
+
+    btnEdit.addEventListener('click', ()=>{
+      document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
+    });
+    btnDup.addEventListener('click', ()=>{
+      const copy = { ...t, id: `${t.id || 'tpl'}_${Date.now()}`, label: (t.label ? t.label+' (copy)' : 'Untitled (copy)') };
+      const next = readUserTpls(); next.unshift(copy); writeUserTpls(next); buildUserTemplatesUI();
+    });
+    btnDel.addEventListener('click', ()=>{
+      const next = readUserTpls().filter(x => x.id !== t.id);
+      writeUserTpls(next); buildUserTemplatesUI();
+    });
+
+    wrap.appendChild(card);
+  });
+
+  const newBtn = document.getElementById('tplNew');
+  if(newBtn && !newBtn._wired){
+    newBtn._wired = true;
+    newBtn.addEventListener('click', ()=>{
+      document.dispatchEvent(new CustomEvent('userTpl:new'));
+      // optional: seed a blank template for now
+      const next = readUserTpls();
+      next.unshift({ id:`tpl_${Date.now()}`, label:'New Template', desc:'', body:'' });
+      writeUserTpls(next); buildUserTemplatesUI();
+    });
+  }
+}
 
 
 /* =========================================================================================
@@ -1786,21 +1898,27 @@ function closeAllSubs(){
   [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
   document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
 }
+let currentlyOpen = null;
 function openOnly(which){
+  // toggle: if clicking the same item, close all
+  if(currentlyOpen === which){
+    closeAllSubs(); currentlyOpen = null;
+    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+    return;
+  }
   closeAllSubs();
   if(which==='theme'     && subTheme)     subTheme.classList.add('open');
   if(which==='typing'    && subTyping)    subTyping.classList.add('open');
-  if(which==='intents'   && subIntents)  { subIntents.classList.add('open');  buildIntentsChecklist(); }
-  if(which==='usertpls'  && subUserTpls) { subUserTpls.classList.add('open'); buildUserTemplatesUI(); } // NEW
+  if(which==='intents'   && subIntents)  { subIntents.classList.add('open');  buildIntentsChecklist?.(); }
+  if(which==='usertpls'  && subUserTpls) { subUserTpls.classList.add('open'); buildUserTemplatesUI?.(); }
   if(which==='defaults'  && subDefaults)  subDefaults.classList.add('open');
+  currentlyOpen = which;
   document.querySelectorAll('.settings-item').forEach(row=>{
     const chev = row.querySelector('.chev');
     if(!chev) return;
     chev.classList.toggle('rot90', row.getAttribute('data-item')===which);
   });
 }
-
-
 
 
 function toggleMenu(){
