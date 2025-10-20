@@ -574,22 +574,27 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
       </div>
       <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
     </div>
+
+
+
+
+
 <div id="subTyping" class="settings-subpanel">
+  <div class="label">Compose Behavior</div>
+  <div class="hint" style="margin:-2px 0 10px">Choose how the draft updates while you work.</div>
 
+  <!-- Segmented control -->
+  <div id="composeSeg" class="seg" role="tablist" aria-label="Compose Behavior">
+    <button class="opt" data-mode="preview" role="tab" aria-selected="false">Preview</button>
+    <button class="opt" data-mode="type"    role="tab" aria-selected="false">Type</button>
+    <button class="opt" data-mode="off"     role="tab" aria-selected="false">Off</button>
+  </div>
 
-
-<div class="label" style="margin:8px 0 6px">Compose Behavior</div>
-<div class="hint" style="margin:-2px 0 10px">Choose how the draft updates while you work.</div>
-
-<div id="composeMode" class="seg">
-  <button class="seg-btn" data-mode="preview" aria-pressed="false" title="Auto-fill subject/body instantly">Preview</button>
-  <button class="seg-btn" data-mode="type"    aria-pressed="false" title="Animate the text as if being typed">Type</button>
-  <button class="seg-btn" data-mode="off"     aria-pressed="false" title="No live updates">Off</button>
+  <p class="muted" style="margin:8px 0 0">Tip: Minimal themes reduce visible animations.</p>
 </div>
 
-<p class="muted" style="margin:8px 0 0">Tip: Minimal themes reduce visible animations.</p>
 
-</div>
+
 
 
 
@@ -1698,14 +1703,65 @@ function scheduleLiveGenerate(delayMs=200){
 window.scheduleLiveGenerate = scheduleLiveGenerate;
 
 
+/* ===== Compose Mode (Preview / Type / Off) ===== */
+const MODE_KEY = 'sm_compose_mode'; // 'preview' | 'type' | 'off'
+
+(function migrateLegacyComposeFlags(){
+  const oldCompose = localStorage.getItem('sm_live_compose');
+  const oldPreview = localStorage.getItem('sm_live_preview');
+  if(oldCompose !== null || oldPreview !== null){
+    const mode = (oldPreview === '1') ? 'preview' : (oldCompose === '1') ? 'type' : 'off';
+    localStorage.setItem(MODE_KEY, mode);
+    localStorage.removeItem('sm_live_compose');
+    localStorage.removeItem('sm_live_preview');
+  }
+})();
+
+function applyComposeMode(mode){
+  // normalize to allowed values
+  mode = (mode === 'preview' || mode === 'type' || mode === 'off') ? mode : 'type';
+  localStorage.setItem(MODE_KEY, mode);
+
+  // drive your existing liveState via the public setters you already have
+  setLivePreview(mode === 'preview'); // auto-generate while typing
+  setLiveCompose(mode === 'type');    // typewriter effect on Output
+
+  // reflect on big Generate button
+  if (btnGenerate) btnGenerate.style.display = (mode === 'preview') ? 'none' : '';
+
+  // update segmented control UI if it exists
+  const seg = document.getElementById('composeSeg');
+  if(seg){
+    seg.querySelectorAll('.opt').forEach(b=>{
+      b.setAttribute('aria-selected', String(b.dataset.mode === mode));
+    });
+  }
+}
+
+function initComposeModeUI(){
+  const seg = document.getElementById('composeSeg');
+  const initial = localStorage.getItem(MODE_KEY) || 'type';
+  applyComposeMode(initial);
+
+  if(!seg) return;
+  seg.querySelectorAll('.opt').forEach(b=>{
+    b.setAttribute('aria-selected', String(b.dataset.mode === initial));
+  });
+  seg.addEventListener('click', (e)=>{
+    const b = e.target.closest('.opt');
+    if(!b) return;
+    applyComposeMode(b.dataset.mode);
+  });
+}
 
 
 /* =========================================================================================
  * Settings menu + Theme + Typing toggles + Copy/Clear + Global Defaults wiring
  * =======================================================================================*/
 (function wireUI(){
-  // Compose Behavior segmented control is initialized by initComposeModeUI()
-  // Reflect current mode on the Generate button
+  // Initialize segmented control + apply current mode (Preview/Type/Off)
+  initComposeModeUI();
+  // Reflect current mode on the Generate button (redundant safeguard)
   if(btnGenerate){ btnGenerate.style.display = liveState.preview ? 'none' : ''; }
 
   // auto-generate when fields change (gated by livePreview)
@@ -2197,6 +2253,48 @@ if (window.scheduleAutodetect) window.scheduleAutodetect();
     0 1px 0 rgba(0,0,0,.06),
     inset 0 0 0 1px var(--card-border),
     0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+/* Settings “card headers” feel and subpanels spacing */
+.settings-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid var(--card-border); border-radius:14px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  padding:12px 14px; cursor:pointer;
+  box-shadow: var(--shadow-1);
+}
+.settings-subpanel{
+  border:1px solid var(--card-border);
+  border-radius:14px;
+  background:color-mix(in srgb, var(--bg) 90%, white 10%);
+  padding:12px;
+}
+
+/* Segmented control (Preview / Type / Off) */
+.seg{
+  display:inline-flex; gap:6px; align-items:center;
+  padding:6px; border-radius:14px;
+  background:color-mix(in srgb, var(--bg) 85%, white 15%);
+  border:1px solid var(--panel-border);
+}
+.seg .opt{
+  appearance:none; border:1px solid transparent; background:transparent;
+  padding:8px 14px; border-radius:12px; font-weight:800; cursor:pointer;
+  transition:transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+.seg .opt:hover{ transform:translateY(-1px); }
+.seg .opt[aria-selected="true"]{
+  background:#fff; color:var(--ink); border-color:var(--panel-border); box-shadow: var(--shadow-1);
+}
+body[data-theme="dark-minimal"] .seg .opt[aria-selected="true"],
+body[data-theme="cosmic"] .seg .opt[aria-selected="true"]{
+  background:color-mix(in srgb, var(--glass) 80%, black 20%);
+}
+
+/* Make selects/inputs feel consistent inside subpanels */
+.settings-subpanel select,
+.settings-subpanel input[type="text"]{
+  background:color-mix(in srgb, var(--bg) 92%, black 8%);
+  border-radius:12px; border:1px solid var(--panel-border); padding:10px 12px;
 }
 
 </style>
