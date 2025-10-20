@@ -452,9 +452,17 @@
   background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
   margin-left: 6px;
 }
+
+/* Tiny badge for local templates on cards */
+.tpl-badge{
+  font-size: 11px; padding: 2px 6px; border-radius: 999px;
+  background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
+  margin-left: 6px;
+}
+<script>
 // ===== Compose Behavior (Preview / Type / Off) =====
-const LIVE_MODE_KEY = 'sm_live_mode_v1'; // values: 'preview' | 'type' | 'off'
-window.liveState = window.liveState || { preview: true, compose: false };
+const LIVE_MODE_KEY = 'sm_live_mode_v1';   // values: 'preview' | 'type' | 'off'
+window.liveState = window.liveState || { preview: true, compose: false, tId: null };
 
 function loadLiveMode(){
   const v = localStorage.getItem(LIVE_MODE_KEY);
@@ -463,22 +471,22 @@ function loadLiveMode(){
 function saveLiveMode(mode){ try{ localStorage.setItem(LIVE_MODE_KEY, mode); }catch(_e){} }
 
 function applyLiveMode(mode){
-  // normalize
   mode = (mode === 'type' || mode === 'off') ? mode : 'preview';
-  // reflect state used by existing code paths
-  if(mode === 'preview'){ liveState.preview = true;  liveState.compose = false; }
-  if(mode === 'type')   { liveState.preview = false; liveState.compose = true;  }
-  if(mode === 'off')    { liveState.preview = false; liveState.compose = false; }
+  if(mode === 'preview'){ window.liveState.preview = true;  window.liveState.compose = false; }
+  if(mode === 'type')   { window.liveState.preview = false; window.liveState.compose = true;  }
+  if(mode === 'off')    { window.liveState.preview = false; window.liveState.compose = false; }
 
-  // update segmented buttons
   const seg = document.getElementById('composeMode');
   if(seg){
     seg.querySelectorAll('.seg-btn').forEach(btn=>{
       btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
     });
   }
-
   saveLiveMode(mode);
+
+  // Reflect on the Generate button visibility (Preview mode hides it)
+  const btn = document.getElementById('btnGenerate');
+  if(btn) btn.style.display = window.liveState.preview ? 'none' : '';
 }
 
 function initComposeModeUI(){
@@ -487,12 +495,10 @@ function initComposeModeUI(){
   const mode = loadLiveMode();
   applyLiveMode(mode);
   seg.querySelectorAll('.seg-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const m = btn.dataset.mode;
-      applyLiveMode(m);
-    });
+    btn.addEventListener('click', ()=> applyLiveMode(btn.dataset.mode));
   });
 }
+</script>
 
 </style>
 </head>
@@ -1627,14 +1633,16 @@ document.getElementById('fields')?.addEventListener('keydown', (e)=>{
 });
 
 // --- live toggles state + helpers ---
-const liveState = {
-  compose: false,   // #liveCompose
-  preview: false,   // #livePreview
-  tId: null         // debounce timer for auto-generate
-};
+// Use the shared object managed by the segmented control
+const liveState = (window.liveState = window.liveState || { compose:false, preview:true, tId:null });
 
-function setLiveCompose(v){ liveState.compose = !!v; localStorage.setItem('sm_live_compose', liveState.compose ? '1':'0'); }
-function setLivePreview(v){ liveState.preview = !!v; localStorage.setItem('sm_live_preview', liveState.preview ? '1':'0'); }
+// Back-compat setters map to modes (in case anything still calls them)
+function setLiveCompose(v){
+  applyLiveMode(v ? 'type' : (liveState.preview ? 'preview' : 'off'));
+}
+function setLivePreview(v){
+  applyLiveMode(v ? 'preview' : (liveState.compose ? 'type' : 'off'));
+}
 
 // simple typewriter effect for Output panel
 async function typeInto(el, text){
@@ -1665,24 +1673,9 @@ window.scheduleLiveGenerate = scheduleLiveGenerate;
  * Settings menu + Theme + Typing toggles + Copy/Clear + Global Defaults wiring
  * =======================================================================================*/
 (function wireUI(){
-  const liveComposeCb = document.getElementById('liveCompose');
-  const livePreviewCb = document.getElementById('livePreview');
-
-  // restore saved state
-  const savedCompose = localStorage.getItem('sm_live_compose') === '1';
-  const savedPreview = localStorage.getItem('sm_live_preview') === '1';
-  if(liveComposeCb){ liveComposeCb.checked = savedCompose; setLiveCompose(savedCompose); }
-  if(livePreviewCb){ livePreviewCb.checked = savedPreview; setLivePreview(savedPreview); }
-  if(btnGenerate){ btnGenerate.style.display = savedPreview ? 'none' : ''; }
-
-  // wire toggles
-  if(liveComposeCb){ liveComposeCb.addEventListener('change', e=> setLiveCompose(e.target.checked)); }
-  if(livePreviewCb){
-    livePreviewCb.addEventListener('change', e=>{
-      setLivePreview(e.target.checked);
-      if(btnGenerate){ btnGenerate.style.display = e.target.checked ? 'none' : ''; }
-    });
-  }
+  // Compose Behavior segmented control is initialized by initComposeModeUI()
+  // Reflect current mode on the Generate button
+  if(btnGenerate){ btnGenerate.style.display = liveState.preview ? 'none' : ''; }
 
   // auto-generate when fields change (gated by livePreview)
   document.getElementById('fields')?.addEventListener('input', ()=>{
