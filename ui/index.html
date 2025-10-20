@@ -1798,15 +1798,6 @@ btnDel.addEventListener('click', (e)=>{
 
     wrap.appendChild(card);
   });
-const newBtn = document.getElementById('tplNew');
-if(newBtn && !newBtn._wired){
-  newBtn._wired = true;
-  newBtn.addEventListener('click', (e)=>{
-    e.stopPropagation();                       // don’t close the menu
-    document.dispatchEvent(new CustomEvent('userTpl:new')); // just open editor — no save yet
-  });
-}
-
 }
 
 
@@ -2107,7 +2098,7 @@ function userTemplatesAsIntents(){
 function openEditor(mode, existing){
   if (mode === 'new' && !existing){
     const seed = 'tpl_' + Math.floor(Date.now()/1000);
-    fId.value     = seed;                // ✅ valid starter id (no “required” trip)
+    fId.value     = seed;                // valid starter id
     fLabel.value  = 'New Template';
     fDesc.value   = '';
     fFields.value = '';
@@ -2121,11 +2112,37 @@ function openEditor(mode, existing){
     fSubj.value   = existing ? (existing.subject || '') : '';
     fBody.value   = existing ? (existing.body || '') : '';
   }
-  dlgUT?.showModal();
+
+  // Keep settings visible underneath
+  reopenSettingsAfterEditor?.();
+
+  // Avoid native validation/focus weirdness on open
+  try { if (document.activeElement) document.activeElement.blur(); } catch(_){}
+
+  // Robust open: use showModal if available, else fallback to open attribute
+  if (dlgUT && typeof dlgUT.showModal === 'function') {
+    try { dlgUT.showModal(); }
+    catch(_e){
+      // Safari corner cases: fallback
+      dlgUT.setAttribute('open','');
+    }
+  } else if (dlgUT) {
+    dlgUT.setAttribute('open','');
+  }
 }
 
-document.addEventListener('userTpl:new',  () => openEditor('new', null));
-document.addEventListener('userTpl:edit', (e) => openEditor('edit', e.detail?.template));
+// Make sure the +New button works once openEditor is defined
+window.addEventListener('DOMContentLoaded', ()=>{
+  const newBtn = document.getElementById('tplNew');
+  if(!newBtn) return;
+  newBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    openEditor('new', null);
+  });
+});
+
+// === Wire events for new / edit / duplicate actions ===
+document.addEventListener('userTpl:dup',  (e) => openEditor('dup',  e.detail?.template || null));
 
 function collectEditor(){
   function slugify(s){
