@@ -12,7 +12,7 @@ You can add your own email types, test them, and share them back.
 5. Run:
    ```bash
    make regen
-````
+```
 
 This rebuilds the schema so your new intent shows up in the app.
 
