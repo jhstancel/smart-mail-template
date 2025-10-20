@@ -2248,7 +2248,10 @@ dlgUT.addEventListener('click', (e)=>{
 dlgUT?.querySelector('#ute_save')?.addEventListener('click', (ev)=>{
   ev.preventDefault();
   const def = collectEditor();
-  if(!def) return;
+  if (!def) {
+    alert("Please fill out all required fields before saving.");
+    return;
+  }
   upsertTemplate(def);
   dlgUT.close();
   reopenSettingsAfterEditor();   // keep you in Settings → My Templates
@@ -2850,13 +2853,21 @@ window.addEventListener('DOMContentLoaded', ()=>{
     window.currentlyOpen = 'usertpls';
   }
 
-  // Cancel click
-  btnCancel?.addEventListener('click', (e)=>{
-    e.preventDefault();
-    e.stopPropagation();
-    dlgUT.close();
-    reopenSettingsAfterEditor();
+// Make Cancel behave the same as clicking outside the dialog
+btnCancel?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Dispatch a synthetic click on the backdrop to reuse that logic
+  const rect = dlgUT.getBoundingClientRect();
+  const fakeEvent = new MouseEvent('click', {
+    clientX: rect.left - 10,   // outside bounds
+    clientY: rect.top - 10,
+    bubbles: true,
+    cancelable: true
   });
+  dlgUT.dispatchEvent(fakeEvent);
+});
 
   // ESC key
   dlgUT.addEventListener('cancel', (e)=>{
