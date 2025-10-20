@@ -1,333 +1,210 @@
 # Smart Mail Template
 
-Smart Mail Template is a lightweight email automation tool that generates polished, context-aware messages for business workflows.  
-Each **intent** (e.g., *quote request*, *shipment update*) has its own polite, professional email template powered by **FastAPI**, **Jinja2**, and a simple interactive UI.
+**Smart Mail Template** is a modular email-automation engine built for logistics, procurement, and operations workflows — with a vision to scale across industries.  
+It turns structured YAML “intents” into validated form schemas, Jinja2 templates, and real-time UI generation.
 
 ---
 
-##  Quick Start
+## 🧩 Core Concept
 
-### 1. Install dependencies
-```bash
-pip install -r requirements.txt
+Every email type (an *intent*) — quote request, order confirmation, invoice follow-up, etc. — is defined once in YAML.  
+These YAMLs are compiled into Python + JSON schema, rendered by FastAPI, and surfaced through a responsive frontend at `ui/index.html`.  
+
+```
+
+YAML intent → preprocess.py → schema_generated.py + schema.generated.json → FastAPI → Web UI
+
 ````
 
-### 2. Run the FastAPI server
-
-```bash
-uvicorn app.main:app --reload
-```
-
-The API will start at [http://localhost:8000](http://localhost:8000)
-
-### 3. Open the UI
-
-Simply open:
-
-```
-ui/index.html
-```
-
-in your browser.
-You’ll get a theme-aware, animated interface with typing effects, theme selection, and a few hidden easter eggs.
+This closed loop keeps the system consistent across validation, automation, and rendering.
 
 ---
 
-##  Project Structure
+## ⚙️ AI-Assisted Development Workflow
 
-```
-.
-├── app/                     # FastAPI backend
-│   ├── main.py              # API routes (/health, /schema, /generate)
-│   └── preprocess.py        # Input cleaning and preprocessing
-│
-├── configs/                 # Intent definitions and routing rules
-│   ├── intents.json         # Defines required fields per intent
-│   └── rules.json           # Optional keyword-based routing rules
-│
-├── templates/               # Jinja2 templates for each email intent
-│   ├── quote_request.j2
-│   ├── shipment_update.j2
-│   ├── order_confirmation.j2
-│   ├── invoice_payment.j2
-│   ├── packing_slip_docs.j2
-│   ├── followup.j2
-│   └── delay_notice.j2
-│
-├── ui/                      # Frontend (HTML/CSS/JS)
-│   └── index.html
-│
-├── model/                   # Training and model persistence
-│   ├── train.py
-│   └── __init__.py
-│
-├── data/                    # Training and labeled email datasets
-│
-├── tests/                   # Automated tone and endpoint tests
-│   └── test_api.py
-│
-├── requirements.txt
-└── README.md
-```
+This project is developed and maintained using **ChatGPT as an integrated co-pilot**, not as an author.  
+All commits are human-directed, tested, and reviewed. ChatGPT is used to:
+
+- Automate repetitive file generation (`schema_generated.py`, `autodetect_rules_generated.py`)
+- Enforce consistent commit formats and docstrings
+- Accelerate schema refactors and UI logic iteration
+- Maintain synchronized documentation across layers
+
+The workflow emphasizes **human architecture + AI precision**, creating a disciplined development rhythm similar to continuous pair programming.
 
 ---
 
-##  API Overview
+## 🚀 End-to-End User Flow
 
-| Endpoint    | Method | Description                                            |
-| ----------- | ------ | ------------------------------------------------------ |
-| `/health`   | GET    | Returns model and system status                        |
-| `/schema`   | GET    | Lists all available intents and required fields        |
-| `/generate` | POST   | Generates a polite email for a given intent and inputs |
-
-**Example Request**
-
-```json
-{
-  "intent": "quote_request",
-  "fields": {
-    "customerName": "John Doe",
-    "partNumber": "PN-4812",
-    "quantity": "5",
-    "needByDate": "2025-10-15"
-  }
-}
-```
-
-**Example Response**
-
-```json
-{
-  "subject": "Pricing & Lead Time Request – PN-4812 (Qty 5)",
-  "body": "Hi John Doe,\n\nCould you please provide pricing and lead time..."
-}
-```
-
----
-
-##  Running Tests
-
-All tests use [pytest](https://docs.pytest.org/).
-
-```bash
-pytest -q
-```
-
-Tests include:
-
-* `/health` and `/schema` validation
-* `/generate` endpoint coverage for all intents
-* Automated **tone testing** — ensures every template includes a greeting and a thank-you.
-
----
-
-##  Adding a New Intent / Template
-
-You can add new email templates in under a minute.
-
-### 1. Create a Template
-
-Add a file to `/templates/`, named after your new intent:
-
-```
-templates/return_merchandise_authorization.j2
-```
-
-Write a polite, structured Jinja2 template:
-
-```jinja2
-Subject: RMA Request – {{ rmaNumber }}
-
-Hi {{ customerName }},
-
-I hope you're doing well. Could you please confirm receipt of RMA {{ rmaNumber }} 
-for {{ itemsSummary }}?
-
-Thank you for your help,
-{{ senderName }}
-```
-
----
-
-### 2. Define Required Fields
-
-Open `configs/intents.json` and add:
-
-```json
-{
-  "return_merchandise_authorization": {
-    "required": ["customerName", "rmaNumber", "itemsSummary", "senderName"]
-  }
-}
-```
-
-This tells the UI and `/schema` which inputs to display.
-
----
-
-### 3. (Optional) Add Rules for Auto-Detection
-
-If you use rule-based hints, update `configs/rules.json`:
-
-```json
-{
-  "return_merchandise_authorization": ["rma", "return", "authorization"]
-}
-```
-
----
-
-### 4. Done!
-
-* The new template appears automatically in the UI.
-* `/generate` can now render it directly.
-* (Optional) Add labeled training examples in `data/emails.labeled.train.csv` if you want the ML model to detect it automatically.
-
----
-
-##  Template Consistency Guidelines
-
-* Always begin with a **friendly greeting** (`Hi`, `Hello`, `Dear`).
-* End with **thanks or appreciation** (tests depend on it).
-* Keep your tone concise, polite, and confident.
-* Use bullet points for structured data (POs, dates, tracking, etc.).
-* Every template should include:
-
-  * `Subject:` line at the top.
-  * Greeting with a name or fallback.
-  * Signature like `{{ senderName }}` or “The [Company] Team.”
-
----
-
-##  Configuration Overview
-
-* **`configs/intents.json`**
-  Defines which fields the user must fill in for each intent.
-* **`configs/rules.json`**
-  Maps intent keywords for rule-based routing (optional).
-* **`model/train.py`**
-  Retrains the classifier if you want new intents to be auto-detected.
-* **`data/emails.labeled.train.csv`**
-  Holds training samples used during model retraining.
-
----
-
-##  Retraining the Classifier (optional)
-
-If you add new intents that should be detected automatically:
-
-1. Append labeled examples to:
-
-   ```
-   data/emails.labeled.train.csv
-   ```
-2. Run:
-
+1. **Launch the API**
    ```bash
-   python -m model.train
-   ```
-3. Updated artifacts (`clf.pkl`, `vectorizer.pkl`, etc.) will appear under:
+   uvicorn app.main:app --reload
+````
+
+The backend exposes `/generate`, `/autodetect`, `/schema`, and `/intents`.
+
+2. **Open the UI**
 
    ```
-   model_artifacts/
+   http://localhost:8000
    ```
 
-Manual selection in the UI works without retraining.
+   A clean interface auto-loads available intents, renders dynamic fields, and generates formatted emails in real time.
+
+3. **Compose or Auto-Detect**
+
+   * Choose an intent (e.g., *Order Request*).
+   * Fill structured fields or paste a body for auto-detection.
+   * Instantly preview subject + body with live updates.
+
+4. **Copy & Send**
+
+   * Copy directly into your email client.
+   * Or export templates for integration with ERP, CRM, or support systems.
 
 ---
 
-##  Testing Notes
+## 🧠 Architecture Overview
 
-* The new `tests/test_api.py` automatically checks every intent listed in `/schema`.
-* It ensures:
-
-  * A valid subject/body pair are returned.
-  * The body includes a greeting and a thank-you.
-* To run:
-
-  ```bash
-  pytest -q
-  ```
-* Add new templates confidently — no test file edits are needed.
+| Layer                    | Location                  | Purpose                                              |
+| ------------------------ | ------------------------- | ---------------------------------------------------- |
+| **Backend API**          | `app/main.py`             | FastAPI endpoints for schema, generation, autodetect |
+| **Schema Compiler**      | `app/preprocess.py`       | Compiles `.yml` intents into Python + JSON schema    |
+| **Frontend**             | `ui/index.html`           | Live form rendering + real-time preview              |
+| **Templates**            | `templates/*.j2`          | Jinja2 email bodies per intent                       |
+| **Model Training**       | `scripts/intent_model.py` | Classifies inbound emails by intent                  |
+| **Testing & Validation** | `tests/`                  | Unit tests and schema checks                         |
+| **Data**                 | `data/*.csv`              | Labeled messages for ML training                     |
 
 ---
 
-##  UI Overview
-
-The frontend (`ui/index.html`) includes:
-
-*  **Settings Menu:** theme selection + animation toggles
-*  **Easter Eggs:**
-
-  * Type **“follow the white rabbit”** → Rabbit animation
-  * Hover the gear for Minecraft-style splash messages
-  * Press **Ctrl/⌘ + Alt + C** → Corruption sequence with “reboot” animation
-*  **Themes:**
-
-  * Light Minimal (default)
-  * Dark Minimal
-  * Cosmic
-  * Dusk Gradient
-  * Forest Mist
-
----
-
-##  Development Notes
-
-* The UI fetches available intents dynamically from `/schema`.
-* Templates are rendered at runtime with **Jinja2**.
-* The confidence threshold for auto-detection appears in `/health`.
-
-To retrain the model manually:
+## 🧰 Developer Setup
 
 ```bash
-python -m model.train
+git clone https://github.com/yourname/smart-mail-template.git
+cd smart-mail-template
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+Rebuild schemas after editing any YAML intent:
+
+```bash
+make regen
+```
+
+Run API locally:
+
+```bash
+make run
+```
+
+Run tests:
+
+```bash
+make test
+```
+
+Validate repo integrity before commits:
+
+```bash
+make validate
 ```
 
 ---
 
-##  Code Style
+## 👥 User Setup
 
-* Template variables use **camelCase** (`customerName`, `shipDate`).
-* Keep phrasing short, direct, and polite.
-* Avoid hard-coding names, dates, or product numbers — always use variables.
-* The tone should remain neutral and professional, not overly casual.
+1. Visit the hosted or local UI.
+2. Select an intent or use auto-detect.
+3. Fill in the requested fields.
+4. Copy the generated message into your email client.
 
----
-
-##  Final Setup Checklist
-
-| Task                     | Command / Action                   |
-| ------------------------ | ---------------------------------- |
-| Install dependencies     | `pip install -r requirements.txt`  |
-| Run API server           | `uvicorn app.main:app --reload`    |
-| Open the UI              | `ui/index.html`                    |
-| Run tests                | `pytest -q`                        |
-| Retrain model (optional) | `python -m model.train`            |
-| Add new intent/template  | Follow “Adding a New Intent” above |
+Optional: toggle **live preview**, **compose animation**, or **global defaults** (shipping address, FedEx account) in Settings.
 
 ---
 
-##  License
+## 🌐 Cross-Industry Vision
 
-This project is open-source under the [MIT License](LICENSE).
+Smart Mail began as an aerospace logistics tool but is structured for broader use:
+
+* Manufacturing → automated purchase confirmations
+* Supply chain → shipment updates + vendor RFQs
+* Finance → invoice/payment messaging
+* Customer operations → follow-ups, notifications, service requests
+
+Each intent can be customized or added via `scripts/new_intent.py` and compiled into the unified system.
 
 ---
 
-##  Maintainers
+## 📁 Repository Layout
 
-Created and maintained by **John Stancel** and contributors.
-Feel free to fork, extend, or improve — pull requests are always welcome.
-
+```
+app/                FastAPI runtime + schema generation
+configs/            Rules & intent registry (legacy)
+data/               Training datasets
+intents/registry/   YAML intent definitions
+model/              ML classifier and vectorizer
+model_artifacts/    Serialized model assets
+public/             Exposed JSON schema
+scripts/            Automation, data prep, schema regen
+templates/          Email templates (Jinja2)
+tests/              Pytest suites
+ui/                 Frontend interface
 ```
 
 ---
 
-### Commit message
+## 🧪 Example Intent
+
+```yaml
+id: order_request
+label: Order Request
+required: [recipientName, fedexAccount, shipAddress, parts]
+optional: [notes]
 ```
 
-docs(readme): add complete Smart Mail Template README with setup, API usage, testing, and template creation guide
+**Generated Email (excerpt)**
 
-* Full project overview, quick start, and directory layout
-* Added clean walkthrough for adding new intents/templates
-* Included retraining, UI easter eggs, tone guidelines, and testing instructions
+```text
+Hi UP Aviation Receiving,
+
+Can you please process the following order for me?
+
+• Part Number: PN-10423 | Quantity: 2
+Please ship on FedEx account 228448800.
+Shipping address: 123 Innovation Dr, Dallas TX 75001
+```
+
+---
+
+## 🧭 Vision & Philosophy
+
+**Smart Mail Template** is built to serve as a *universal communication layer* — translating structured operational data into clear, professional correspondence.
+The architecture is intentionally transparent, schema-driven, and automation-ready, aiming to be embedded in logistics, ERP, or service systems across industries.
+
+---
+
+## 📄 License
+
+Licensed under the MIT License.
+See `LICENSE` for details.
+
+---
+
+## 🤝 Contributing
+
+Pull requests are welcome.
+Run `make validate` before committing to ensure schema and template consistency.
+For new intents, use:
+
+```bash
+python3 scripts/new_intent.py
+```
+
+and follow interactive prompts to generate YAML, template, and schema updates automatically.
+
+---
+
+**Smart Mail Template** — *structured communication, human-verified automation.*
+
