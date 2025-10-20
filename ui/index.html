@@ -2380,6 +2380,18 @@ async function predictNow(hintVal){
       predictNow(hint);
     });
   }
+  // Allow init() to kick a first prediction if text exists
+  window.scheduleAutodetect = function(){
+    const el = document.getElementById('hint');
+    const hint = (el?.value || '').trim();
+    if(hint) {
+      predictNow(hint);
+    } else {
+      setPredictStatus('');
+      hidePredictInfo();
+    }
+  };
+
 })();
 </script>
 <style>
@@ -2489,13 +2501,6 @@ const SRC = window.NYAN_CAT_SRC || 'https://media.tenor.com/rI_0O_9AJ5sAAAAj/nya
 
   // Optional: expose a manual trigger for testing in console
   window.spawnNyan = spawnNyan;
-// Allow init() to kick a first prediction if text exists
-window.scheduleAutodetect = function(){
-  const el = document.getElementById('hint');
-  const hint = (el?.value || '').trim();
-  if(hint) predictNow(hint);
-  else { setPredictStatus(''); hidePredictInfo(); }
-};
 
 })();
 </script>
