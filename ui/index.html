@@ -459,34 +459,44 @@
   background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
   margin-left: 6px;
 }
+
+</style>
+
+
+
 <script>
 // ===== Compose Behavior (Preview / Type / Off) =====
-const LIVE_MODE_KEY = 'sm_live_mode_v1';   // values: 'preview' | 'type' | 'off'
+const LIVE_MODE_KEY = 'sm_live_mode_v1';   // 'preview' | 'type' | 'off'
 window.liveState = window.liveState || { preview: true, compose: false, tId: null };
 
 function loadLiveMode(){
   const v = localStorage.getItem(LIVE_MODE_KEY);
   return (v === 'preview' || v === 'type' || v === 'off') ? v : 'preview';
 }
-function saveLiveMode(mode){ try{ localStorage.setItem(LIVE_MODE_KEY, mode); }catch(_e){} }
+function saveLiveMode(v){ try{ localStorage.setItem(LIVE_MODE_KEY, v); }catch(_){} }
 
 function applyLiveMode(mode){
   mode = (mode === 'type' || mode === 'off') ? mode : 'preview';
-  if(mode === 'preview'){ window.liveState.preview = true;  window.liveState.compose = false; }
-  if(mode === 'type')   { window.liveState.preview = false; window.liveState.compose = true;  }
-  if(mode === 'off')    { window.liveState.preview = false; window.liveState.compose = false; }
 
+  // reflect app behavior
+  window.liveState.preview = (mode === 'preview');
+  window.liveState.compose = (mode === 'type');
+
+  // highlight the selected button
   const seg = document.getElementById('composeMode');
-  if(seg){
+  if (seg){
     seg.querySelectorAll('.seg-btn').forEach(btn=>{
-      btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
+      const on = (btn.dataset.mode === mode);
+      btn.setAttribute('aria-pressed', String(on));
+      btn.classList.toggle('is-active', on);
     });
   }
-  saveLiveMode(mode);
 
-  // Reflect on the Generate button visibility (Preview mode hides it)
+  // show/hide Generate button (hidden only in Preview)
   const btn = document.getElementById('btnGenerate');
-  if(btn) btn.style.display = window.liveState.preview ? 'none' : '';
+  if (btn) btn.style.display = window.liveState.preview ? 'none' : '';
+
+  saveLiveMode(mode);
 }
 
 function initComposeModeUI(){
@@ -498,9 +508,15 @@ function initComposeModeUI(){
     btn.addEventListener('click', ()=> applyLiveMode(btn.dataset.mode));
   });
 }
+
+// run as soon as DOM is ready (and also called once after /intents loads)
+document.addEventListener('DOMContentLoaded', initComposeModeUI);
 </script>
 
-</style>
+
+
+
+
 </head>
 <body>
 <!-- Settings Gear (upper-right) -->
@@ -2157,6 +2173,15 @@ if (window.scheduleAutodetect) window.scheduleAutodetect();
 .seg-btn:hover{ transform:translateY(-1px); }
 .seg-btn[aria-pressed="true"]{
   background:var(--btn-bg,#fff); box-shadow: 0 1px 0 rgba(0,0,0,.04), inset 0 0 0 1px var(--card-border);
+}
+.seg-btn.is-active{
+  color: var(--accent);
+  font-weight: 800;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow:
+    0 1px 0 rgba(0,0,0,.06),
+    inset 0 0 0 1px var(--card-border),
+    0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 </style>
