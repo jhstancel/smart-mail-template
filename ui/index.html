@@ -5,6 +5,19 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Smart Mail</title>
 <style>
+/* Row actions inside My Templates list */
+#ut_list .row-actions{
+  display:flex; gap:8px; align-items:center; opacity:.0; transition:opacity .15s;
+}
+#ut_list .kv:hover .row-actions{ opacity:1; }
+#ut_list .row-actions .link{
+  font-size:12px; padding:3px 6px; border-radius:8px; border:1px solid var(--card-border);
+  background:transparent; cursor:pointer;
+}
+#ut_list .row-actions .link.danger{
+  border-color: rgba(255,90,90,.4);
+}
+
 .splash-tip.show{ opacity:1; transform: translateY(0); }
 /* Parts card: remove any phantom bar under the title */
 .kv:has(#partsCardBody) .parts-header {
@@ -1858,25 +1871,57 @@ function buildUserTemplatesUI(){
   if(!utList) return;
   const all = loadUserTemplates();
   utList.innerHTML = '';
+  _ut_selected = null; // clear selection each rebuild
+  [utEdit, utDup, utDel].forEach(b=> b && (b.disabled = true));
 
   all.forEach(t=>{
     const row = document.createElement('div');
     row.className = 'kv';
     row.setAttribute('data-id', t.id);
+
     row.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px">
-        <div>
-          <div class="label">${esc(t.label || t.id)} <span class="tpl-badge">local</span></div>
-          <div class="hint">${esc(t.description || '')}</div>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
+        <div style="min-width:0">
+          <div class="label" style="display:flex; align-items:center; gap:8px;">
+            ${esc(t.label || t.id)} <span class="tpl-badge">local</span>
+          </div>
+          <div class="hint" style="margin-top:2px">${esc(t.description || '')}</div>
         </div>
-        <div class="muted">${esc(t.id)}</div>
+        <div style="display:flex; align-items:center; gap:12px; flex-shrink:0">
+          <div class="muted" style="white-space:nowrap">${esc(t.id)}</div>
+          <div class="row-actions">
+            <button class="link"        data-act="edit" data-id="${t.id}">Edit</button>
+            <button class="link"        data-act="dup"  data-id="${t.id}">Duplicate</button>
+            <button class="link danger" data-act="del"  data-id="${t.id}">Delete</button>
+          </div>
+        </div>
       </div>
     `;
-    row.addEventListener('click', ()=>{
+
+    // Click row to select (keeps top Edit/Duplicate/Delete working too)
+    row.addEventListener('click', (e)=>{
+      // ignore clicks on action buttons – they handle themselves
+      const act = (e.target && e.target.getAttribute && e.target.getAttribute('data-act')) || '';
+      if(act) return;
       _ut_selected = t.id;
       utList.querySelectorAll('.kv').forEach(k => k.classList.toggle('selected', k===row));
       [utEdit, utDup, utDel].forEach(b=> b && (b.disabled=false));
     });
+
+    // Row action handlers
+    row.querySelector('[data-act="edit"]')?.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openEditor('edit', t);
+    });
+    row.querySelector('[data-act="dup"]')?.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openEditor('dup', t);
+    });
+    row.querySelector('[data-act="del"]')?.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      deleteTemplate(t.id);
+    });
+
     utList.appendChild(row);
   });
 
@@ -1885,7 +1930,6 @@ function buildUserTemplatesUI(){
     empty.className = 'muted';
     empty.textContent = 'No local templates yet.';
     utList.appendChild(empty);
-    [utEdit, utDup, utDel].forEach(b=> b && (b.disabled=true));
   }
 }
 
@@ -1908,6 +1952,25 @@ function collectEditor(){
   const fields = parseFieldLines(fFields.value);
   return { id, name:id, label, description, fields, subject: fSubj.value || '', body: fBody.value || '' };
 }
+function deleteTemplate(id){
+  if(!id) return;
+  // remove from storage
+  const next = loadUserTemplates().filter(t => t.id !== id);
+  saveUserTemplates(next);
+
+  // also remove from Visible Intents selection if present
+  const vi = loadVisibleIntents();
+  if(vi && vi.has(id)){ vi.delete(id); saveVisibleIntents(vi); }
+
+  // refresh combined intents
+  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
+  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+
+  // re-render UI
+  renderIntentGridFromData(INTENTS);
+  buildIntentsChecklist();
+  buildUserTemplatesUI();
+}
 
 function upsertTemplate(def){
   const all = loadUserTemplates();
@@ -1917,6 +1980,26 @@ function upsertTemplate(def){
   // refresh combined intents + UI + visibility list
   const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
   INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+  renderIntentGridFromData(INTENTS);
+  buildIntentsChecklist();
+  buildUserTemplatesUI();
+}
+// helper for deleting templates by id (shared by row & top buttons)
+function deleteTemplate(id){
+  if(!id) return;
+  // remove from storage
+  const next = loadUserTemplates().filter(t => t.id !== id);
+  saveUserTemplates(next);
+
+  // also remove from Visible Intents if present
+  const vi = loadVisibleIntents();
+  if(vi && vi.has(id)){ vi.delete(id); saveVisibleIntents(vi); }
+
+  // rebuild list of intents
+  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
+  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+
+  // re-render everything
   renderIntentGridFromData(INTENTS);
   buildIntentsChecklist();
   buildUserTemplatesUI();
