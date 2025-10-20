@@ -548,13 +548,6 @@
   <div class="label" style="margin:8px 0 6px">Templates on this device</div>
   <div class="inline" style="gap:8px; margin:6px 0">
     <button id="ut_new" class="btn" type="button">+ New</button>
-    <button id="ut_edit" class="btn secondary" type="button" disabled>Edit</button>
-    <button id="ut_dup"  class="btn secondary" type="button" disabled>Duplicate</button>
-    <button id="ut_del"  class="btn danger"    type="button" disabled>Delete</button>
-    <button id="ut_export" class="btn secondary" type="button">Export</button>
-    <label class="btn secondary" style="position:relative; overflow:hidden; cursor:pointer">
-      Import
-      <input id="ut_import" type="file" accept="application/json" style="position:absolute; inset:0; opacity:0; cursor:pointer">
     </label>
   </div>
   <div id="ut_list" class="kvs" style="margin-top:6px"></div>
@@ -1852,11 +1845,6 @@ function userTemplatesAsIntents(){
 const dlgUT   = document.getElementById('ut_editor');
 const utList  = document.getElementById('ut_list');
 const utNew   = document.getElementById('ut_new');
-const utEdit  = document.getElementById('ut_edit');
-const utDup   = document.getElementById('ut_dup');
-const utDel   = document.getElementById('ut_del');
-const utExport= document.getElementById('ut_export');
-const utImport= document.getElementById('ut_import');
 
 const fId     = document.getElementById('ute_id');
 const fLabel  = document.getElementById('ute_label');
@@ -1871,8 +1859,7 @@ function buildUserTemplatesUI(){
   if(!utList) return;
   const all = loadUserTemplates();
   utList.innerHTML = '';
-  _ut_selected = null; // clear selection each rebuild
-  [utEdit, utDup, utDel].forEach(b=> b && (b.disabled = true));
+  _ut_selected = null;
 
   all.forEach(t=>{
     const row = document.createElement('div');
@@ -1898,28 +1885,15 @@ function buildUserTemplatesUI(){
       </div>
     `;
 
-    // Click row to select (keeps top Edit/Duplicate/Delete working too)
-    row.addEventListener('click', (e)=>{
-      // ignore clicks on action buttons – they handle themselves
-      const act = (e.target && e.target.getAttribute && e.target.getAttribute('data-act')) || '';
-      if(act) return;
-      _ut_selected = t.id;
-      utList.querySelectorAll('.kv').forEach(k => k.classList.toggle('selected', k===row));
-      [utEdit, utDup, utDel].forEach(b=> b && (b.disabled=false));
-    });
-
     // Row action handlers
     row.querySelector('[data-act="edit"]')?.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openEditor('edit', t);
+      e.stopPropagation(); openEditor('edit', t);
     });
     row.querySelector('[data-act="dup"]')?.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      openEditor('dup', t);
+      e.stopPropagation(); openEditor('dup', t);
     });
     row.querySelector('[data-act="del"]')?.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      deleteTemplate(t.id);
+      e.stopPropagation(); deleteTemplate(t.id);
     });
 
     utList.appendChild(row);
