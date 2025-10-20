@@ -2009,9 +2009,15 @@ const dlgUT    = document.getElementById('ut_editor');
 if (dlgUT && !dlgUT._shielded){
   dlgUT._shielded = true;
   // Capture-phase listeners guarantee suppression before the document handler
-  ['click','mousedown','mouseup','touchstart','touchend','cancel'].forEach(type=>{
-    dlgUT.addEventListener(type, (ev)=> ev.stopPropagation(), true);
-  });
+// Remove the blanket shield above and use this instead:
+dlgUT.addEventListener('click', (e)=>{
+  // Only intercept true backdrop clicks (target is the <dialog> itself)
+  if (e.target === dlgUT) {
+    e.stopPropagation();
+  }
+}, true);
+
+
 }
 // Hard-disable native validation + accidental submit inside the dialog form
 const formUT = document.getElementById('ut_form');
@@ -2889,7 +2895,220 @@ btnCancel?.addEventListener('click', (e)=>{
     }
   }, true);
 });
+/* ============================================================================
+ * My Templates dialog — clean rewrite (opens reliably, single-bind listeners)
+ * Elements expected:
+ *   <dialog id="ut_editor"> … <form id="ut_form"> … #ut_save  #ut_cancel …
+ *   Inputs inside form use ids like: #fId, #fLabel, #fSubject, #fBody, …
+ * Globals expected:
+ *   upsertTemplate(def), buildUserTemplatesUI(), renderIntentGridFromData()
+ *   INTENTS (optional), etc.
+ * ==========================================================================*/
 
+(function DialogUT(){
+  // --- cache refs (live)
+  const dlg   = document.getElementById('ut_editor');
+  if(!dlg) return; // no-op if dialog not present
+  const form  = dlg.querySelector('#ut_form') || dlg.querySelector('form');
+const btnSave   = dlg.querySelector('#ute_save');
+const btnCancel = dlg.querySelector('#ute_cancel');
+
+  // Guard: ensure Cancel/Save never behave like submit buttons
+  if(btnSave)   btnSave.type   = 'button';
+  if(btnCancel) btnCancel.type = 'button';
+  if(form)      form.setAttribute('novalidate', 'novalidate');
+
+  // Track whether we should reopen Settings → My Templates after close
+  let reopenAfterClose = false;
+
+  function openModalSafe(el){
+    try { el.showModal(); }
+    catch(_){
+      // Safari or non-supported: emulate open state
+      el.setAttribute('open', '');
+      // Ensure backdrop click still works; <dialog> polyfills vary
+    }
+  }
+
+  function focusFirstField(){
+    const first = form && form.querySelector('input,textarea,select,button');
+    if(first) first.focus({ preventScroll:true });
+  }
+
+  // Robust field collector: picks up any input/textarea/select in the form.
+  // Field key = id with leading "f" or "f_" stripped (e.g., fId -> "Id", f_label -> "label")
+  function collectEditor(){
+    if(!form) return null;
+    const out = {};
+    const els = form.querySelectorAll('input, textarea, select');
+    els.forEach(el=>{
+      if(!(el.id || '').length) return;
+      let k = el.id.replace(/^f_?/,'');
+      // normalize first char lower (Id -> id)
+      k = k.replace(/^([A-Z])/, (_,c)=>c.toLowerCase());
+      out[k] = (el.type === 'checkbox') ? !!el.checked : (el.value ?? '').trim();
+    });
+    // Minimum validation: id + label must be present
+    if(!out.id || !out.label) return null;
+    return out;
+  }
+
+  function resetForm(){
+    if(!form) return;
+    form.reset();
+    // Clear residual validation styles if any
+    form.querySelectorAll('input,textarea,select').forEach(el=>{
+      el.style.borderColor = ''; el.style.boxShadow = '';
+    });
+  }
+
+  function seedForm(existing){
+    if(!form || !existing) return;
+    Object.entries(existing).forEach(([k,v])=>{
+      const id = k.startsWith('f') ? k : (k.length ? `f_${k}` : '');
+      const el = id ? form.querySelector('#' + id) : null;
+      if(el){
+        if(el.type === 'checkbox') el.checked = !!v;
+        else el.value = (v ?? '');
+      }else{
+        // try fallback for camelCase (fId / fLabel etc.)
+        const alt = form.querySelector('#f' + k.charAt(0).toUpperCase() + k.slice(1));
+        if(alt) { alt.value = (v ?? ''); }
+      }
+    });
+  }
+
+  function highlightMissing(ids){
+    (ids || []).forEach(id=>{
+      const el = form?.querySelector('#' + id);
+      if(!el) return;
+      el.style.boxShadow = '0 0 0 6px rgba(255,100,100,.12)';
+      el.style.borderColor = 'rgba(255,100,100,.55)';
+      setTimeout(()=>{ el.style.boxShadow=''; el.style.borderColor=''; }, 1200);
+    });
+  }
+
+  function closeEditorInternal(){
+    // Close gracefully for both native and "open" fallback
+    if(typeof dlg.close === 'function'){
+      try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); }
+    } else {
+      dlg.removeAttribute('open');
+    }
+  }
+
+  function reopenSettingsAfterEditor(){
+    // Open main settings menu
+    const menu = document.getElementById('settingsMenu') || document.querySelector('.settings-menu');
+    const btn  = document.getElementById('settingsBtn')  || document.querySelector('.settings-btn');
+    if(menu){
+      menu.classList.add('open');
+      if(btn) btn.setAttribute('aria-expanded','true');
+    }
+    // Try to open the "My Templates" subpanel in several resilient ways.
+    // 1) Prefer data-item rows
+    const rows = Array.from(document.querySelectorAll('.settings-item'));
+    let targetRow =
+      rows.find(r => (r.getAttribute('data-item')||'').toLowerCase().includes('my')) ||
+      rows.find(r => (r.getAttribute('data-item')||'').toLowerCase().includes('template')) ||
+      rows.find(r => /my\s*templates/i.test(r.textContent||''));
+    if(targetRow){
+      targetRow.click(); // uses existing openOnly(...) wiring
+      return;
+    }
+    // 2) Fallback: try well-known subpanel ids
+    const candidates = ['subMyTemplates','subUserTpl','subTemplates','subMyTpl'];
+    const sub = candidates.map(id=>document.getElementById(id)).find(Boolean);
+    if(sub){ sub.classList.add('open'); }
+  }
+
+  function closeAndReopen(){
+    reopenAfterClose = true;
+    closeEditorInternal();
+  }
+
+  // Public open API
+  function openEditor(mode='new', existing=null){
+    // Reset, seed, then open
+    resetForm();
+    if(form){
+      form.dataset.mode = (mode || 'new');
+      form.dataset.id   = existing?.id || '';
+    }
+    if(existing) seedForm(existing);
+    openModalSafe(dlg);
+    focusFirstField();
+  }
+
+  // Expose for the + New button or external code
+  window.openEditor = openEditor;
+
+  // Optional: wire a "+ New" launcher if present
+  const btnNew = document.getElementById('ut_new') || document.querySelector('[data-action="ut-new"]');
+  if(btnNew){
+    btnNew.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openEditor('new', null); }, { once:false });
+  }
+
+  // Save handler (validates id+label, upserts, closes, reopens settings)
+  function onSave(e){
+    e.preventDefault(); e.stopPropagation();
+    const def = collectEditor();
+    if(!def){
+      alert('Please fill out required fields (ID and Label).');
+      // Try to highlight the likely culprits
+      highlightMissing(['fId','fLabel']);
+      return;
+    }
+    try{
+      // User-provided persistence function
+      if(typeof upsertTemplate === 'function') upsertTemplate(def);
+      // Optional refresh hooks, if your UI uses them:
+      if(typeof buildUserTemplatesUI === 'function') buildUserTemplatesUI();
+      if(typeof renderIntentGridFromData === 'function' && Array.isArray(window.INTENTS)){
+        renderIntentGridFromData(window.INTENTS);
+      }
+    }catch(err){
+      console.error('upsertTemplate failed:', err);
+      alert('Could not save template. See console for details.');
+      return;
+    }
+    closeAndReopen();
+  }
+
+  // Cancel handler (no validation)
+  function onCancel(e){
+    e.preventDefault(); e.stopPropagation();
+    closeAndReopen();
+  }
+
+  // Backdrop close: detect clicks directly on <dialog> (native backdrop)
+  dlg.addEventListener('click', (e)=>{
+    if(e.target === dlg){ // clicked the backdrop
+      e.stopPropagation();
+      closeAndReopen();
+    }
+  }, { capture:true });
+
+  // ESC key: let dialog handle the close, but ensure we reopen settings uniformly
+  dlg.addEventListener('cancel', (e)=>{
+    // Don’t block native close; just mark intent and let 'close' do the rest
+    reopenAfterClose = true;
+  });
+
+  // When the dialog is fully closed by any means, reopen the settings panel
+  dlg.addEventListener('close', ()=>{
+    if(reopenAfterClose){
+      reopenAfterClose = false;
+      // microtask → avoid layout thrash if consumers react on 'close'
+      Promise.resolve().then(reopenSettingsAfterEditor);
+    }
+  });
+
+  // Wire buttons (single bind)
+  if(btnSave)   btnSave.addEventListener('click', onSave,   { once:false });
+  if(btnCancel) btnCancel.addEventListener('click', onCancel,{ once:false });
+})();
+</script>
 
 
 </script>
