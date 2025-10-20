@@ -1,23 +1,47 @@
 # Contributing
 
-## Workflow
-1. Create a branch: `feat/<slug>` or `fix/<slug>`
-2. Make your changes
-3. Run locally:
-   - `make validate`
-   - `pytest -q`
-4. Open a PR using the template checklist
+This project is designed to be easy to extend.  
+You can add your own email types, test them, and share them back.
 
-## Adding a New Intent
-1. Add `templates/<intent>.j2` (start with a `Subject:` line, include greeting + thanks)
-2. Update `configs/intents.json` with required fields
-3. (Optional) Add `configs/rules.json` hints
-4. (Optional) Add training examples and `make train` to refresh model artifacts
-5. Update README if the change is user-visible
+## How to Add a New Intent
 
-## Pre-commit
-Install hooks:
+1. Go to `intents/registry/`  
+2. Copy an existing file like `order_request.yml`  
+3. Rename it and update its fields (use clear names and hints)  
+4. Add a matching Jinja2 file under `templates/` with the same name  
+5. Run:
+   ```bash
+   make regen
+````
+
+This rebuilds the schema so your new intent shows up in the app.
+
+## Testing
+
+To check if everything works:
+
 ```bash
-pip install pre-commit
-pre-commit install
+make run
+```
+
+Then open:
+
+```
+http://127.0.0.1:8000/ui/
+```
+
+Your new intent should appear in the dropdown.
+
+## Editing Without Git
+
+If you just want to try new templates without touching the repo,
+you can upload `.yml` and `.j2` files directly in the browser.
+They’ll load locally and won’t affect other users.
+
+## Style Notes
+
+* Use lowercase keys in YAML
+* Keep examples short and realistic
+* Test your template before pushing
+* Always regenerate schemas after changes
 
