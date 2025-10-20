@@ -1506,27 +1506,13 @@ let intent = SELECTED_INTENT;
 let fields = {};
 
 if (usingAuto){
-  const payload = {
-    to:       document.getElementById('to')?.value?.trim() || '',
-    subject:  document.getElementById('subject')?.value?.trim() || '',
-    body_hint:document.getElementById('hint')?.value?.trim() || ''
-  };
-
-  try{
-    const res = await fetch('/predict', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    const pick = await res.json();
-    // accept multiple shapes
-    intent = pick?.intent ?? pick?.label ?? pick?.name ?? '';
-  }catch(_e){ intent = ''; }
-
-  if(!intent){
-    if(fieldsHint) fieldsHint.textContent = '';
-    return;
+  // Suggestion mode only: do not auto-pick. Ask the user to choose.
+  if (typeof showToast === 'function') {
+    showToast('Pick an intent from the suggestions or grid, then press Generate.');
+  } else {
+    console.info('Auto-Detect: choose a suggested intent (chip) or a card, then press Generate.');
   }
+  return;
 }
 
 fields = collectFields(intent);
@@ -2305,34 +2291,30 @@ function updatePredictUI(data){
         const b = document.createElement('button');
         b.className = 'btn secondary';
         b.textContent = `${toNice(name)} (${Math.round((score??0)*100)}%)`;
-        b.addEventListener('click', ()=>{
-          document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
-          const targetName = toNice(name);
-          [...document.querySelectorAll('.intent-card')].find(x=>x.querySelector('.intent-name')?.textContent===targetName)?.classList.add('active');
-          if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(name);
+             b.addEventListener('click', ()=>{
+        document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
+        const target = name;
+        [...document.querySelectorAll('.intent-card')]
+          .find(x=>x.dataset.intent === target || x.querySelector('.intent-name')?.textContent?.trim() === toNice(target))
+          ?.classList.add('active');
 
-          setTimeout(()=>{
-            const hintNow = (document.getElementById('hint')?.value || '').trim();
-            if (hintNow) window.autoPopulateFields?.(name, hintNow);
-            window.scheduleLiveGenerate?.();
-          }, 60);
+        // Manual select only (no auto-generate)
+        if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(target);
 
-          window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
-        });
-        els.topK.appendChild(b);
+        setTimeout(()=>{
+          const hintNow = (document.getElementById('hint')?.value || '').trim();
+          if (hintNow) window.autoPopulateFields?.(target, hintNow);
+        }, 60);
+        window.scrollTo({ top: document.body.scrollHeight/3, behavior: 'smooth' });
+      }); 
+els.topK.appendChild(b);
       });
     }
-    if(els.predInfo) els.predInfo.style.display='flex';
+  if(els.predInfo) els.predInfo.style.display='flex';
 
-    if (data?.intent && typeof window.setSelectedIntent === 'function') {
-      window.setSelectedIntent(data.intent);
-      setTimeout(()=>{
-        const hintNow = (document.getElementById('hint')?.value || '').trim();
-        if (hintNow) window.autoPopulateFields?.(data.intent, hintNow);
-        window.scheduleLiveGenerate?.();
-      }, 60);
-    }
-  }
+  // Suggestions only: do NOT auto-select here.
+}
+
 async function predictNow(hintVal){
   if(inflight){ try{ inflight.abort(); }catch{} }
   inflight = new AbortController();
