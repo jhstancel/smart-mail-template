@@ -1,27 +1,31 @@
 # Smart Mail Template
 
-Smart Mail Template is a project for generating clean, structured emails from pre-defined templates.  
-It started as a tool for logistics and aerospace work, but it can be used anywhere — manufacturing, shipping, finance, or support (basically anywhere people send the same kinds of emails over and over).
+Smart Mail Template helps you write clear, professional emails using saved templates.  
+You can load built-in ones, make your own, or drop in new templates right from the browser.  
+It’s made to save time for people who send similar messages all the time (like in logistics, sales, or customer support).
 
 ## What It Does
 
-Each type of email (called an *intent*) is written once in a small YAML file.  
-That YAML defines what fields are needed and what the email should look like.  
-The backend reads those, builds a schema, and renders Jinja2 templates through a FastAPI server.  
-The frontend (in `ui/index.html`) shows the fields live, lets you generate text, and copy it right into an email.
+Every email type is called an *intent*.  
+Each intent has its own fields (like name, date, PO number) and template.  
+You can select one, fill it out, and instantly get a formatted email ready to copy.
 
-Simple idea:
+You can also:
+- Load templates directly from your computer in the UI  
+- Edit the fields live and see changes immediately  
+- Save drafts locally in your browser
+
 ```
 
-YAML intent → preprocess.py → schema + templates → FastAPI → UI → Email
+YAML intent → schema → template → live email preview
 
 ````
 
 ## Vision
 
-The goal is to make this work for any company or industry without code changes.  
-You could build a new set of templates for quotes, orders, invoices, or customer follow-ups, and it would just work after running one command.  
-It’s meant to feel simple (fill out boxes, hit generate, copy, send).
+The goal is to make structured communication simple and reusable.  
+Anyone should be able to take this project, add their own templates, and use it for their company without any coding.  
+All data stays local, and you can customize the workflow however you want.
 
 ## Getting Started
 
@@ -35,51 +39,41 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ````
 
-Then open:
+Then open this in your browser:
 
 ```
-http://localhost:8000
+http://127.0.0.1:8000/ui/
 ```
 
-### Edit or add templates
+### Using the App
 
-All templates live under `intents/registry/` and `templates/`.
-You can make a new one with:
+1. Choose an intent from the dropdown, or upload your own `.yml` template file.
+2. Fill out the fields (the preview updates as you type).
+3. Copy the final email into your email client.
+4. Optional: Save a template locally to reuse later.
 
-```bash
-python3 scripts/new_intent.py
-```
-
-It’ll walk you through everything and rebuild the schema.
+Everything runs in your browser. Nothing gets uploaded.
 
 ## Project Layout
 
 ```
-app/           FastAPI backend + schema generation
-intents/       YAML intent files (source of truth)
+app/           Backend and schema generation
+intents/       YAML intent files
 templates/     Email templates (Jinja2)
-ui/            Frontend interface (index.html)
-scripts/       Tools for schema regen, training, etc.
-model/         Intent detection model
-tests/         Basic tests
+ui/            Web interface
+scripts/       Tools for rebuilding schemas and training models
 ```
 
-## Workflow
+## Local Templates
 
-* Write or edit a `.yml` intent file
-* Run `make regen` to rebuild schema files
-* Start the app, which exposes `/generate`, `/schema`, and `/autodetect`
-* Open the UI, fill fields, preview, copy, send
+If you have a custom `.yml` intent or `.j2` template:
 
-The frontend also supports auto-detect (you can type a quick draft and it will guess the right intent).
+1. Click “Upload Local Template” in the UI.
+2. It’ll load instantly and appear in your intent list.
+3. You can test it, edit it, and download it again.
 
-## AI-Assisted Development
-
-I use ChatGPT to help write updates, format commits, and fix logic quickly.
-Every change still goes through human review and testing.
-It’s basically a co-pilot that speeds things up and keeps the repo clean.
+This lets you experiment without touching the main repo files.
 
 ## License
 
-MIT (free to use, fork, and build on)
-
+MIT (free to use and modify)
