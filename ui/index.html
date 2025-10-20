@@ -2226,27 +2226,6 @@ function reopenSettingsAfterEditor(){
   try { window.currentlyOpen = 'usertpls'; } catch(_) {}
 }
 
-// Cancel: close editor, no validation, keep Settings open
-dlgUT?.querySelector('#ute_cancel')?.addEventListener('click', (e)=>{
-  e.preventDefault();
-  e.stopPropagation();
-
-  // Ensure this button cannot trigger submit/validation
-  if (e.currentTarget) {
-    e.currentTarget.setAttribute('type','button');
-    e.currentTarget.setAttribute('formnovalidate','');
-  }
-
-  // Blur any focused required control so the UA doesn’t try to validate on focus change
-  if (document.activeElement && formUT?.contains(document.activeElement)) {
-    document.activeElement.blur();
-  }
-
-  dlgUT.close();
-  reopenSettingsAfterEditor();
-});
-
-// ESC key: same behavior as Cancel
 dlgUT.addEventListener('cancel', (e)=>{
   e.preventDefault();   // prevent native “cancel” default
   dlgUT.close();
@@ -2850,6 +2829,57 @@ const SRC = window.NYAN_CAT_SRC || 'https://media.tenor.com/rI_0O_9AJ5sAAAAj/nya
   window.spawnNyan = spawnNyan;
 
 })();
+
+
+// === Final wiring for dialog buttons (ensure dlgUT exists) ===
+window.addEventListener('DOMContentLoaded', ()=>{
+  const dlgUT = document.getElementById('ut_editor');
+  if(!dlgUT) return;
+
+  const btnCancel = dlgUT.querySelector('#ute_cancel');
+  const formUT = dlgUT.querySelector('#ut_form');
+
+  // helper to reopen Settings → My Templates
+  function reopenSettingsAfterEditor(){
+    const menu = document.querySelector('.settings-menu');
+    const sub  = document.getElementById('subUserTpls');
+    const btn  = document.getElementById('settingsBtn');
+    if (menu) menu.classList.add('open');
+    if (sub)  sub.classList.add('open');
+    if (btn)  btn.setAttribute('aria-expanded','true');
+    window.currentlyOpen = 'usertpls';
+  }
+
+  // Cancel click
+  btnCancel?.addEventListener('click', (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+    dlgUT.close();
+    reopenSettingsAfterEditor();
+  });
+
+  // ESC key
+  dlgUT.addEventListener('cancel', (e)=>{
+    e.preventDefault();
+    dlgUT.close();
+    reopenSettingsAfterEditor();
+  });
+
+  // Backdrop click
+  dlgUT.addEventListener('click', (e)=>{
+    const r = dlgUT.getBoundingClientRect();
+    const onBackdrop = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    if(onBackdrop){
+      e.preventDefault();
+      e.stopPropagation();
+      dlgUT.close();
+      reopenSettingsAfterEditor();
+    }
+  }, true);
+});
+
+
+
 </script>
 </body>
 </html>
