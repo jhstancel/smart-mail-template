@@ -548,7 +548,6 @@
   <div class="label" style="margin:8px 0 6px">Templates on this device</div>
   <div class="inline" style="gap:8px; margin:6px 0">
     <button id="ut_new" class="btn" type="button">+ New</button>
-    </label>
   </div>
   <div id="ut_list" class="kvs" style="margin-top:6px"></div>
   <p class="muted" style="margin:8px 0 0">Tip: These are local only and won’t sync across devices.</p>
@@ -1926,25 +1925,6 @@ function collectEditor(){
   const fields = parseFieldLines(fFields.value);
   return { id, name:id, label, description, fields, subject: fSubj.value || '', body: fBody.value || '' };
 }
-function deleteTemplate(id){
-  if(!id) return;
-  // remove from storage
-  const next = loadUserTemplates().filter(t => t.id !== id);
-  saveUserTemplates(next);
-
-  // also remove from Visible Intents selection if present
-  const vi = loadVisibleIntents();
-  if(vi && vi.has(id)){ vi.delete(id); saveVisibleIntents(vi); }
-
-  // refresh combined intents
-  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
-  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
-
-  // re-render UI
-  renderIntentGridFromData(INTENTS);
-  buildIntentsChecklist();
-  buildUserTemplatesUI();
-}
 
 function upsertTemplate(def){
   const all = loadUserTemplates();
@@ -1980,65 +1960,6 @@ function deleteTemplate(id){
 }
 
 utNew?.addEventListener('click', ()=> openEditor('new', null));
-utEdit?.addEventListener('click', ()=>{
-  if(!_ut_selected) return;
-  const ex = loadUserTemplates().find(t=>t.id===_ut_selected);
-  if(ex) openEditor('edit', ex);
-});
-utDup?.addEventListener('click', ()=>{
-  if(!_ut_selected) return;
-  const ex = loadUserTemplates().find(t=>t.id===_ut_selected);
-  if(ex) openEditor('dup', ex);
-});
-utDel?.addEventListener('click', ()=>{
-  if(!_ut_selected) return;
-  const all = loadUserTemplates().filter(t=>t.id!==_ut_selected);
-  saveUserTemplates(all);
-  // remove from visible intents set if present
-  const vi = loadVisibleIntents();
-  if(vi && vi.has(_ut_selected)){ vi.delete(_ut_selected); saveVisibleIntents(vi); }
-  // refresh
-  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
-  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
-  renderIntentGridFromData(INTENTS);
-  buildIntentsChecklist();
-  buildUserTemplatesUI();
-  _ut_selected = null;
-});
-
-utExport?.addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify({version:1, templates: loadUserTemplates()}, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'my-templates.json';
-  a.click();
-});
-
-utImport?.addEventListener('change', (e)=>{
-  const file = e.target.files?.[0];
-  if(!file) return;
-  const fr = new FileReader();
-  fr.onload = ()=>{
-    try{
-      const obj = JSON.parse(String(fr.result||''));
-      const arr = Array.isArray(obj?.templates) ? obj.templates : (Array.isArray(obj) ? obj : []);
-      const clean = [];
-      arr.forEach(t=>{
-        if(!t || typeof t!=='object') return;
-        const id = String(t.id||t.name||'').startsWith('u:') ? String(t.id||t.name) : `u:${String(t.id||t.name||'tpl')}`;
-        const fields = Array.isArray(t.fields) ? t.fields.filter(f=>f && f.name) : [];
-        clean.push({ id, name:id, label: t.label||id, description: t.description||'', fields, subject: t.subject||'', body: t.body||'' });
-      });
-      saveUserTemplates(clean);
-      const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
-      INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
-      renderIntentGridFromData(INTENTS);
-      buildIntentsChecklist();
-      buildUserTemplatesUI();
-    }catch(_e){}
-  };
-  fr.readAsText(file);
-});
 
 dlgUT?.querySelector('#ute_cancel')?.addEventListener('click', ()=> dlgUT.close());
 dlgUT?.querySelector('#ute_save')?.addEventListener('click', (ev)=>{
