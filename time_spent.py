@@ -56,7 +56,6 @@ def daterange(d0: datetime.date, d1: datetime.date):
     while cur <= d1:
         yield cur
         cur += timedelta(days=1)
-
 def main():
     ap = argparse.ArgumentParser(description="Estimate focused coding time from git commits.")
     ap.add_argument("--since", help='e.g., "2025-09-01" or "2 weeks ago"', default=None)
@@ -79,24 +78,25 @@ def main():
     first_day, last_day = active_days[0], active_days[-1]
     total_calendar_days = (last_day - first_day).days + 1
 
-    # Commits per day (for the table)
+    # Commits per day
     cpd = commits_per_day(times)
 
     # Compute estimates
-    lower_total,   lower_daily   = sum_intervals_total_and_daily(times, LOWER_THRESHOLD_H)
-    real_total,    real_daily    = sum_intervals_total_and_daily(times, REALISTIC_THRESHOLD_H)
-    upper_total,   upper_daily   = sum_intervals_total_and_daily(times, UPPER_THRESHOLD_H)
+    lower_total, lower_daily = sum_intervals_total_and_daily(times, LOWER_THRESHOLD_H)
+    real_total, real_daily = sum_intervals_total_and_daily(times, REALISTIC_THRESHOLD_H)
+    upper_total, upper_daily = sum_intervals_total_and_daily(times, UPPER_THRESHOLD_H)
 
     # Averages
     def safe_div(a, b): return (a / b) if b else 0.0
-    lower_avg_active   = safe_div(lower_total, num_active_days)
-    real_avg_active    = safe_div(real_total,  num_active_days)
-    upper_avg_active   = safe_div(upper_total, num_active_days)
+    lower_avg_active = safe_div(lower_total, num_active_days)
+    real_avg_active = safe_div(real_total, num_active_days)
+    upper_avg_active = safe_div(upper_total, num_active_days)
 
     lower_avg_calendar = safe_div(lower_total, total_calendar_days)
-    real_avg_calendar  = safe_div(real_total,  total_calendar_days)
+    real_avg_calendar = safe_div(real_total, total_calendar_days)
     upper_avg_calendar = safe_div(upper_total, total_calendar_days)
 
+    # Summary header
     who = author_filter if author_filter else "ALL AUTHORS"
     print(f"Author: {who}")
     if args.since or args.until:
@@ -113,20 +113,47 @@ def main():
     print()
 
     # Day-by-day table
-    # Include only active days (days with ≥1 commit) to keep output focused.
-    # If you prefer full calendar span, iterate daterange(first_day, last_day) instead.
+    active_days = sorted(set(lower_daily.keys()) | set(real_daily.keys()) | set(upper_daily.keys()) | set(cpd.keys()))
     header = f"{'Date':<12} {'Commits':>7}  {'Lower(h)':>9}  {'Real(h)':>9}  {'Upper(h)':>9}"
     print(header)
     print("-" * len(header))
     for d in active_days:
         row = [
             d.strftime(DATE_OUT_FMT),
-            f"{cpd.get(d,0):>7}",
+            f"{cpd.get(d, 0):>7}",
             f"{format_hours(lower_daily.get(d, 0.0)):>9}",
             f"{format_hours(real_daily.get(d, 0.0)):>9}",
             f"{format_hours(upper_daily.get(d, 0.0)):>9}",
         ]
         print(f"{row[0]:<12} {row[1]}  {row[2]}  {row[3]}  {row[4]}")
+
+    # ---- Column summaries ----
+    commits_vals = [cpd.get(d, 0) for d in active_days]
+    lower_vals = [lower_daily.get(d, 0.0) for d in active_days]
+    real_vals = [real_daily.get(d, 0.0) for d in active_days]
+    upper_vals = [upper_daily.get(d, 0.0) for d in active_days]
+
+    def fmt_commit(n): return f"{n:>7}"
+    def fmt_hours_val(x): return f"{format_hours(x):>9}"
+
+    print("-" * len(header))
+    # Totals
+    print(f"{'TOTAL':<12} {fmt_commit(sum(commits_vals))}  {fmt_hours_val(sum(lower_vals))}  "
+          f"{fmt_hours_val(sum(real_vals))}  {fmt_hours_val(sum(upper_vals))}")
+    # Averages per active day
+    day_count = len(active_days) if active_days else 1
+    avg_commits = round(sum(commits_vals) / day_count) if commits_vals else 0
+    avg_lower = (sum(lower_vals) / day_count) if lower_vals else 0.0
+    avg_real = (sum(real_vals) / day_count) if real_vals else 0.0
+    avg_upper = (sum(upper_vals) / day_count) if upper_vals else 0.0
+    print(f"{'AVG/day':<12} {fmt_commit(avg_commits)}  {fmt_hours_val(avg_lower)}  "
+          f"{fmt_hours_val(avg_real)}  {fmt_hours_val(avg_upper)}")
+    # Min / Max per day
+    if commits_vals:
+        print(f"{'MIN':<12} {fmt_commit(min(commits_vals))}  {fmt_hours_val(min(lower_vals))}  "
+              f"{fmt_hours_val(min(real_vals))}  {fmt_hours_val(min(upper_vals))}")
+        print(f"{'MAX':<12} {fmt_commit(max(commits_vals))}  {fmt_hours_val(max(lower_vals))}  "
+              f"{fmt_hours_val(max(real_vals))}  {fmt_hours_val(max(upper_vals))}")
 
 if __name__ == "__main__":
     main()

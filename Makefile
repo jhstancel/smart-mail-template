@@ -148,6 +148,8 @@ push:
 	@git commit -m "$(MSG)" || echo "• Nothing to commit"
 	@git push
 	@echo "✅ Push complete."
+time:
+	python3 time_spent.py
 
 # ============================================================
 # Cleanup
