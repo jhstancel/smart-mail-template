@@ -20,18 +20,6 @@
 
 
 <style>
-/* Row actions inside My Templates list */
-#ut_list .row-actions{
-  display:flex; gap:8px; align-items:center; opacity:.0; transition:opacity .15s;
-}
-#ut_list .kv:hover .row-actions{ opacity:1; }
-#ut_list .row-actions .link{
-  font-size:12px; padding:3px 6px; border-radius:8px; border:1px solid var(--card-border);
-  background:transparent; cursor:pointer;
-}
-#ut_list .row-actions .link.danger{
-  border-color: rgba(255,90,90,.4);
-}
 
 .splash-tip.show{ opacity:1; transform: translateY(0); }
 /* Parts card: remove any phantom bar under the title */
@@ -337,7 +325,7 @@
   display:none; flex-direction:column; gap:6px;          /* tighter */
   padding:10px; border-radius:14px; border:1px solid var(--panel-border);
   background:var(--glass); box-shadow: var(--shadow-2);
-  max-height:70vh; overflow:auto;                        /* scrollable */
+  max-height:210vh; overflow:auto;                        /* scrollable */
 }
 
   .settings-menu.open{ display:flex; }
@@ -349,9 +337,22 @@
   }
   .settings-item .label{ font-weight:700; }
   .settings-item .hint{ color:var(--muted); font-size:12px; }
+/* Collapsible settings drawers – simple, no ghost gaps */
+.settings-subpanel{
+  display: none;              /* closed drawers render no space at all */
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.settings-subpanel.open{
+  display: block;             /* render fully when open */
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 90%, white 10%);
+}
 
-  .settings-subpanel{ overflow:hidden; height:0; opacity:0; transition: height .35s ease, opacity .35s ease, margin .35s ease; margin:0; }
-  .settings-subpanel.open{ height:auto; opacity:1; margin-top:6px; }
   .settings-row{ display:flex; align-items:center; gap:10px; }
   .settings-row select{ min-width:200px; }
 
@@ -458,99 +459,68 @@
   overflow-y: auto;
   padding-right: 6px;
 }
-#ut_list .kv{
-  padding: 6px 0;
-  border-bottom: 1px dashed rgba(0,0,0,.06);
-}
-#ut_list .kv:last-child{ border-bottom: 0; }
 
-/* Tiny badge for local templates on cards */
-.tpl-badge{
-  font-size: 11px; padding: 2px 6px; border-radius: 999px;
-  background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
-  margin-left: 6px;
+/* --- My Templates list (card with bottom actions) --- */
+.tpl-head{
+  display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;
 }
-
-/* Tiny badge for local templates on cards */
-.tpl-badge{
-  font-size: 11px; padding: 2px 6px; border-radius: 999px;
-  background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
-  margin-left: 6px;
-}
-/* --- My Templates list --- */
-.tpl-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
 .btn.small{ padding:8px 12px; border-radius:10px; font-weight:800; }
-.btn.ghost{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none; }
+.btn.ghost{
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  color:var(--ink);
+  border:1px solid var(--card-border);
+  box-shadow:none;
+}
 
 .tpl-list{ display:flex; flex-direction:column; gap:8px; }
+
+/* Card becomes a vertical stack: content on top, actions on bottom */
 .tpl-card{
-  display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
-  padding:10px 12px; border-radius:12px;
+  display:flex; flex-direction:column; gap:10px;
+  padding:12px;
+  border-radius:12px;
   background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
-  border:1px solid var(--card-border); box-shadow: var(--shadow-1);
+  border:1px solid var(--card-border);
+  box-shadow: var(--shadow-1);
+  min-height: 84px; /* breathing room */
 }
+
+/* Top area */
 .tpl-main{ display:flex; align-items:center; gap:10px; min-width:0; }
 .tpl-title{ font-weight:800; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.tpl-badge{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--panel-border); color:var(--muted); background:color-mix(in srgb, var(--bg) 85%, white 15%); }
 .tpl-desc{ color:var(--muted); font-size:12px; margin-top:2px; }
-.tpl-actions{ display:flex; gap:6px; flex-wrap:wrap; }
-.tpl-actions .btn{ padding:7px 10px; border-radius:9px; }
-.tpl-actions .danger{ background: linear-gradient(180deg, var(--bad), color-mix(in srgb, var(--bad) 80%, black 20%)); color:#fff; }
+.tpl-badge{
+  font-size:11px; padding:3px 8px; border-radius:999px;
+  border:1px solid var(--panel-border);
+  color:var(--muted);
+  background:color-mix(in srgb, var(--bg) 85%, white 15%);
+}
+
+/* Bottom actions: full width row, never overlaps text */
+.tpl-actions{
+  display:flex; align-items:center; justify-content:flex-end; gap:8px;
+  padding-top:10px; margin-top:2px;
+  border-top:1px solid var(--card-border);
+}
+.tpl-actions .btn{
+  padding:6px 10px; border-radius:9px; font-weight:800;
+  border:1px solid var(--card-border);
+  background:transparent;
+}
+.tpl-actions .btn.ghost{
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+}
+.tpl-actions .btn.danger{
+  background: linear-gradient(180deg, var(--bad), color-mix(in srgb, var(--bad) 80%, black 20%));
+  color:#fff; border-color: color-mix(in srgb, var(--bad) 55%, black 45%);
+}
+
+/* Small screens: keep same layout, just left-align actions */
+@media (max-width:520px){
+  .tpl-actions{ justify-content:flex-start; }
+}
 
 </style>
-
-
-
-<script>
-// ===== Compose Behavior (Preview / Type / Off) =====
-const LIVE_MODE_KEY = 'sm_live_mode_v1';   // 'preview' | 'type' | 'off'
-window.liveState = window.liveState || { preview: true, compose: false, tId: null };
-
-function loadLiveMode(){
-  const v = localStorage.getItem(LIVE_MODE_KEY);
-  return (v === 'preview' || v === 'type' || v === 'off') ? v : 'preview';
-}
-function saveLiveMode(v){ try{ localStorage.setItem(LIVE_MODE_KEY, v); }catch(_){} }
-
-function applyLiveMode(mode){
-  mode = (mode === 'type' || mode === 'off') ? mode : 'preview';
-
-  // reflect app behavior
-  window.liveState.preview = (mode === 'preview');
-  window.liveState.compose = (mode === 'type');
-
-  // highlight the selected button
-  const seg = document.getElementById('composeMode');
-  if (seg){
-    seg.querySelectorAll('.seg-btn').forEach(btn=>{
-      const on = (btn.dataset.mode === mode);
-      btn.setAttribute('aria-pressed', String(on));
-      btn.classList.toggle('is-active', on);
-    });
-  }
-
-  // show/hide Generate button (hidden only in Preview)
-  const btn = document.getElementById('btnGenerate');
-  if (btn) btn.style.display = window.liveState.preview ? 'none' : '';
-
-  saveLiveMode(mode);
-}
-
-function initComposeModeUI(){
-  const seg = document.getElementById('composeMode');
-  if(!seg) return;
-  const mode = loadLiveMode();
-  applyLiveMode(mode);
-  seg.querySelectorAll('.seg-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> applyLiveMode(btn.dataset.mode));
-  });
-}
-
-// run as soon as DOM is ready (and also called once after /intents loads)
-document.addEventListener('DOMContentLoaded', initComposeModeUI);
-</script>
-
-
 
 
 
@@ -602,8 +572,6 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
 
 
 <div id="subTyping" class="settings-subpanel">
-  <div class="label">Compose Behavior</div>
-  <div class="hint" style="margin:-2px 0 10px">Choose how the draft updates while you work.</div>
 
   <!-- Segmented control -->
   <div id="composeSeg" class="seg" role="tablist" aria-label="Compose Behavior">
@@ -628,7 +596,6 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
   <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
 </div>
 <div id="subIntents" class="settings-subpanel">
-  <div class="label" style="margin:8px 0 6px">Show on home</div>
   <div id="intentChecks" class="kvs" style="margin:6px 0 10px"></div>
   <div class="inline" style="margin-top:6px">
     <button id="vi_save"  class="btn secondary" type="button">Save</button>
@@ -639,21 +606,6 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
   <p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
 </div>
 
-<div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
-  <div>
-    <div class="label">My Templates</div>
-    <div class="hint">Local-only templates saved in this browser</div>
-  </div>
-  <svg class="chev" viewBox="0 0 24 24"><path fill="currentColor" d="M9 6l6 6-6 6"/></svg>
-</div>
-<div id="subUserTpls" class="settings-subpanel">
-  <div class="label" style="margin:8px 0 6px">Templates on this device</div>
-  <div class="inline" style="gap:8px; margin:6px 0">
-    <button id="ut_new" class="btn" type="button">+ New</button>
-  </div>
-  <div id="ut_list" class="kvs" style="margin-top:6px"></div>
-  <p class="muted" style="margin:8px 0 0">Tip: These are local only and won’t sync across devices.</p>
-</div>
 <div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
   <div>
     <div class="label">My Templates</div>
@@ -789,7 +741,7 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
 </div>
 <!-- Simple Editor Dialog for My Templates -->
 <dialog id="ut_editor">
-  <form method="dialog" id="ut_form" style="min-width: min(680px, 90vw)">
+  <form method="dialog" id="ut_form" novalidate style="min-width: min(680px, 90vw)">
     <h3 style="margin:0 0 10px">Edit Template</h3>
     <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
       <label>Internal ID (letters, numbers, underscores; will be prefixed with u:)
@@ -815,9 +767,9 @@ document.addEventListener('DOMContentLoaded', initComposeModeUI);
     </div>
 
     <div class="inline" style="justify-content:flex-end; gap:8px; margin-top:10px">
-      <button id="ute_cancel" class="btn secondary" value="cancel">Cancel</button>
-      <button id="ute_save"   class="btn" value="default">Save</button>
-    </div>
+<button id="ute_cancel" class="btn" type="button" formnovalidate>Cancel</button>
+<button id="ute_save"   class="btn" type="button">Save</button>
+</div>
   </form>
 </dialog>
 
@@ -1385,7 +1337,6 @@ async function loadIntents(){
     const data = await res.json();
     INTENTS = Array.isArray(data) ? data : [];
     renderIntentGridFromData(INTENTS);
-initComposeModeUI(); // set up segmented control & liveState
 
   }catch(err){
     console.error('Error loading intents:', err);
@@ -1712,10 +1663,10 @@ const liveState = (window.liveState = window.liveState || { compose:false, previ
 
 // Back-compat setters map to modes (in case anything still calls them)
 function setLiveCompose(v){
-  applyLiveMode(v ? 'type' : (liveState.preview ? 'preview' : 'off'));
+  liveState.compose = !!v;
 }
 function setLivePreview(v){
-  applyLiveMode(v ? 'preview' : (liveState.compose ? 'type' : 'off'));
+  liveState.preview = !!v;
 }
 
 // simple typewriter effect for Output panel
@@ -1791,19 +1742,11 @@ function initComposeModeUI(){
     applyComposeMode(b.dataset.mode);
   });
 }
-const TPL_KEY = 'sm_user_templates_v1'; // [{id,label,desc,body}, ...]
-
-function readUserTpls(){
-  try{ return JSON.parse(localStorage.getItem(TPL_KEY) || '[]'); } catch(_) { return []; }
-}
-function writeUserTpls(list){
-  try{ localStorage.setItem(TPL_KEY, JSON.stringify(list || [])); }catch(_){}
-}
 function buildUserTemplatesUI(){
   const wrap = document.getElementById('userTplList');
   if(!wrap) return;
 
-  const list = readUserTpls();
+  const list = loadUserTemplates();         // <-- unified
   wrap.innerHTML = '';
 
   if(!list.length){
@@ -1827,7 +1770,7 @@ function buildUserTemplatesUI(){
         <span class="tpl-badge">local</span>
         <div>
           <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
-          ${t.desc ? `<div class="tpl-desc">${t.desc}</div>` : ''}
+          ${t.description ? `<div class="tpl-desc">${t.description}</div>` : ''}
         </div>
       </div>
       <div class="tpl-actions">
@@ -1838,32 +1781,32 @@ function buildUserTemplatesUI(){
     `;
     const [btnEdit, btnDup, btnDel] = card.querySelectorAll('.tpl-actions .btn');
 
-    btnEdit.addEventListener('click', ()=>{
-      document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
-    });
-    btnDup.addEventListener('click', ()=>{
-      const copy = { ...t, id: `${t.id || 'tpl'}_${Date.now()}`, label: (t.label ? t.label+' (copy)' : 'Untitled (copy)') };
-      const next = readUserTpls(); next.unshift(copy); writeUserTpls(next); buildUserTemplatesUI();
-    });
-    btnDel.addEventListener('click', ()=>{
-      const next = readUserTpls().filter(x => x.id !== t.id);
-      writeUserTpls(next); buildUserTemplatesUI();
-    });
+btnEdit.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
+});
+btnDup.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const copy = { ...t, id: `${t.id || 'u:tpl'}_${Date.now()}`, label: (t.label ? t.label+' (copy)' : 'Untitled (copy)') };
+  const next = loadUserTemplates(); next.unshift(copy); saveUserTemplates(next); buildUserTemplatesUI();
+});
+btnDel.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const next = loadUserTemplates().filter(x => x.id !== t.id);
+  saveUserTemplates(next); buildUserTemplatesUI();
+});
 
     wrap.appendChild(card);
   });
+const newBtn = document.getElementById('tplNew');
+if(newBtn && !newBtn._wired){
+  newBtn._wired = true;
+  newBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();                       // don’t close the menu
+    document.dispatchEvent(new CustomEvent('userTpl:new')); // just open editor — no save yet
+  });
+}
 
-  const newBtn = document.getElementById('tplNew');
-  if(newBtn && !newBtn._wired){
-    newBtn._wired = true;
-    newBtn.addEventListener('click', ()=>{
-      document.dispatchEvent(new CustomEvent('userTpl:new'));
-      // optional: seed a blank template for now
-      const next = readUserTpls();
-      next.unshift({ id:`tpl_${Date.now()}`, label:'New Template', desc:'', body:'' });
-      writeUserTpls(next); buildUserTemplatesUI();
-    });
-  }
 }
 
 
@@ -1887,6 +1830,14 @@ function buildUserTemplatesUI(){
 
 const settingsBtn   = document.querySelector('.settings-btn');
 const settingsMenu  = document.querySelector('.settings-menu');
+
+// Keep the settings menu open when interacting with its contents
+if (settingsMenu && !settingsMenu._stopper){
+  settingsMenu._stopper = true;
+  settingsMenu.addEventListener('click', (e)=> e.stopPropagation());
+}
+
+
 const subIntents    = document.getElementById('subIntents'); 
 const subUserTpls   = document.getElementById('subUserTpls');   // NEW
 const subTheme      = document.getElementById('subTheme');
@@ -1912,6 +1863,23 @@ function openOnly(which){
   if(which==='intents'   && subIntents)  { subIntents.classList.add('open');  buildIntentsChecklist?.(); }
   if(which==='usertpls'  && subUserTpls) { subUserTpls.classList.add('open'); buildUserTemplatesUI?.(); }
   if(which==='defaults'  && subDefaults)  subDefaults.classList.add('open');
+const opened = (
+  which==='theme'    ? subTheme   :
+  which==='typing'   ? subTyping  :
+  which==='intents'  ? subIntents :
+  which==='usertpls' ? subUserTpls:
+  which==='defaults' ? subDefaults: null
+);
+
+const menu = opened?.closest('.settings-menu');
+if (menu) {
+  // Scroll so the *header row* sits at the very top of the menu viewport.
+  const header = menu.querySelector(`.settings-item[data-item="${which}"]`);
+  requestAnimationFrame(()=>{
+    if (header) menu.scrollTo({ top: header.offsetTop - 6, behavior: 'smooth' });
+  });
+}
+
   currentlyOpen = which;
   document.querySelectorAll('.settings-item').forEach(row=>{
     const chev = row.querySelector('.chev');
@@ -1937,12 +1905,19 @@ function toggleMenu(){
     const which = row.getAttribute('data-item');
     if(which) openOnly(which);
   });
-  on(document,'click', (e)=>{
-    if(!settingsMenu.classList.contains('open')) return;
-    const inside = settingsMenu.contains(e.target);
-    const onBtn  = settingsBtn.contains(e.target);
-    if(!inside && !onBtn){ settingsMenu.classList.remove('open'); closeAllSubs(); }
-  });
+on(document,'click', (e)=>{
+  if(!settingsMenu.classList.contains('open')) return;
+
+  // NEW: if click happens inside Settings menu OR inside the editor dialog, do nothing
+  const inSettings = settingsMenu.contains(e.target);
+  const onBtn      = settingsBtn.contains(e.target);
+  const inDialog   = !!e.target.closest('#ut_editor');   // <dialog> and its children
+
+  if(!inSettings && !onBtn && !inDialog){
+    settingsMenu.classList.remove('open');
+    closeAllSubs();
+  }
+});
 
   // Theme switching (persist in localStorage)
   const THEME_KEY = 'sm_theme';
@@ -2036,6 +2011,52 @@ if(clearBtn){
 
 
 // ===== User Templates (local-only) =====
+
+// --- My Templates editor element refs (needed by openEditor/collectEditor) ---
+const dlgUT    = document.getElementById('ut_editor');
+if (dlgUT && !dlgUT._shielded){
+  dlgUT._shielded = true;
+  // Capture-phase listeners guarantee suppression before the document handler
+  ['click','mousedown','mouseup','touchstart','touchend','cancel'].forEach(type=>{
+    dlgUT.addEventListener(type, (ev)=> ev.stopPropagation(), true);
+  });
+}
+// Hard-disable native validation + accidental submit inside the dialog form
+const formUT = document.getElementById('ut_form');
+if (formUT && !formUT._noValidate) {
+  formUT._noValidate = true;
+  formUT.setAttribute('novalidate','');
+
+  // Prevent any submit attempts (Enter key, implicit submit, etc.)
+  formUT.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  // Swallow native validity popups
+  formUT.addEventListener('invalid', (e)=>{
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  // Stop Enter (outside textareas) from triggering submit
+  formUT.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+}
+
+const fId      = document.getElementById('ute_id');
+
+const fLabel   = document.getElementById('ute_label');
+const fDesc    = document.getElementById('ute_desc');
+const fFields  = document.getElementById('ute_fields');
+const fSubj    = document.getElementById('ute_subject');
+const fBody    = document.getElementById('ute_body');
+
+
 const USER_TPLS_KEY = 'sm_user_templates_v1';   // array of {id:'u:xxx', name:'u:xxx', label, description, fields[], subject, body}
 
 function loadUserTemplates(){
@@ -2083,97 +2104,61 @@ function userTemplatesAsIntents(){
     _local: true,
   }));
 }
-// ===== My Templates UI (Settings) =====
-const dlgUT   = document.getElementById('ut_editor');
-const utList  = document.getElementById('ut_list');
-const utNew   = document.getElementById('ut_new');
-
-const fId     = document.getElementById('ute_id');
-const fLabel  = document.getElementById('ute_label');
-const fDesc   = document.getElementById('ute_desc');
-const fFields = document.getElementById('ute_fields');
-const fSubj   = document.getElementById('ute_subject');
-const fBody   = document.getElementById('ute_body');
-
-let _ut_selected = null;  // selected id (u:xxx)
-
-function buildUserTemplatesUI(){
-  if(!utList) return;
-  const all = loadUserTemplates();
-  utList.innerHTML = '';
-  _ut_selected = null;
-
-  all.forEach(t=>{
-    const row = document.createElement('div');
-    row.className = 'kv';
-    row.setAttribute('data-id', t.id);
-
-    row.innerHTML = `
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px">
-        <div style="min-width:0">
-          <div class="label" style="display:flex; align-items:center; gap:8px;">
-            ${esc(t.label || t.id)} <span class="tpl-badge">local</span>
-          </div>
-          <div class="hint" style="margin-top:2px">${esc(t.description || '')}</div>
-        </div>
-        <div style="display:flex; align-items:center; gap:12px; flex-shrink:0">
-          <div class="muted" style="white-space:nowrap">${esc(t.id)}</div>
-          <div class="row-actions">
-            <button class="link"        data-act="edit" data-id="${t.id}">Edit</button>
-            <button class="link"        data-act="dup"  data-id="${t.id}">Duplicate</button>
-            <button class="link danger" data-act="del"  data-id="${t.id}">Delete</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Row action handlers
-    row.querySelector('[data-act="edit"]')?.addEventListener('click', (e)=>{
-      e.stopPropagation(); openEditor('edit', t);
-    });
-    row.querySelector('[data-act="dup"]')?.addEventListener('click', (e)=>{
-      e.stopPropagation(); openEditor('dup', t);
-    });
-    row.querySelector('[data-act="del"]')?.addEventListener('click', (e)=>{
-      e.stopPropagation(); deleteTemplate(t.id);
-    });
-
-    utList.appendChild(row);
-  });
-
-  if(all.length===0){
-    const empty = document.createElement('div');
-    empty.className = 'muted';
-    empty.textContent = 'No local templates yet.';
-    utList.appendChild(empty);
-  }
-}
-
 function openEditor(mode, existing){
-  fId.value     = existing ? (existing.id.replace(/^u:/,'') + (mode==='dup' ? '_copy' : '')) : '';
-  fLabel.value  = existing ? (existing.label || '') : '';
-  fDesc.value   = existing ? (existing.description || '') : '';
-  fFields.value = (existing && existing.fields ? existing.fields.map(f=>`${f.name}:${f.type||'string'}${f.required?':required':''}`).join('\n') : '');
-  fSubj.value   = existing ? (existing.subject || '') : '';
-  fBody.value   = existing ? (existing.body || '') : '';
+  if (mode === 'new' && !existing){
+    const seed = 'tpl_' + Math.floor(Date.now()/1000);
+    fId.value     = seed;                // ✅ valid starter id (no “required” trip)
+    fLabel.value  = 'New Template';
+    fDesc.value   = '';
+    fFields.value = '';
+    fSubj.value   = '';
+    fBody.value   = '';
+  } else {
+    fId.value     = existing ? (existing.id.replace(/^u:/,'') + (mode==='dup' ? '_copy' : '')) : '';
+    fLabel.value  = existing ? (existing.label || '') : '';
+    fDesc.value   = existing ? (existing.description || '') : '';
+    fFields.value = (existing && existing.fields ? existing.fields.map(f=>`${f.name}:${f.type||'string'}${f.required?':required':''}`).join('\n') : '');
+    fSubj.value   = existing ? (existing.subject || '') : '';
+    fBody.value   = existing ? (existing.body || '') : '';
+  }
   dlgUT?.showModal();
 }
 
+document.addEventListener('userTpl:new',  () => openEditor('new', null));
+document.addEventListener('userTpl:edit', (e) => openEditor('edit', e.detail?.template));
+
 function collectEditor(){
-  const rawId = fId.value.trim();
-  if(!rawId || !/^[A-Za-z0-9_]{2,64}$/.test(rawId)) return null;
+  function slugify(s){
+    return String(s||'')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g,'_')
+      .replace(/^_+|_+$/g,'')
+      .slice(0,64);
+  }
+
+  let rawId = fId.value.trim();
+  const labelIn = fLabel.value.trim();
+
+  // If ID is empty, derive from label or timestamp
+  if(!rawId){
+    rawId = slugify(labelIn) || ('tpl_' + Date.now());
+    fId.value = rawId; // reflect generated id in UI
+  }
+
+  if(!/^[A-Za-z0-9_]{2,64}$/.test(rawId)) return null;
+
   const id = `u:${rawId}`;
-  const label = fLabel.value.trim() || rawId;
+  const label = labelIn || rawId;
   const description = fDesc.value.trim();
   const fields = parseFieldLines(fFields.value);
   return { id, name:id, label, description, fields, subject: fSubj.value || '', body: fBody.value || '' };
 }
-
 function upsertTemplate(def){
   const all = loadUserTemplates();
   const i = all.findIndex(x=>x.id===def.id);
-  if(i>=0) all[i]=def; else all.push(def);
+  if(i>=0) all[i]=def; else all.unshift(def);   // ✅ new first
   saveUserTemplates(all);
+
   // refresh combined intents + UI + visibility list
   const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
   INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
@@ -2181,6 +2166,7 @@ function upsertTemplate(def){
   buildIntentsChecklist();
   buildUserTemplatesUI();
 }
+
 // helper for deleting templates by id (shared by row & top buttons)
 function deleteTemplate(id){
   if(!id) return;
@@ -2202,15 +2188,75 @@ function deleteTemplate(id){
   buildUserTemplatesUI();
 }
 
-utNew?.addEventListener('click', ()=> openEditor('new', null));
+// Cancel button: close dialog and reopen Settings
+// helper: return to Settings → My Templates (robust: no outer-scope deps)
+function reopenSettingsAfterEditor(){
+  const menu = document.getElementById('settingsMenu');
+  const sub  = document.getElementById('subUserTpls');
+  const btn  = document.getElementById('settingsBtn');
 
-dlgUT?.querySelector('#ute_cancel')?.addEventListener('click', ()=> dlgUT.close());
+  if (menu) menu.classList.add('open');
+  if (sub)  sub.classList.add('open');
+
+  // keep the chevron state in sync
+  document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+  const row = document.querySelector('.settings-item[data-item="usertpls"] .chev');
+  if (row) row.classList.add('rot90');
+
+  // reflect ARIA expanded for the gear button
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+
+  // remember currently-open for the toggle logic if it exists
+  try { window.currentlyOpen = 'usertpls'; } catch(_) {}
+}
+
+// Cancel: close editor, no validation, keep Settings open
+dlgUT?.querySelector('#ute_cancel')?.addEventListener('click', (e)=>{
+  e.preventDefault();
+  e.stopPropagation();
+
+  // Ensure this button cannot trigger submit/validation
+  if (e.currentTarget) {
+    e.currentTarget.setAttribute('type','button');
+    e.currentTarget.setAttribute('formnovalidate','');
+  }
+
+  // Blur any focused required control so the UA doesn’t try to validate on focus change
+  if (document.activeElement && formUT?.contains(document.activeElement)) {
+    document.activeElement.blur();
+  }
+
+  dlgUT.close();
+  reopenSettingsAfterEditor();
+});
+
+// ESC key: same behavior as Cancel
+dlgUT.addEventListener('cancel', (e)=>{
+  e.preventDefault();   // prevent native “cancel” default
+  dlgUT.close();
+  reopenSettingsAfterEditor();
+});
+
+// Backdrop click: same behavior as Cancel/ESC
+dlgUT.addEventListener('click', (e)=>{
+  // click landed on the <dialog> backdrop (outside the inner form)
+  const r = dlgUT.getBoundingClientRect();
+  const onBackdrop = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  if(onBackdrop){
+    e.preventDefault();
+    e.stopPropagation();
+    dlgUT.close();
+    reopenSettingsAfterEditor();
+  }
+}, true);
+
 dlgUT?.querySelector('#ute_save')?.addEventListener('click', (ev)=>{
   ev.preventDefault();
   const def = collectEditor();
   if(!def) return;
   upsertTemplate(def);
   dlgUT.close();
+  reopenSettingsAfterEditor();   // keep you in Settings → My Templates
 });
 
 
@@ -2350,28 +2396,6 @@ if (window.scheduleAutodetect) window.scheduleAutodetect();
   background: var(--card-bg2, #fff);
   color: inherit;
 }
-/* Segmented control */
-.seg{
-  display:inline-flex; gap:0; border:1px solid var(--card-border); border-radius:12px; padding:3px;
-  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); box-shadow: inset 0 0 0 1px rgba(0,0,0,.03);
-}
-.seg-btn{
-  appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px; cursor:pointer;
-  font-weight:600; font-size:14px; line-height:1; transition:transform .06s ease, background .15s ease;
-}
-.seg-btn:hover{ transform:translateY(-1px); }
-.seg-btn[aria-pressed="true"]{
-  background:var(--btn-bg,#fff); box-shadow: 0 1px 0 rgba(0,0,0,.04), inset 0 0 0 1px var(--card-border);
-}
-.seg-btn.is-active{
-  color: var(--accent);
-  font-weight: 800;
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  box-shadow:
-    0 1px 0 rgba(0,0,0,.06),
-    inset 0 0 0 1px var(--card-border),
-    0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
-}
 /* Settings “card headers” feel and subpanels spacing */
 .settings-item{
   display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -2380,11 +2404,15 @@ if (window.scheduleAutodetect) window.scheduleAutodetect();
   padding:12px 14px; cursor:pointer;
   box-shadow: var(--shadow-1);
 }
-.settings-subpanel{
-  border:1px solid var(--card-border);
-  border-radius:14px;
-  background:color-mix(in srgb, var(--bg) 90%, white 10%);
-  padding:12px;
+.settings-subpanel.open{
+  max-height: none;          /* let it grow naturally */
+  overflow: visible;         /* don’t clip inner content */
+  opacity: 1;
+  margin-top: 6px;
+  padding: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg) 90%, white 10%);
 }
 
 /* Segmented control (Preview / Type / Off) */
