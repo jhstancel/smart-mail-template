@@ -452,6 +452,47 @@
   background: rgba(120,120,255,.12); border: 1px solid rgba(120,120,255,.3);
   margin-left: 6px;
 }
+// ===== Compose Behavior (Preview / Type / Off) =====
+const LIVE_MODE_KEY = 'sm_live_mode_v1'; // values: 'preview' | 'type' | 'off'
+window.liveState = window.liveState || { preview: true, compose: false };
+
+function loadLiveMode(){
+  const v = localStorage.getItem(LIVE_MODE_KEY);
+  return (v === 'preview' || v === 'type' || v === 'off') ? v : 'preview';
+}
+function saveLiveMode(mode){ try{ localStorage.setItem(LIVE_MODE_KEY, mode); }catch(_e){} }
+
+function applyLiveMode(mode){
+  // normalize
+  mode = (mode === 'type' || mode === 'off') ? mode : 'preview';
+  // reflect state used by existing code paths
+  if(mode === 'preview'){ liveState.preview = true;  liveState.compose = false; }
+  if(mode === 'type')   { liveState.preview = false; liveState.compose = true;  }
+  if(mode === 'off')    { liveState.preview = false; liveState.compose = false; }
+
+  // update segmented buttons
+  const seg = document.getElementById('composeMode');
+  if(seg){
+    seg.querySelectorAll('.seg-btn').forEach(btn=>{
+      btn.setAttribute('aria-pressed', String(btn.dataset.mode === mode));
+    });
+  }
+
+  saveLiveMode(mode);
+}
+
+function initComposeModeUI(){
+  const seg = document.getElementById('composeMode');
+  if(!seg) return;
+  const mode = loadLiveMode();
+  applyLiveMode(mode);
+  seg.querySelectorAll('.seg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const m = btn.dataset.mode;
+      applyLiveMode(m);
+    });
+  });
+}
 
 </style>
 </head>
@@ -500,20 +541,17 @@
 
 
 
+<div class="label" style="margin:8px 0 6px">Compose Behavior</div>
+<div class="hint" style="margin:-2px 0 10px">Choose how the draft updates while you work.</div>
 
-  <div class="settings-row" style="justify-content:space-between; margin:8px 0">
-    <div>
-      <div class="label">Live Output Preview</div>
-      <div class="hint">Auto-fill subject &amp; body while typing</div>
-    </div>
-    <label class="toggle" aria-label="Enable Live Output Preview">
-      <input id="livePreview" type="checkbox" /> Live Preview
-    </label>
-  </div>
-  <label class="toggle" for="liveCompose" style="margin-top:2px">
-    <input id="liveCompose" type="checkbox" checked /> Compose Live
-  </label>
-  <p class="muted" style="margin:6px 0 0">Note: Minimal themes dampen most animations.</p>
+<div id="composeMode" class="seg">
+  <button class="seg-btn" data-mode="preview" aria-pressed="false" title="Auto-fill subject/body instantly">Preview</button>
+  <button class="seg-btn" data-mode="type"    aria-pressed="false" title="Animate the text as if being typed">Type</button>
+  <button class="seg-btn" data-mode="off"     aria-pressed="false" title="No live updates">Off</button>
+</div>
+
+<p class="muted" style="margin:8px 0 0">Tip: Minimal themes reduce visible animations.</p>
+
 </div>
 
 
@@ -1267,6 +1305,8 @@ async function loadIntents(){
     const data = await res.json();
     INTENTS = Array.isArray(data) ? data : [];
     renderIntentGridFromData(INTENTS);
+initComposeModeUI(); // set up segmented control & liveState
+
   }catch(err){
     console.error('Error loading intents:', err);
     INTENTS = [];
@@ -2111,6 +2151,19 @@ if (window.scheduleAutodetect) window.scheduleAutodetect();
 .icon-btn.parts-minus {
   background: var(--card-bg2, #fff);
   color: inherit;
+}
+/* Segmented control */
+.seg{
+  display:inline-flex; gap:0; border:1px solid var(--card-border); border-radius:12px; padding:3px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); box-shadow: inset 0 0 0 1px rgba(0,0,0,.03);
+}
+.seg-btn{
+  appearance:none; border:0; background:transparent; padding:8px 12px; border-radius:8px; cursor:pointer;
+  font-weight:600; font-size:14px; line-height:1; transition:transform .06s ease, background .15s ease;
+}
+.seg-btn:hover{ transform:translateY(-1px); }
+.seg-btn[aria-pressed="true"]{
+  background:var(--btn-bg,#fff); box-shadow: 0 1px 0 rgba(0,0,0,.04), inset 0 0 0 1px var(--card-border);
 }
 
 </style>
