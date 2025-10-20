@@ -39,7 +39,7 @@ The workflow emphasizes **human architecture + AI precision**, creating a discip
 1. **Launch the API**
    ```bash
    uvicorn app.main:app --reload
-````
+```
 
 The backend exposes `/generate`, `/autodetect`, `/schema`, and `/intents`.
 
