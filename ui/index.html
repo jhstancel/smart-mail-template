@@ -1497,7 +1497,7 @@ async function doGenerate(){
           if(outSubject) outSubject.textContent = out.subject || '';
           if(outBody)    outBody.textContent    = out.body || '';
         }
-        return; // ✅ skip server
+        return;
       }
     }
 const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
@@ -1506,29 +1506,29 @@ let intent = SELECTED_INTENT;
 let fields = {};
 
 if (usingAuto){
-  // ask backend to pick the intent from subject + hint
-  const subject = document.getElementById('subject')?.value || '';
-  const hint    = document.getElementById('hint')?.value || '';
-  const text    = (subject + '\n' + hint).trim();
+  const payload = {
+    to:       document.getElementById('to')?.value?.trim() || '',
+    subject:  document.getElementById('subject')?.value?.trim() || '',
+    body_hint:document.getElementById('hint')?.value?.trim() || ''
+  };
 
   try{
-    const res = await fetch('/autodetect', {
+    const res = await fetch('/predict', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ text })
+      body: JSON.stringify(payload)
     });
     const pick = await res.json();
-    intent = pick?.intent || '';
+    // accept multiple shapes
+    intent = pick?.intent ?? pick?.label ?? pick?.name ?? '';
   }catch(_e){ intent = ''; }
 
   if(!intent){
-    // nothing confident → bail gracefully
     if(fieldsHint) fieldsHint.textContent = '';
     return;
   }
 }
 
-// now collect fields for whichever intent we’re using
 fields = collectFields(intent);
 const payload = { intent, fields };
 
@@ -2280,21 +2280,28 @@ if (window.scheduleAutodetect) window.scheduleAutodetect();
     function scoreBadge(score){ return `${Math.round((score ?? 0)*100)}%`; }
     function setPredictStatus(msg){ if(els.predStatus) els.predStatus.textContent = msg || ''; }
     function hidePredictInfo(){ if(els.predInfo) els.predInfo.style.display='none'; if(els.topK) els.topK.innerHTML=''; }
+function updatePredictUI(data){
+  if(!data){ hidePredictInfo(); return; }
 
-    function updatePredictUI(data){
-    if(!data){ hidePredictInfo(); return; }
-    const { intent, confidence, top_k = [], message = '' } = data;
+  // Normalize common server shapes
+  const normIntent =
+    data.intent ?? data.label ?? data.name ?? '';
+  const normConf =
+    (data.confidence ?? data.score ?? data.prob ?? data.probability ?? 0);
+  const normTopK =
+    data.top_k ?? data.topK ?? data.top ?? data.candidates ?? [];
+  const message = data.message || '';
 
-    if(els.predIntent) els.predIntent.textContent = intent ? toNice(intent) : '—';
-    if(els.predBadge)  els.predBadge.textContent  = scoreBadge(confidence ?? 0);
+  if(els.predIntent) els.predIntent.textContent = normIntent ? toNice(normIntent) : '—';
+  if(els.predBadge)  els.predBadge.textContent  = `${Math.round(normConf * 100)}%`;
+  if(els.predMsg)    els.predMsg.textContent    = message;
 
-    if(els.predMsg)    els.predMsg.textContent    = message || '';
+  if(els.topK){
+    els.topK.innerHTML = '';
+    (normTopK || []).forEach(item=>{
+      const name  = Array.isArray(item) ? (item[0] ?? '') : (item.label ?? item.intent ?? item.name ?? '');
+      const score = Array.isArray(item) ? (item[1] ?? 0) : (item.score ?? item.confidence ?? 0);
 
-    if(els.topK){
-      els.topK.innerHTML = '';
-      top_k.forEach(item=>{
-        const name = Array.isArray(item) ? item[0] : (item.label || item.intent || '');
-        const score = Array.isArray(item) ? item[1] : (item.score ?? 0);
         const b = document.createElement('button');
         b.className = 'btn secondary';
         b.textContent = `${toNice(name)} (${Math.round((score??0)*100)}%)`;
@@ -2330,19 +2337,31 @@ async function predictNow(hintVal){
   if(inflight){ try{ inflight.abort(); }catch{} }
   inflight = new AbortController();
 
-  const subject = (els.subject?.value || '').trim();
-  const text    = (subject + '\n' + (hintVal || '')).trim();
-  if(!text){ setPredictStatus(''); hidePredictInfo(); return; }
+  const payload = {
+    to:       (els.to?.value || '').trim(),
+    subject:  (els.subject?.value || '').trim(),
+    body_hint: (hintVal || '').trim()
+  };
+  if(!payload.subject && !payload.body_hint){ setPredictStatus(''); hidePredictInfo(); return; }
 
   setPredictStatus('Predicting…');
   try{
-    const res = await fetch('/autodetect', {
+    const res = await fetch('/predict', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ text }),
+      body: JSON.stringify(payload),
       signal: inflight.signal
     });
+
+    if(!res.ok){
+      console.warn('/predict failed', res.status, await res.text());
+      setPredictStatus('Prediction failed.');
+      hidePredictInfo();
+      return;
+    }
+
     const data = await res.json();
+    console.debug('predict:', data);
     updatePredictUI(data);
     setPredictStatus('');
   }catch(err){
