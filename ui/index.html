@@ -2001,6 +2001,51 @@ async function runCorruption(){
   document.body.classList.remove('corrupting');
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 }
+/* ===== Autodetect (client wiring) ===== */
+const inputBodyHint     = document.getElementById('hint');
+const inputSubjectDraft = document.getElementById('subject');
+const predLabel         = document.getElementById('predIntent');
+const predBar           = document.getElementById('predBadge'); // reuse badge pill
+
+function setPrediction(res){
+  if(!predLabel) return;
+  if(!res || !res.intent){
+    predLabel.textContent = '—';
+    if(predBar) predBar.textContent = '0%';
+    return;
+  }
+  const pct = Math.round((res.confidence || 0) * 100);
+  predLabel.textContent = res.intent;
+  if(predBar) predBar.textContent = pct + '%';
+}
+
+function scheduleAutodetect(){
+  clearTimeout(scheduleAutodetect.t);
+  scheduleAutodetect.t = setTimeout(runAutodetect, 250);
+}
+
+async function runAutodetect(){
+  try{
+    const subject = inputSubjectDraft?.value || '';
+    const hint    = inputBodyHint?.value || '';
+    const text    = (subject + '\n' + hint).trim();
+    if(!text){ setPrediction(null); return; }
+
+    const res = await fetch('/autodetect', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text })
+    });
+    if(!res.ok){ setPrediction(null); return; }
+    const json = await res.json();
+    setPrediction(json);
+  }catch(_e){
+    setPrediction(null);
+  }
+}
+
+inputBodyHint?.addEventListener('input', scheduleAutodetect);
+inputSubjectDraft?.addEventListener('input', scheduleAutodetect);
 
 /* =========================================================================================
  * Init (modernized for YAML schema)
@@ -2052,6 +2097,7 @@ if (Array.isArray(data) && data.length) {
     renderIntentGridFromData(INTENTS);
     buildIntentsChecklist();
     buildUserTemplatesUI(); // populate the My Templates list
+    scheduleAutodetect();
   } catch (err) {
     console.error('Error initializing schema/intents:', err);
     intentGrid.innerHTML = '<div class="muted">Failed to load schema.</div>';
