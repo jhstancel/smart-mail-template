@@ -1055,11 +1055,60 @@ if (settingsMenu && !settingsMenu._stopper){
 
 
 const subIntents    = document.getElementById('subIntents'); 
-const subUserTpls   = document.getElementById('subUserTpls');   // NEW
+const subUserTpls   = document.getElementById('subUserTpls');
 const subTheme      = document.getElementById('subTheme');
 const subTyping     = document.getElementById('subTyping');
-const subDefaults   = document.getElementById('subDefaults');    // NEW
+const subDefaults   = document.getElementById('subDefaults');
 const themeSelect   = document.getElementById('themeSelect');    // NEW
+
+// === VISUAL FIX: make Theme "Preset" a single full-width dropdown, no label, no overflow ===
+(function fixThemePresetRow(){
+  if (!themeSelect) return;
+
+  // Find the row that contains the label + select
+  const row = themeSelect.closest('.settings-row') || (subTheme && subTheme.querySelector('.settings-row'));
+  if (!row) return;
+
+  // 1) Remove the "Preset" label entirely
+  const labelEl = row.querySelector('label');
+  if (labelEl) labelEl.remove();
+
+  // 2) Make the select the only element and ensure it doesn't bleed out of its panel
+  Object.assign(row.style, {
+    display: 'block',
+    padding: '0',
+    overflow: 'hidden'
+  });
+
+  Object.assign(themeSelect.style, {
+    display: 'block',
+    width: '100%',
+    maxWidth: '100%',
+    boxSizing: 'border-box',
+    marginTop: '2px',
+    marginBottom: '2px'
+  });
+})();
+// === VISUAL FIX 2: remove outer subpanel padding/border around Theme preset ===
+(function flattenThemeSubpanel(){
+  const subTheme = document.getElementById('subTheme');
+  if (!subTheme) return;
+
+  // remove the rounded background box look
+  Object.assign(subTheme.style, {
+    background: 'transparent',
+    border: 'none',
+    boxShadow: 'none',
+    padding: '0',
+    marginTop: '6px'
+  });
+
+  // tighten spacing so it aligns cleanly with the rest of the menu
+  const row = subTheme.querySelector('.settings-row');
+  if (row) {
+    row.style.margin = '0';
+  }
+})();
 
 function closeAllSubs(){
   [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
