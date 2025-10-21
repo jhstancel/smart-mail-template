@@ -1525,17 +1525,6 @@ dlgUT.addEventListener('click', (e)=>{
   }
 }, true);
 
-dlgUT?.querySelector('#ute_save')?.addEventListener('click', (ev)=>{
-  ev.preventDefault();
-  const def = collectEditor();
-  if (!def) {
-    alert("Please fill out all required fields before saving.");
-    return;
-  }
-  upsertTemplate(def);
-  dlgUT.close();
-  reopenSettingsAfterEditor();   // keep you in Settings → My Templates
-});
 
 
 
@@ -2092,21 +2081,6 @@ const btnCancel = dlg.querySelector('#ute_cancel');
 
   // Robust field collector: picks up any input/textarea/select in the form.
   // Field key = id with leading "f" or "f_" stripped (e.g., fId -> "Id", f_label -> "label")
-  function collectEditor(){
-    if(!form) return null;
-    const out = {};
-    const els = form.querySelectorAll('input, textarea, select');
-    els.forEach(el=>{
-      if(!(el.id || '').length) return;
-      let k = el.id.replace(/^f_?/,'');
-      // normalize first char lower (Id -> id)
-      k = k.replace(/^([A-Z])/, (_,c)=>c.toLowerCase());
-      out[k] = (el.type === 'checkbox') ? !!el.checked : (el.value ?? '').trim();
-    });
-    // Minimum validation: id + label must be present
-    if(!out.id || !out.label) return null;
-    return out;
-  }
 
   function resetForm(){
     if(!form) return;
@@ -2204,31 +2178,88 @@ const btnCancel = dlg.querySelector('#ute_cancel');
     btnNew.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openEditor('new', null); }, { once:false });
   }
 
-  // Save handler (validates id+label, upserts, closes, reopens settings)
-  function onSave(e){
-    e.preventDefault(); e.stopPropagation();
-    const def = collectEditor();
-    if(!def){
-      alert('Please fill out required fields (ID and Label).');
-      // Try to highlight the likely culprits
-      highlightMissing(['fId','fLabel']);
-      return;
-    }
-    try{
-      // User-provided persistence function
-      if(typeof upsertTemplate === 'function') upsertTemplate(def);
-      // Optional refresh hooks, if your UI uses them:
-      if(typeof buildUserTemplatesUI === 'function') buildUserTemplatesUI();
-      if(typeof renderIntentGridFromData === 'function' && Array.isArray(window.INTENTS)){
-        renderIntentGridFromData(window.INTENTS);
-      }
-    }catch(err){
-      console.error('upsertTemplate failed:', err);
-      alert('Could not save template. See console for details.');
-      return;
-    }
-    closeAndReopen();
+function collectEditor(){
+  if(!form) return null;
+
+  // Read actual editor fields (ute_*)
+  const fIdEl    = form.querySelector('#ute_id');
+  const fLabelEl = form.querySelector('#ute_label');
+  const fDescEl  = form.querySelector('#ute_desc');
+  const fFieldsEl= form.querySelector('#ute_fields');
+  const fSubjEl  = form.querySelector('#ute_subject');
+  const fBodyEl  = form.querySelector('#ute_body');
+
+  const rawId   = (fIdEl?.value || '').trim();
+  const labelIn = (fLabelEl?.value || '').trim();
+
+  // helper to coerce an id when blank
+  const slugify = (s)=> String(s||'')
+      .toLowerCase()
+      .replace(/[^a-z0-9_]+/g,'_')
+      .replace(/^_+|_+$/g,'')
+      .slice(0,64);
+
+  let idCore = rawId || slugify(labelIn);
+  if(!idCore) idCore = 'tpl_' + Date.now();
+
+  // validate id format
+  if(!/^[a-z0-9_]{2,64}$/.test(idCore)){
+    console.debug('[UT] invalid idCore', idCore);
+    return null;
   }
+
+  // parse fields (same helper you already have)
+  const fields = parseFieldLines(fFieldsEl?.value || '');
+
+  const def = {
+    id:   `u:${idCore}`,
+    name: `u:${idCore}`,
+    label: labelIn || idCore,
+    description: (fDescEl?.value || '').trim(),
+    fields,
+    subject: fSubjEl?.value || '',
+    body:    fBodyEl?.value || ''
+  };
+
+  // minimal required check
+  if(!def.id || !def.label){
+    console.debug('[UT] missing required', { id: def.id, label: def.label });
+    return null;
+  }
+  return def;
+}
+
+function onSave(e){
+  e.preventDefault(); e.stopPropagation();
+  const def = collectEditor();
+  if(!def){
+    // stay open, highlight the two culprits in-place
+    alert('Please fill out required fields (ID and Label).');
+    // highlight the actual ute_* fields
+    ['ute_id','ute_label'].forEach(id=>{
+      const el = form.querySelector('#' + id);
+      if(el){
+        el.style.boxShadow = '0 0 0 6px rgba(255,100,100,.12)';
+        el.style.borderColor = 'rgba(255,100,100,.55)';
+        setTimeout(()=>{ el.style.boxShadow=''; el.style.borderColor=''; }, 1200);
+      }
+    });
+    return; // **do not close dialog**
+  }
+  try{
+    if(typeof upsertTemplate === 'function') upsertTemplate(def);
+    if(typeof buildUserTemplatesUI === 'function') buildUserTemplatesUI();
+    if(typeof renderIntentGridFromData === 'function' && Array.isArray(window.INTENTS)){
+      renderIntentGridFromData(window.INTENTS);
+    }
+  }catch(err){
+    console.error('upsertTemplate failed:', err);
+    alert('Could not save template. See console for details.');
+    return; // keep editor open on failure
+  }
+  // success → close and reopen settings
+  closeAndReopen();
+}
 
   // Cancel handler (no validation)
   function onCancel(e){
