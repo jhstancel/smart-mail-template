@@ -36,13 +36,16 @@
 <div class="settings-subpanel" id="subTheme">
 <div class="settings-row">
 <label class="muted" for="themeSelect" style="min-width:90px">Preset</label>
+
 <select aria-label="Theme" id="themeSelect">
-<option value="light-minimal">Light Minimal (Default)</option>
-<option value="dark-minimal">Dark Minimal</option>
-<option value="cosmic">Cosmic</option>
-<option value="dusk-gradient">Dusk Gradient</option>
-<option value="forest-mist">Forest Mist</option>
+  <option value="light-minimal">Light Minimal (Default)</option>
+  <option value="dark-minimal">Dark Minimal</option>
+  <option value="cosmic">Cosmic</option>
+  <option value="dusk-gradient">Dusk Gradient</option>
+  <option value="forest-mist">Forest Mist</option>
+  <option value="pastell">Pastell</option>
 </select>
+
 </div>
 </div>
 <!-- Item: Typing Animation -->
@@ -115,9 +118,16 @@
 </div>
 </div>
 </div>
+
+
+<!-- Pastell pets layer (background) -->
+<div id="petFlakes" aria-hidden="true"></div>
+
 <!-- Cosmic visuals -->
 <canvas id="stars"></canvas>
 <div class="glow-veil"></div>
+
+
 <!-- Corruption helpers -->
 <div aria-hidden="true" class="corrupt-overlay" id="corruptOverlay"></div>
 <div aria-hidden="true" class="flash" id="flash"></div>
@@ -245,6 +255,166 @@ quantity:string" rows="4"></textarea>
 
 
 
+<script>
+(()=> {
+  const THEME = 'pastell';
+  const ROOT = document.documentElement; // <html>
+  const starsCanvas = document.getElementById('stars');
+  const layer = document.getElementById('petFlakes');
+
+  // User assets: we’ll probe these and only use the ones that load
+  const candidates = [
+    ...Array.from({length:10},(_,i)=>`ui/img/pets/cat${i?i:''}.png`),
+    ...Array.from({length:10},(_,i)=>`ui/img/pets/dog${i?i:''}.png`),
+
+    // also support spaced names if user uploaded "dog 1.png"
+    ...Array.from({length:10},(_,i)=>`ui/img/pets/dog${i?(' '+i):''}.png`),
+    ...Array.from({length:10},(_,i)=>`ui/img/pets/cat${i?(' '+i):''}.png`),
+  ];
+
+  let enabled = false;
+  let flakes = [];
+  let liveImages = [];
+  let motionPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function themeIsPastell(){
+    // your app sets a data-theme on <html> or <body>. We accept both.
+    const tHtml = ROOT.getAttribute('data-theme');
+    const tBody = document.body.getAttribute('data-theme');
+    return (tHtml === THEME || tBody === THEME);
+  }
+
+  async function loadImages(){
+    const loads = await Promise.allSettled(candidates.map(src => new Promise((res,rej)=>{
+      const im = new Image();
+      im.onload = ()=>res(src);
+      im.onerror = ()=>rej(src);
+      im.src = src;
+    })));
+    return loads.filter(x=>x.status==='fulfilled').map(x=>x.value);
+  }
+
+  function inches2(){
+    // CSS px are ~96 per inch; use CSS pixel size (not device pixels)
+    const w = window.innerWidth, h = window.innerHeight;
+    return (w/96)*(h/96);
+  }
+
+  function decideCount(){
+    // target ~4 flakes per in²; cap to avoid overload
+    const base = Math.round(inches2() * 4);
+    return Math.max(40, Math.min(base, 350));
+  }
+
+  function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
+
+  function spawnFlakes(){
+    const count = decideCount();
+    // distribute X positions with minimum spacing to reduce clumping
+    const width = window.innerWidth;
+    const minGap = 28; // px
+    const xs = [];
+    for(let i=0;i<count;i++){
+      let tries = 0;
+      let x;
+      do {
+        x = Math.random()*width;
+        tries++;
+      } while (tries<40 && xs.some(prev => Math.abs(prev - x) < minGap));
+      xs.push(x);
+    }
+
+    // sizes ~ emoji: 18–26px
+    const sizeMin = 18, sizeMax = 26;
+
+    xs.forEach((x,idx)=>{
+      const el = document.createElement('img');
+      el.className = 'pet-flake';
+      el.src = pick(liveImages);
+      const size = Math.round(sizeMin + Math.random()*(sizeMax-sizeMin));
+      el.style.width = size+'px';
+      el.style.height = 'auto';
+      el.style.left = x+'px';
+      el.style.top = (-40 - Math.random()*200)+'px'; // start above viewport
+      el.style.transform = `rotate(${(Math.random()*24-12).toFixed(1)}deg)`;
+      // random duration ~ 55–65s
+      el.style.setProperty('--fall-dur', (55 + Math.random()*10).toFixed(1)+'s');
+      // small random horizontal drift amplitude (px)
+      el.style.setProperty('--drift', (Math.random()<0.5? -1:1) * (6 + Math.random()*8) + 'px');
+
+      // click-to-pop
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        el.classList.add('pop');
+        el.addEventListener('animationend', ()=> el.remove(), {once:true});
+      });
+
+      layer.appendChild(el);
+      flakes.push(el);
+    });
+  }
+
+  function clearFlakes(){
+    flakes.forEach(f => f.remove());
+    flakes = [];
+  }
+
+  async function enable(){
+    if(enabled) return;
+    if(motionPrefersReduced){ disable(); return; }
+    enabled = true;
+
+    // hide starfield canvas
+    if(starsCanvas) starsCanvas.style.display = 'none';
+    layer.style.display = 'block';
+
+    // load user images once
+    if(!liveImages.length){
+      liveImages = await loadImages();
+      if(!liveImages.length){
+        // nothing loaded – bail out gracefully
+        console.warn('[Pastell] No pet images found in ui/img/pets/');
+        disable();
+        return;
+      }
+    }
+    spawnFlakes();
+  }
+
+  function disable(){
+    if(!enabled) return;
+    enabled = false;
+    clearFlakes();
+    // show cosmic stars again if that theme needs it
+    if(starsCanvas) starsCanvas.style.display = '';
+    layer.style.display = 'none';
+  }
+
+  // react to theme changes
+  function update(){
+    if(themeIsPastell()) enable(); else disable();
+  }
+
+  // Startup
+  window.addEventListener('resize', ()=> { if(enabled){ clearFlakes(); spawnFlakes(); } });
+  // observe <html data-theme> changes
+  const mo = new MutationObserver(update);
+  mo.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
+  // also observe <body data-theme> just in case
+  const mo2 = new MutationObserver(update);
+  mo2.observe(document.body, { attributes:true, attributeFilter:['data-theme'] });
+
+  // if settings select exists, hook it too (non-invasive)
+  document.getElementById('themeSelect')?.addEventListener('change', ()=>setTimeout(update,0));
+
+  // initial
+  update();
+
+  // TODO(you): add a Settings toggle “Disable Pastell motion”
+  // If you like, we’ll wire this later to set localStorage.flag and short-circuit enable().
+})();
+</script>
 
 <script src="app.js" type="module"></script></body>
 </html>
+
