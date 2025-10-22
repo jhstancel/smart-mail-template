@@ -645,8 +645,8 @@ html[data-theme="pastell"] {
 
   /* subtle background gradient—very light */
   background:
-    radial-gradient(1200px 800px at 20% -10%, #ffd9e8 3%, transparent 60%),
-    radial-gradient(1200px 800px at 110% 10%, #d9ecff 6%, transparent 60%),
+    radial-gradient(1200px 800px at 20% -10%, #ffd9e8 24%, transparent 60%),
+    radial-gradient(1200px 800px at 110% 10%, #d9ecff 28%, transparent 60%),
     var(--bg);
 }
 
@@ -706,5 +706,183 @@ html[data-theme="pastell"] .panel {
   #petFlakes, .pet-flake{
     animation: none !important;
   }
+}
+
+
+/* ==== Pastell theme (kawaii, soft pastels + lots of white) ==== */
+html[data-theme="pastell"],
+body[data-theme="pastell"] {
+  --bg:#ffffff;
+  --glass:#ffffffcc;
+  --ink:#0f1320;
+  --muted:#6a7385;
+  --accent:#ff9ac8;       /* pink accent */
+  --accent-2:#8ecbff;     /* soft blue accent */
+  --ok:#37d391; --warn:#ffbe6a; --bad:#ff7b7b;
+
+  --panel-border: rgba(12,16,24,.06);
+  --card-bg1: rgba(255,170,205,.08);  /* faint pink wash */
+  --card-bg2: rgba(180,220,255,.06);  /* faint blue wash */
+  --card-border: rgba(12,16,24,.06);
+
+  --btn-grad1:#ff9ac8; --btn-grad2:#ffd9e8;
+  --shadow-1: 0 10px 20px rgba(255,154,200,.20);
+  --shadow-2: 0 16px 36px rgba(142,203,255,.25);
+
+  --focus-ring: rgba(255,154,200,.20);
+  --focus-border: rgba(255,154,200,.65);
+}
+
+/* gentle pastel background on body when Pastell is active */
+body[data-theme="pastell"] {
+  background:
+    radial-gradient(1200px 800px at 20% -10%, #ffd9e8 12%, transparent 60%),
+    radial-gradient(1200px 800px at 110% 10%, #d9ecff 14%, transparent 62%),
+    var(--bg);
+}
+
+/* ==== Falling pets layer ==== */
+#petFlakes{
+  position: fixed;
+  inset: 0;
+  z-index: 1;          /* above plain bg, below cards */
+  overflow: hidden;
+  display:none;        /* shown only when Pastell is active */
+  pointer-events: none; /* background; UI fully clickable */
+}
+
+.pet-flake{
+  position: absolute;
+  top: -40px;
+  will-change: top, transform, left, opacity;
+  animation: petFallTop var(--fall-dur, 60s) linear forwards,
+             petDriftX 6s ease-in-out infinite alternate;
+  user-select: none;
+  -webkit-user-drag: none;
+  image-rendering: auto;
+  opacity: 0.95;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+@keyframes petFallTop {
+  to { top: calc(100vh + 60px); }  /* start value = inline style */
+}
+@keyframes petDriftX {
+  from { transform: translateX(0) rotate(var(--rot, 0deg)); }
+  to   { transform: translateX(var(--drift, 10px)) rotate(var(--rot, 0deg)); }
+}
+
+/* click-to-pop */
+.pet-flake.pop{
+  animation: petPop .22s ease-out forwards;
+}
+/* pop animation */
+@keyframes petPop {
+  0%   { transform: scale(1); opacity: 0.95; }
+  60%  { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.7); opacity: 0; }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  #petFlakes, .pet-flake{
+    animation: none !important;
+  }
+}
+/* =======================================================
+   Pastell Theme — kawaii pink/blue + floating pets
+   ======================================================= */
+html[data-theme="pastell"],
+body[data-theme="pastell"] {
+  --bg: #fff;
+  --ink: #1a1a1a;
+  --accent: #ffb7e2;
+  --accent-2: #aee4ff;
+  background:
+    radial-gradient(1600px 900px at 10% -10%,  #ffd9e8 20%, transparent 60%),
+    radial-gradient(1600px 900px at 100% 20%, #d9ecff 25%, transparent 70%),
+    #ffffff;
+  color: var(--ink);
+}
+
+body[data-theme="pastell"] .panel {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(255,200,240,0.3);
+  box-shadow: 0 8px 24px rgba(255,170,210,0.25);
+}
+
+/* Floating pet flakes */
+#petFlakes {
+  position: fixed;
+  inset: 0;
+  z-index: 0; /* behind panels but above background */
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pet-flake {
+  position: absolute;
+  top: -40px;
+  opacity: 0.95;
+  user-select: none;
+  pointer-events: auto;
+  cursor: pointer;
+  will-change: top, transform;
+  animation: petFall var(--fall-dur, 60s) linear forwards,
+             petDrift 6s ease-in-out infinite alternate;
+}
+
+.pet-flake.pop {
+  animation: petPop .25s ease-out forwards;
+}
+
+@keyframes petFall {
+  to { top: calc(100vh + 50px); }
+}
+@keyframes petDrift {
+  from { transform: translateX(0) rotate(var(--rot,0deg)); }
+  to { transform: translateX(var(--drift,12px)) rotate(var(--rot,0deg)); }
+}
+@keyframes petPop {
+  0%   { transform: scale(1); opacity: .95; }
+  60%  { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(.6); opacity: 0; }
+}
+
+
+/* =======================================================
+   Pastell — visible drifting pets
+   ======================================================= */
+#petFlakes{
+  position:fixed;
+  inset:0;
+  z-index:0;
+  overflow:hidden;
+  display:none;
+  pointer-events:none;
+}
+
+.pet-flake{
+  position:absolute;
+  top:-40px;
+  opacity:.95;
+  user-select:none;
+  will-change:top,transform;
+  animation:petFallTop var(--fall-dur,60s) linear forwards,
+             petDriftX 6s ease-in-out infinite alternate;
+}
+
+.pet-flake.pop{ animation:petPop .22s ease-out forwards; }
+
+@keyframes petFallTop{ to{ top:calc(100vh + 60px); } }
+@keyframes petDriftX{
+  from{ transform:translateX(0) rotate(var(--rot,0deg)); }
+  to{ transform:translateX(var(--drift,12px)) rotate(var(--rot,0deg)); }
+}
+@keyframes petPop{
+  0%{ transform:scale(1); opacity:.95; }
+  60%{ transform:scale(1.25); opacity:1; }
+  100%{ transform:scale(.7); opacity:0; }
 }
 

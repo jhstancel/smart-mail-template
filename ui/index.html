@@ -121,7 +121,8 @@
 
 
 <!-- Pastell pets layer (background) -->
-<div id="petFlakes" aria-hidden="true"></div>
+<div id="petFlakes" aria-hidden="true"
+     style="position:fixed; inset:0; z-index:1; overflow:hidden; display:none; pointer-events:none;"></div>
 
 <!-- Cosmic visuals -->
 <canvas id="stars"></canvas>
@@ -256,165 +257,199 @@ quantity:string" rows="4"></textarea>
 
 
 <script>
-(()=> {
+(() => {
   const THEME = 'pastell';
-  const ROOT = document.documentElement; // <html>
-  const starsCanvas = document.getElementById('stars');
+  const ROOT  = document.documentElement;
+  const stars = document.getElementById('stars');
   const layer = document.getElementById('petFlakes');
 
-  // User assets: we’ll probe these and only use the ones that load
-  const candidates = [
-    ...Array.from({length:10},(_,i)=>`ui/img/pets/cat${i?i:''}.png`),
-    ...Array.from({length:10},(_,i)=>`ui/img/pets/dog${i?i:''}.png`),
-
-    // also support spaced names if user uploaded "dog 1.png"
-    ...Array.from({length:10},(_,i)=>`ui/img/pets/dog${i?(' '+i):''}.png`),
-    ...Array.from({length:10},(_,i)=>`ui/img/pets/cat${i?(' '+i):''}.png`),
+  // Build candidate pet image URLs
+  const exts  = ['png','jpg','jpeg','webp'];
+  const names = [
+    ...Array.from({length:10}, (_,i)=>`cat${i?i:''}`),     // cat, cat1..cat9
+    ...Array.from({length:10}, (_,i)=>`dog${i?i:''}`),     // dog, dog1..dog9
+    ...Array.from({length:10}, (_,i)=>`cat${i?(' '+i):''}`), // cat 1..cat 9
+    ...Array.from({length:10}, (_,i)=>`dog${i?(' '+i):''}`)  // dog 1..dog 9
   ];
+  const prefix = location.pathname.startsWith('/ui/') ? '/ui/' : '/';
+  const candidates = [];
+  for (const n of names) for (const ext of exts) candidates.push(`${prefix}pets/${n}.${ext}`);
 
   let enabled = false;
-  let flakes = [];
+  let flakes  = [];
   let liveImages = [];
-  let motionPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   function themeIsPastell(){
-    // your app sets a data-theme on <html> or <body>. We accept both.
     const tHtml = ROOT.getAttribute('data-theme');
     const tBody = document.body.getAttribute('data-theme');
-    return (tHtml === THEME || tBody === THEME);
+    return tHtml === THEME || tBody === THEME;
   }
+
+  function inches2(){ return (innerWidth/96) * (innerHeight/96); }
+  function decideCount(){ return Math.max(40, Math.min(Math.round(inches2()*4), 350)); }
+  const pick = arr => arr[(Math.random()*arr.length)|0];
 
   async function loadImages(){
-    const loads = await Promise.allSettled(candidates.map(src => new Promise((res,rej)=>{
-      const im = new Image();
-      im.onload = ()=>res(src);
-      im.onerror = ()=>rej(src);
-      im.src = src;
-    })));
-    return loads.filter(x=>x.status==='fulfilled').map(x=>x.value);
+    const loads = await Promise.allSettled(
+      candidates.map(src => new Promise((res, rej)=>{
+        const im = new Image();
+        im.onload = () => res(src);
+        im.onerror = () => rej(src);
+        im.src = src;
+      }))
+    );
+    const ok = loads.filter(x=>x.status==='fulfilled').map(x=>x.value);
+    if (!ok.length) console.warn('[Pastell] No pet images found under', prefix+'pets/');
+    return ok;
   }
 
-  function inches2(){
-    // CSS px are ~96 per inch; use CSS pixel size (not device pixels)
-    const w = window.innerWidth, h = window.innerHeight;
-    return (w/96)*(h/96);
-  }
-
-  function decideCount(){
-    // target ~4 flakes per in²; cap to avoid overload
-    const base = Math.round(inches2() * 4);
-    return Math.max(40, Math.min(base, 350));
-  }
-
-  function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
+  function clearFlakes(){ flakes.forEach(f => f.remove()); flakes = []; }
 
   function spawnFlakes(){
+    clearFlakes();
     const count = decideCount();
-    // distribute X positions with minimum spacing to reduce clumping
-    const width = window.innerWidth;
-    const minGap = 28; // px
     const xs = [];
-    for(let i=0;i<count;i++){
-      let tries = 0;
-      let x;
-      do {
-        x = Math.random()*width;
-        tries++;
-      } while (tries<40 && xs.some(prev => Math.abs(prev - x) < minGap));
+    const minGap = 28;
+    for (let i=0; i<count; i++){
+      let x, tries=0;
+      do { x = Math.random()*innerWidth; tries++; }
+      while (tries<40 && xs.some(p => Math.abs(p-x) < minGap));
       xs.push(x);
     }
 
-    // sizes ~ emoji: 18–26px
     const sizeMin = 18, sizeMax = 26;
+    xs.forEach(x => {
+      const img = document.createElement('img');
+      img.className = 'pet-flake';
+      img.src = pick(liveImages);
+      img.style.position = 'absolute';
+      img.style.pointerEvents = 'auto';              // clickable
+      img.style.width = (sizeMin + Math.random()*(sizeMax-sizeMin)).toFixed(0) + 'px';
+      img.style.left  = x + 'px';
+      img.style.top   = (-40 - Math.random()*200) + 'px';
 
-    xs.forEach((x,idx)=>{
-      const el = document.createElement('img');
-      el.className = 'pet-flake';
-      el.src = pick(liveImages);
-      const size = Math.round(sizeMin + Math.random()*(sizeMax-sizeMin));
-      el.style.width = size+'px';
-      el.style.height = 'auto';
-      el.style.left = x+'px';
-      el.style.top = (-40 - Math.random()*200)+'px'; // start above viewport
-      el.style.transform = `rotate(${(Math.random()*24-12).toFixed(1)}deg)`;
-      // random duration ~ 55–65s
-      el.style.setProperty('--fall-dur', (55 + Math.random()*10).toFixed(1)+'s');
-      // small random horizontal drift amplitude (px)
-      el.style.setProperty('--drift', (Math.random()<0.5? -1:1) * (6 + Math.random()*8) + 'px');
+      // random static tilt + horizontal drift amplitude + fall duration
+      img.style.setProperty('--rot',   (Math.random()*24-12).toFixed(1)+'deg');
+      img.style.setProperty('--drift', ((Math.random()<0.5?-1:1)*(6+Math.random()*8)).toFixed(1)+'px');
+      img.style.setProperty('--fall-dur', (55 + Math.random()*10).toFixed(1)+'s');
 
-      // click-to-pop
-      el.addEventListener('click', (e)=>{
+      img.addEventListener('click', e => {
         e.stopPropagation();
-        el.classList.add('pop');
-        el.addEventListener('animationend', ()=> el.remove(), {once:true});
+        img.classList.add('pop');      // triggers petPop
+        img.addEventListener('animationend', ()=> img.remove(), {once:true});
       });
 
-      layer.appendChild(el);
-      flakes.push(el);
+      layer.appendChild(img);
+      flakes.push(img);
     });
   }
 
-  function clearFlakes(){
-    flakes.forEach(f => f.remove());
-    flakes = [];
-  }
-
   async function enable(){
-    if(enabled) return;
-    if(motionPrefersReduced){ disable(); return; }
+    if (enabled || prefersReduced) return disable();
     enabled = true;
+    if (stars) stars.style.display = 'none';
+    layer.style.display = 'block';     // parent has pointer-events:none in markup
+    layer.style.zIndex  = '0';
 
-    // hide starfield canvas
-    if(starsCanvas) starsCanvas.style.display = 'none';
-    layer.style.display = 'block';
-
-    // load user images once
-    if(!liveImages.length){
+    if (!liveImages.length){
       liveImages = await loadImages();
-      if(!liveImages.length){
-        // nothing loaded – bail out gracefully
-        console.warn('[Pastell] No pet images found in ui/img/pets/');
-        disable();
-        return;
-      }
+      if (!liveImages.length){ disable(); return; }
     }
     spawnFlakes();
   }
 
   function disable(){
-    if(!enabled) return;
+    if (!enabled) return;
     enabled = false;
     clearFlakes();
-    // show cosmic stars again if that theme needs it
-    if(starsCanvas) starsCanvas.style.display = '';
+    if (stars) stars.style.display = ''; // restore starfield if needed
     layer.style.display = 'none';
   }
 
-  // react to theme changes
   function update(){
-    if(themeIsPastell()) enable(); else disable();
+    if (themeIsPastell()) enable(); else disable();
   }
 
-  // Startup
-  window.addEventListener('resize', ()=> { if(enabled){ clearFlakes(); spawnFlakes(); } });
-  // observe <html data-theme> changes
-  const mo = new MutationObserver(update);
-  mo.observe(document.documentElement, { attributes:true, attributeFilter:['data-theme'] });
-  // also observe <body data-theme> just in case
+  // React to theme changes on <html> or <body>
+  const mo1 = new MutationObserver(update);
+  mo1.observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
   const mo2 = new MutationObserver(update);
-  mo2.observe(document.body, { attributes:true, attributeFilter:['data-theme'] });
+  mo2.observe(document.body, {attributes:true, attributeFilter:['data-theme']});
 
-  // if settings select exists, hook it too (non-invasive)
-  document.getElementById('themeSelect')?.addEventListener('change', ()=>setTimeout(update,0));
+  // Reflect dropdown instantly
+  document.getElementById('themeSelect')?.addEventListener('change', e=>{
+    const v = e.target.value;
+    document.documentElement.setAttribute('data-theme', v);
+    document.body.setAttribute('data-theme', v);
+    update();
+  });
 
-  // initial
+  // Resize → re-seed columns
+  addEventListener('resize', () => { if (enabled){ clearFlakes(); spawnFlakes(); } });
+
+  // Boot
   update();
-
-  // TODO(you): add a Settings toggle “Disable Pastell motion”
-  // If you like, we’ll wire this later to set localStorage.flag and short-circuit enable().
 })();
 </script>
 
 <script src="app.js" type="module"></script></body>
 </html>
+/* === Pastell theme (kawaii pastel core) === */
+html[data-theme="pastell"], body[data-theme="pastell"] {
+  --bg: #fff;                  /* lots of white per your note */
+  --panel: rgba(255,255,255,0.78);
+  --ink: #2a2a2a;
+  --accent: #ffb8d2;           /* light pink */
+  --accent2: #b7dcff;          /* light blue */
+  --muted: #7d8aa0;
+
+  background:
+    radial-gradient(1200px 800px at 10% -10%, #ffe6f1 0%, transparent 60%),
+    radial-gradient(1200px 800px at 110% 10%, #e6f2ff 0%, transparent 60%),
+    var(--bg);
+  color: var(--ink);
+}
+
+html[data-theme="pastell"] .panel,
+body[data-theme="pastell"] .panel {
+  background: var(--panel);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(183,220,255,0.45);
+  box-shadow: 0 8px 30px rgba(255,184,210,0.18);
+}
+
+html[data-theme="pastell"] .title { color: #3a3a3a; }
+html[data-theme="pastell"] .btn { border-color: var(--accent2); }
+html[data-theme="pastell"] .pill { background: linear-gradient(90deg, var(--accent), var(--accent2)); color:#333; }
+
+/* === Pastell pets layer === */
+#petFlakes { pointer-events: none; } /* children enable events themselves */
+.pet-flake {
+  will-change: top, transform;
+  transform: translateX(0) rotate(var(--rot, 0deg));
+  animation:
+    petFall var(--fall-dur, 60s) linear forwards,
+    petDriftX 6s ease-in-out infinite alternate;
+  user-select: none;
+}
+
+/* Click "pop" */
+.pet-flake.pop {
+  animation: petPop .22s ease-out forwards;
+}
+
+/* Keyframes */
+@keyframes petFall {
+  to { top: calc(100vh + 160px); }
+}
+@keyframes petDriftX {
+  from { transform: translateX(0) rotate(var(--rot, 0deg)); }
+  to   { transform: translateX(var(--drift, 12px)) rotate(var(--rot, 0deg)); }
+}
+@keyframes petPop {
+  0%   { transform: scale(1)   rotate(var(--rot, 0deg)); opacity: 1; }
+  60%  { transform: scale(1.18) rotate(var(--rot, 0deg)); opacity: .9; }
+  100% { transform: scale(0.6) rotate(var(--rot, 0deg)); opacity: 0; }
+}
 
