@@ -569,6 +569,34 @@ async function loadIntents(){
     intentGrid.innerHTML = '';
   }
 }
+// Robust event delegation for My Templates list (works after list rebuilds)
+(function wireUserTplListDelegation(){
+  const list = document.getElementById('userTplList');
+  if (!list) return;
+  list.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-ut-action]');
+    if(!btn) return;
+
+    e.preventDefault(); e.stopPropagation();
+    const action = btn.getAttribute('data-ut-action');
+    const id = btn.getAttribute('data-ut-id');
+    const all = (typeof loadUserTemplates === 'function' ? loadUserTemplates() : []) || [];
+    const tpl = all.find(t => t.id === id);
+
+    if(action === 'edit' && typeof openEditor === 'function'){
+      openEditor('edit', tpl);
+      return;
+    }
+    if(action === 'dup' && typeof openEditor === 'function'){
+      openEditor('dup', tpl);
+      return;
+    }
+    if(action === 'delete' && typeof deleteTemplate === 'function'){
+      deleteTemplate(id);
+      return;
+    }
+  });
+})();
 
 
 // === Order Request: Parts editor (Part Number + Quantity with inline +/–) ===
@@ -772,6 +800,34 @@ function collectFields(intent){
     }catch(_){}
   }
   return fields;
+}
+function selectIntentById(intentId){
+  try{
+    // Allow schema-backed AND local (u:...) intents
+    const inSchema = !!(window.SCHEMA && window.SCHEMA[intentId]);
+    const isLocal  = String(intentId || '').startsWith('u:');
+    const existsInIntents = (Array.isArray(window.INTENTS) && window.INTENTS.some(x => x.name === intentId));
+    if(!(inSchema || isLocal || existsInIntents)) return;
+
+    // mark active card if present
+    document.querySelectorAll('[data-intent]').forEach(el=>{
+      el.classList.toggle('active', el.getAttribute('data-intent') === intentId);
+    });
+
+    // set current and render fields (renderFields already handles u:*)
+    window.CURRENT_INTENT = intentId;
+    if (typeof renderFields === 'function') renderFields(intentId);
+
+    // update header (use schema label when present; fall back to INTENTS)
+    const spec = (window.SCHEMA && window.SCHEMA[intentId]) || {};
+    const meta = (Array.isArray(window.INTENTS) && window.INTENTS.find(x => x.name === intentId)) || {};
+    const title = document.getElementById('fieldsTitle');
+    const hint  = document.getElementById('fieldsHint');
+    if (title) title.textContent = (spec.label || meta.label) ? `${(spec.label || meta.label)} — Fields` : 'Fields';
+    if (hint)  hint.textContent  = spec.description || meta.description || '';
+  }catch(e){
+    console.debug('selectIntentById error', e);
+  }
 }
 
 async function doGenerate(){
@@ -1421,6 +1477,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // === Wire events for new / edit / duplicate actions ===
+document.addEventListener('userTpl:edit', (e) => openEditor('edit', e.detail?.template || null));
 document.addEventListener('userTpl:dup',  (e) => openEditor('dup',  e.detail?.template || null));
 
 function collectEditor(){
@@ -2233,9 +2290,7 @@ function onSave(e){
   e.preventDefault(); e.stopPropagation();
   const def = collectEditor();
   if(!def){
-    // stay open, highlight the two culprits in-place
     alert('Please fill out required fields (ID and Label).');
-    // highlight the actual ute_* fields
     ['ute_id','ute_label'].forEach(id=>{
       const el = form.querySelector('#' + id);
       if(el){
@@ -2244,7 +2299,7 @@ function onSave(e){
         setTimeout(()=>{ el.style.boxShadow=''; el.style.borderColor=''; }, 1200);
       }
     });
-    return; // **do not close dialog**
+    return; // keep dialog open on validation fail
   }
   try{
     if(typeof upsertTemplate === 'function') upsertTemplate(def);
@@ -2257,8 +2312,19 @@ function onSave(e){
     alert('Could not save template. See console for details.');
     return; // keep editor open on failure
   }
-  // success → close and reopen settings
-  closeAndReopen();
+
+  // === New: immediately activate the saved template ===
+  try {
+    selectIntentById(def.id);                            // show its fields
+    // close dialog + settings so user sees the main composer
+    dlg.close?.();
+    const settingsMenu = document.getElementById('settingsMenu');
+    settingsMenu?.classList.remove('open');
+    document.getElementById('settingsBtn')?.setAttribute('aria-expanded','false');
+    document.getElementById('fieldsTitle')?.scrollIntoView({behavior:'smooth', block:'start'});
+  } catch(e) {
+    console.debug('post-save activation failed', e);
+  }
 }
 
   // Cancel handler (no validation)
