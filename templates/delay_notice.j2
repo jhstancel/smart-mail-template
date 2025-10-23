@@ -1,7 +1,7 @@
+{% import "_tone_macros.j2" as tonefx %}
+{# tone optional; defaults to 'neutral' #}
 Subject: Schedule Update – PO {{ poNumber }} / {{ partNumber }}
-
-Hi {{ customerName }},
-
+{{ tonefx.greeting(tone, customerName) }}
 I want to share a quick schedule update for PO {{ poNumber }} ({{ partNumber }}). 
 Due to {{ reason }}, the ship date has shifted:
 

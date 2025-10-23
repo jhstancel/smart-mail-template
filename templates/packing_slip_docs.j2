@@ -1,7 +1,7 @@
+{% import "_tone_macros.j2" as tonefx %}
+{# tone optional; defaults to 'neutral' #}
 Subject: Documents for PO {{ poNumber }}
-
-Hi {{ customerName }},
-
+{{ tonefx.greeting(tone, customerName) }}
 Attached/linked are the documents for PO {{ poNumber }}:
 {{ docsList }}
 

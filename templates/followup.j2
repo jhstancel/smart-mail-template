@@ -1,7 +1,7 @@
+{% import "_tone_macros.j2" as tonefx %}
+{# tone optional; defaults to 'neutral' #}
 Subject: Follow-up – {{ context }}
-
-Hi {{ customerName }},
-
+{{ tonefx.greeting(tone, customerName) }}
 I’m checking in on {{ context }}. {{ ask }}
 
 If there’s an update or a different timeline that works better for you, I’m happy to adjust—just let me know.

@@ -1,7 +1,7 @@
+{% import "_tone_macros.j2" as tonefx %}
+{# tone optional; defaults to 'neutral' #}
 Subject: Follow-Up on Invoice {{ invoiceNumber }} / PO {{ poNumber }} — Due {{ dueDate }}
-
-Hi {{ recipientName }},
-
+{{ tonefx.greeting(tone, recipientName) }}
 Just a quick follow-up regarding Invoice {{ invoiceNumber }} for PO {{ poNumber }}, due on {{ dueDate }}.
 
 I've attached the invoice and packing slip for reference.

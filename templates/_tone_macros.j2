@@ -8,6 +8,11 @@
 {%- if t == 'polite' -%}Could you please share{% elif t == 'formal' -%}Please provide{% else -%}Please share{% endif -%}
 {%- endmacro %}
 
+{% macro notice_intro(tone) -%}
+{%- set t = tone or 'neutral' -%}
+{%- if t == 'polite' -%}We wanted to let you know{% elif t == 'formal' -%}Please be advised{% else -%}Just a heads up{% endif -%}
+{%- endmacro %}
+
 {% macro close(tone, sender) -%}
 {%- set t = tone or 'neutral' -%}
 {%- if t == 'polite' -%}Kind regards,{% elif t == 'formal' -%}Sincerely,{% else -%}Best,{% endif %}

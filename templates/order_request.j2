@@ -1,7 +1,7 @@
+{% import "_tone_macros.j2" as tonefx %}
+{# tone optional; defaults to 'neutral' #}
 Subject: Order Request
-
-Hi {{ recipientName }},
-
+{{ tonefx.greeting(tone, recipientName) }}
 Can you please process the following order for me and let me know when it will ship?
 
 {% for p in parts if p.partNumber and p.quantity %}

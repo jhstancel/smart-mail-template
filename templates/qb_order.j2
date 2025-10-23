@@ -1,5 +1,6 @@
-Hello {{ recipientName }},
-
+{% import "_tone_macros.j2" as tonefx %}
+{# tone optional; defaults to 'neutral' #}
+{{ tonefx.greeting(tone, recipientName) }}
 I hope you are doing well!  
 Can you please process the following order and advise when it will ship?  
 
