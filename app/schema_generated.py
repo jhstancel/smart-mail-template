@@ -479,6 +479,26 @@ SCHEMA_GENERATED = {
         {
           "label": "USPS",
           "value": "USPS"
+        },
+        {
+          "label": "Maersk",
+          "value": "Maersk"
+        },
+        {
+          "label": "MSC",
+          "value": "MSC"
+        },
+        {
+          "label": "CMA CGM",
+          "value": "CMA CGM"
+        },
+        {
+          "label": "Hapag-Lloyd",
+          "value": "Hapag-Lloyd"
+        },
+        {
+          "label": "Other (Specify)",
+          "value": "Other (Specify)"
         }
       ],
       "tone": [

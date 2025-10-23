@@ -15,7 +15,7 @@ fieldTypes:
   notes: longtext
 
 enums:
-  carrier: [UPS, FedEx, DHL, USPS]
+  carrier: [UPS, FedEx, DHL, USPS, Maersk, MSC, CMA CGM, Hapag-Lloyd, Other (Specify)]
 
 hints:
   poNumber: e.g., PO-4815
