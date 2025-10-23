@@ -497,8 +497,8 @@ SCHEMA_GENERATED = {
           "value": "Hapag-Lloyd"
         },
         {
-          "label": "Other (Specify)",
-          "value": "Other (Specify)"
+          "label": "other",
+          "value": "other"
         }
       ],
       "tone": [

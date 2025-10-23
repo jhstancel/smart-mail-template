@@ -378,51 +378,7 @@ function formatDateForOutput(yyyy_mm_dd){
   const nowY = new Date().getFullYear();
   return (y === nowY) ? `${mm}/${dd}` : `${mm}/${dd}/${y}`;
 }
-// --- Other (Specify) enhancer for enum selects (carrier, etc.) ---
-function enableOtherSpecify() {
-  // Find any <select> that includes an option literally named "Other (Specify)"
-  document.querySelectorAll('select').forEach((sel) => {
-    const hasOther = Array.from(sel.options).some(o => o.text.trim().toLowerCase() === 'other (specify)');
-    if (!hasOther) return;
 
-    // Insert a text input right after the select; name is <fieldName>Other
-    const name = sel.name || sel.id || 'field';
-    const otherName = name.endsWith('Other') ? name : `${name}Other`;
-
-    // Avoid duplicating if already present
-    const existing = sel.parentElement.querySelector(`input[name="${otherName}"]`);
-    if (existing) return;
-
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.name = otherName;
-    input.placeholder = 'Enter carrier name...';
-    input.className = 'input other-specify';
-    input.style.marginTop = '6px';
-    input.style.display = 'none'; // hidden until Other is chosen
-
-    sel.insertAdjacentElement('afterend', input);
-
-    function updateVisibility() {
-      const v = (sel.value || '').trim().toLowerCase();
-      const isOther = v === 'other (specify)';
-      input.style.display = isOther ? '' : 'none';
-      // If Other selected, make the input required; otherwise clear + relax
-      input.required = isOther;
-      if (!isOther) {
-        input.value = '';
-      }
-    }
-
-    sel.addEventListener('change', updateVisibility);
-    // Initialize on load in case the field has a preselected value
-    updateVisibility();
-  });
-}
-
-// Call this after your form is rendered from schema
-// e.g., in your render pipeline right after injecting fields:
-enableOtherSpecify();
 
 /* =========================================================================================
  * Field rendering
@@ -439,9 +395,7 @@ function renderFields(intent){
   if (intent.startsWith('u:')) {
     if(fieldsHint) fieldsHint.textContent = '';
     const def = loadUserTemplates().find(t => t.id === intent);
-    if(!def){
-      return;
-    }
+    if(!def){ return; }
 
     const required = (def.fields || []).filter(f => f.required).map(f => f.name);
     const optional = (def.fields || []).filter(f => !f.required).map(f => f.name);
@@ -481,12 +435,12 @@ function renderFields(intent){
       fieldsWrap.appendChild(wrap);
     }
 
-    const first = fieldsWrap.querySelector('input:not([type="hidden"]), select, textarea');
-    if (first) first.focus();
+    const firstLocal = fieldsWrap.querySelector('input:not([type="hidden"]), select, textarea');
+    if (firstLocal) firstLocal.focus();
     return; // ✅ handled local template path
   }
 
-  // --- Server templates (schema-backed) as before
+  // --- Server templates (schema-backed) ---
   if(!SCHEMA || !SCHEMA[intent]){
     if(fieldsHint) fieldsHint.textContent = '';
     return;
@@ -501,61 +455,107 @@ function renderFields(intent){
 
   if(fieldsHint) fieldsHint.textContent = '';
 
-  for(const key of allKeys){
+  // Recognize “other” options robustly
+  function looksLikeOther(opt){
+    const val = String(opt?.value ?? opt ?? '').toLowerCase().trim();
+    const txt = String(opt?.label ?? opt ?? '')
+      .toLowerCase()
+      .replace(/[–—]/g,'-')
+      .replace(/\s*\(.*?\)\s*/g,'') // drop “(Specify)”
+      .trim();
+    return val === 'other' || txt === 'other' || /^other\b/.test(txt);
+  }
+
+  // Collect "*Other" deferrals for post-wiring
+  const deferredOthers = {};  // { baseKey: { wrap, ctrl, key } }
+
+  for (const key of allKeys) {
+    // Row container + label
     const wrap  = document.createElement('div');
     wrap.className = 'kv';
 
     const label = document.createElement('label');
     label.htmlFor = `f_${key}`;
     label.textContent = toTitle(key);
-
     wrap.appendChild(label);
 
-    // Special case for 'parts'
-    if (key === 'parts') {
-      const host = document.createElement('div');
-      host.id = 'partsCardBody';
-      wrap.appendChild(host);
+    // Detect "*Other" companions: e.g., carrierOther -> baseKey "carrier"
+    const otherMatch = key.match(/^(.*?)(?:Other|_other)$/);
+    const baseKey    = otherMatch && otherMatch[1];
+
+    const baseHasOther = baseKey &&
+      Array.isArray(enums?.[baseKey]) &&
+      enums[baseKey].some(looksLikeOther);
+
+    // If this is a "*Other" field, render hidden and defer wiring
+    if (baseKey && (baseHasOther || otherMatch)) {
+      const t = String(types[key] || '').toLowerCase();
+      let ctrl;
+      if (t === 'longtext')      { ctrl = document.createElement('textarea'); ctrl.rows = 4; }
+      else if (t === 'date')     { ctrl = document.createElement('input'); ctrl.type = 'date'; }
+      else                       { ctrl = document.createElement('input'); ctrl.type = 'text'; }
+      ctrl.id = `f_${key}`;
+      ctrl.className = 'input';
+
+      wrap.style.display = 'none';
+      wrap.appendChild(ctrl);
+
+      // Mount now for stable DOM order
       fieldsWrap.appendChild(wrap);
-      // mount the new inline editor (Part Number + Quantity with +/– controls)
-      initOrderRequestPartsEditor(host);
+      deferredOthers[baseKey] = { wrap, ctrl, key };
       continue;
     }
 
-// Handle enum dropdowns dynamically (supports {label,value} and labels map fallback)
-if (enums[key] && Array.isArray(enums[key]) && enums[key].length > 0) {
-  const select = document.createElement('select');
-  select.id = `f_${key}`;
-  select.className = 'input';
+    // Render enums as <select>
+    if (Array.isArray(enums?.[key]) && enums[key].length > 0) {
+      const select = document.createElement('select');
+      select.id = `f_${key}`;
+      select.className = 'input';
 
-  // labels map fallback from hints (e.g., hints.fedexAccountLabels)
-  const labelsMap =
-    (spec.hints && typeof spec.hints === 'object'
-      && spec.hints[`${key}Labels`]) || {};
+      // Optional label map support (kept backwards-compatible)
+      const labelsMap = (spec.hints && typeof spec.hints === 'object' && spec.hints[`${key}Labels`]) || {};
 
-  enums[key].forEach(opt => {
-    const o = document.createElement('option');
+      for (const opt of enums[key]) {
+        const o = document.createElement('option');
+        if (opt && typeof opt === 'object' && 'value' in opt) {
+          o.value = String(opt.value);
+          o.textContent = String(opt.label || opt.value);
+        } else {
+          const val = String(opt);
+          o.value = val;
+          o.textContent = labelsMap[val] ? String(labelsMap[val]) : val;
+        }
+        select.appendChild(o);
+      }
 
-    // Case 1: generator already emits objects
-    if (opt && typeof opt === 'object' && 'value' in opt) {
-      o.value = String(opt.value);
-      o.textContent = String(opt.label || opt.value);
-    } else {
-      // Case 2: enums are plain strings; use labelsMap if present
-      const val = String(opt);
-      o.value = val;
-      o.textContent = labelsMap[val] ? String(labelsMap[val]) : val;
+      wrap.appendChild(select);
+      fieldsWrap.appendChild(wrap);
+
+      // If this select has a deferred "*Other" companion, wire it now
+      const obj = deferredOthers[key];
+      if (obj) {
+        function syncOther() {
+          const sel = select.options[select.selectedIndex];
+          const rawVal = String(sel?.value || '');
+          const rawTxt = String(sel?.text  || '');
+          const val = rawVal.toLowerCase().trim();
+          const normTxt = rawTxt.toLowerCase()
+            .replace(/[–—]/g,'-')
+            .replace(/\s*\(.*?\)\s*/g,'')
+            .trim();
+          const show = (val === 'other') || (normTxt === 'other') || /^other\b/.test(normTxt);
+          obj.wrap.style.display = show ? '' : 'none';
+          obj.ctrl.required = show;
+          if (!show) obj.ctrl.value = '';
+        }
+        select.addEventListener('change', syncOther);
+        syncOther(); // initialize once
+      }
+
+      continue;
     }
 
-    select.appendChild(o);
-  });
-
-  wrap.appendChild(select);
-  fieldsWrap.appendChild(wrap);
-  continue;
-}
-
-    // Normal input handling
+    // Normal inputs
     const t = String(types[key] || '').toLowerCase();
     if (t === 'date') {
       const input = document.createElement('input');
@@ -563,7 +563,7 @@ if (enums[key] && Array.isArray(enums[key]) && enums[key].length > 0) {
       input.id = `f_${key}`;
       input.className = 'input';
       wrap.appendChild(input);
-    } else if (t === 'longtext') {
+    } else if (t === 'longtext' || t === 'text' || t === 'textarea') {
       const ta = document.createElement('textarea');
       ta.id = `f_${key}`;
       ta.rows = 4;
@@ -578,6 +578,36 @@ if (enums[key] && Array.isArray(enums[key]) && enums[key].length > 0) {
     }
 
     fieldsWrap.appendChild(wrap);
+  }
+
+  // Post-render: ensure all deferred "*Other" companions are wired,
+  // even if base selects were rendered before their companions
+  for (const [baseKey, obj] of Object.entries(deferredOthers || {})) {
+    const select = document.getElementById(`f_${baseKey}`);
+    if (!select || !obj?.wrap || !obj?.ctrl) continue;
+    if (select.dataset.otherWired === '1') continue; // avoid double-binding
+
+    function isOtherSelected(selEl){
+      const opt = selEl.options[selEl.selectedIndex];
+      const val = String(opt?.value || '').toLowerCase().trim();
+      const txt = String(opt?.text  || '')
+        .toLowerCase()
+        .replace(/[–—]/g,'-')
+        .replace(/\s*\(.*?\)\s*/g,'')
+        .trim();
+      return val === 'other' || txt === 'other' || /^other\b/.test(txt);
+    }
+
+    function syncOther(){
+      const show = isOtherSelected(select);
+      obj.wrap.style.display = show ? '' : 'none';
+      obj.ctrl.required = show;
+      if (!show) obj.ctrl.value = '';
+    }
+
+    select.addEventListener('change', syncOther);
+    select.dataset.otherWired = '1';
+    syncOther();
   }
 
   // Prefill shipAddress if global default exists
@@ -946,7 +976,19 @@ document.addEventListener('DOMContentLoaded', () => {
 function listMissing(intentName, fieldsObj){
   const found = INTENTS.find(i => i.name === intentName);
   const req = found && Array.isArray(found.required) ? found.required : [];
+
   return req.filter(k => {
+    // If this is an "*Other" field, only require it when the base select is 'other'
+    const m = k.match(/^(.*)Other$/);
+    if (m) {
+      const base = m[1];
+      const baseVal = String(fieldsObj[base] ?? '').toLowerCase().trim();
+      const baseTxt = String(fieldsObj[base + 'Label'] ?? '').toLowerCase().trim();
+      const baseTxtNorm = baseTxt.replace(/\s*\(.*?\)\s*/g,'').trim();
+      const baseIsOther = (baseVal === 'other') || (baseTxtNorm === 'other');
+      if (!baseIsOther) return false; // not missing if base isn't Other
+    }
+
     const v = fieldsObj[k];
     if (Array.isArray(v)) return v.length === 0;
     if (v && typeof v === 'object') return Object.keys(v).length === 0;
@@ -2545,4 +2587,3 @@ function onSave(e){
   if(btnSave)   btnSave.addEventListener('click', onSave,   { once:false });
   if(btnCancel) btnCancel.addEventListener('click', onCancel,{ once:false });
 })();
-

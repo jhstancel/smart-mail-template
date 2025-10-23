@@ -140,7 +140,11 @@ AUTODETECT_GENERATED = {
       "tracking number",
       "1Z",
       "FedEx",
-      "UPS"
+      "UPS",
+      "Maersk",
+      "MSC",
+      "CMA CGM",
+      "Hapag-Lloyd"
     ]
   },
   "tax_exemption": {
