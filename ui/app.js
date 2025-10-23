@@ -378,6 +378,51 @@ function formatDateForOutput(yyyy_mm_dd){
   const nowY = new Date().getFullYear();
   return (y === nowY) ? `${mm}/${dd}` : `${mm}/${dd}/${y}`;
 }
+// --- Other (Specify) enhancer for enum selects (carrier, etc.) ---
+function enableOtherSpecify() {
+  // Find any <select> that includes an option literally named "Other (Specify)"
+  document.querySelectorAll('select').forEach((sel) => {
+    const hasOther = Array.from(sel.options).some(o => o.text.trim().toLowerCase() === 'other (specify)');
+    if (!hasOther) return;
+
+    // Insert a text input right after the select; name is <fieldName>Other
+    const name = sel.name || sel.id || 'field';
+    const otherName = name.endsWith('Other') ? name : `${name}Other`;
+
+    // Avoid duplicating if already present
+    const existing = sel.parentElement.querySelector(`input[name="${otherName}"]`);
+    if (existing) return;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = otherName;
+    input.placeholder = 'Enter carrier name...';
+    input.className = 'input other-specify';
+    input.style.marginTop = '6px';
+    input.style.display = 'none'; // hidden until Other is chosen
+
+    sel.insertAdjacentElement('afterend', input);
+
+    function updateVisibility() {
+      const v = (sel.value || '').trim().toLowerCase();
+      const isOther = v === 'other (specify)';
+      input.style.display = isOther ? '' : 'none';
+      // If Other selected, make the input required; otherwise clear + relax
+      input.required = isOther;
+      if (!isOther) {
+        input.value = '';
+      }
+    }
+
+    sel.addEventListener('change', updateVisibility);
+    // Initialize on load in case the field has a preselected value
+    updateVisibility();
+  });
+}
+
+// Call this after your form is rendered from schema
+// e.g., in your render pipeline right after injecting fields:
+enableOtherSpecify();
 
 /* =========================================================================================
  * Field rendering

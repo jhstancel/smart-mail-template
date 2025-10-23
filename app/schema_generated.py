@@ -518,6 +518,7 @@ SCHEMA_GENERATED = {
     },
     "fieldTypes": {
       "carrier": "enum",
+      "carrierOther": "string",
       "customerName": "string",
       "items": "longtext",
       "notes": "longtext",
@@ -527,7 +528,8 @@ SCHEMA_GENERATED = {
       "trackingNumber": "string"
     },
     "hints": {
-      "carrier": "Choose from UPS, FedEx, DHL, USPS",
+      "carrier": "Choose a listed carrier or 'Other (Specify)'",
+      "carrierOther": "If 'Other (Specify)', enter the carrier name here",
       "customerName": "e.g., John Smith",
       "items": "Optional \u2013 brief list or summary of shipped parts",
       "notes": "Optional internal comments or context",
@@ -537,6 +539,8 @@ SCHEMA_GENERATED = {
     },
     "label": "Shipment Update",
     "optional": [
+      "carrierOther",
+      "notes",
       "tone"
     ],
     "required": [

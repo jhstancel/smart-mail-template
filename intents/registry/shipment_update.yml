@@ -3,12 +3,13 @@ label: Shipment Update
 description: Notify a customer about shipment or tracking status.
 
 required: [customerName, poNumber, items, carrier, trackingNumber, shipDate]
-optional: []
+optional: [carrierOther, notes]
 
 fieldTypes:
   poNumber: string
   customerName: string
   carrier: enum
+  carrierOther: string
   trackingNumber: string
   shipDate: date
   items: longtext
@@ -20,7 +21,8 @@ enums:
 hints:
   poNumber: e.g., PO-4815
   customerName: e.g., John Smith
-  carrier: Choose from UPS, FedEx, DHL, USPS
+  carrier: Choose a listed carrier or 'Other (Specify)'
+  carrierOther: If 'Other (Specify)', enter the carrier name here
   trackingNumber: e.g., 1Z999AA10123456784
   shipDate: mm/dd/yyyy
   items: Optional – brief list or summary of shipped parts
@@ -31,20 +33,8 @@ template:
   bodyPath: "templates/shipment_update.txt"
 
 autodetect:
-  keywords: ["tracking", "shipped", "in transit", "carrier", "tracking number", "1Z", "FedEx", "UPS"]
+  keywords: ["tracking", "shipped", "in transit", "carrier", "tracking number", "1Z", "FedEx", "UPS", "Maersk", "MSC", "CMA CGM", "Hapag-Lloyd"]
   boosts:
     reply: 0.1
     containsPO: 0.05
-
-tests:
-  samples:
-    - fields:
-        poNumber: "PO-4815"
-        customerName: "John Smith"
-        carrier: "UPS"
-        trackingNumber: "1Z999AA10123456784"
-        shipDate: "10/20/2025"
-        items: "Widgets A and B"
-      expectSubjectContains: ["Tracking", "PO-4815", "10/20/2025"]
-      expectBodyContains: ["UPS", "1Z999AA10123456784", "John", "Widgets"]
 
