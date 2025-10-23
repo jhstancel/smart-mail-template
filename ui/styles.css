@@ -88,6 +88,7 @@
     --shadow-2: 0 16px 44px rgba(0,0,0,.12);
     --focus-ring: rgba(36,87,255,.14);
     --focus-border: rgba(36,87,255,.55);
+  --vh: 100vh;
   }
   /* Dark-Minimal */
   body[data-theme="dark-minimal"]{
@@ -642,12 +643,21 @@ html[data-theme="pastell"] {
 
   --focus-ring: rgba(255,154,200,.20);
   --focus-border: rgba(255,154,200,.65);
+/* seamless mirrored gradient that repeats every viewport height (no horizontal seam) */
+background-image:
+  repeating-linear-gradient(
+    to bottom,
+    #ffd9e8 0,
+    #d9ecff calc(var(--vh) / 2),
+    #ffd9e8 var(--vh)
+  ),
+  radial-gradient(1200px 800px at 20% -10%, #ffd9e8 22%, transparent 60%),
+  radial-gradient(1200px 800px at 110% 10%, #d9ecff 26%, transparent 60%);
+background-size: 100% var(--vh), auto, auto;  /* period = viewport height */
+background-repeat: repeat-y, no-repeat, no-repeat;
+background-position: top center, center, center;
+background-attachment: scroll, scroll, scroll;
 
-  /* subtle background gradient—very light */
-  background:
-    radial-gradient(1200px 800px at 20% -10%, #ffd9e8 24%, transparent 60%),
-    radial-gradient(1200px 800px at 110% 10%, #d9ecff 28%, transparent 60%),
-    var(--bg);
 }
 
 /* Pastell: faint borders + soft cards */
@@ -713,10 +723,12 @@ html[data-theme="pastell"] .panel {
 body[data-theme="pastell"] {
   position: relative;
   z-index: 0;
-  background-attachment: fixed; /* keeps gradients fixed to viewport */
+  background-attachment: scroll; /* prevent compositing seam */
 }
 
 #petFlakes {
   z-index: -1 !important; /* always behind content panels */
 }
+html[data-theme="pastell"] { background: transparent !important; }
+body[data-theme="pastell"] { background-color: transparent; }
 
