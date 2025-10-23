@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Smart Mail Template</title>
+<title>Smart Mail</title>
 <!-- Favicon -->
 <link href="img/favicon.png" rel="icon" type="image/png"/>
 <!-- (Optional high-res or Apple touch variants)
@@ -122,7 +122,7 @@
 
 <!-- Pastell pets layer (background) -->
 <div id="petFlakes" aria-hidden="true"
-     style="position:fixed; inset:0; z-index:1; overflow:hidden; display:none; pointer-events:none;"></div>
+     style="position:fixed; inset:0; z-index:-1; overflow:hidden; display:none; pointer-events:none;"></div>
 
 <!-- Cosmic visuals -->
 <canvas id="stars"></canvas>
@@ -251,11 +251,6 @@ quantity:string" rows="4"></textarea>
 </dialog>
 
 
-<!-- Evil Larry (RAIN MODE) -->
-
-
-
-
 <script>
 (() => {
   const THEME = 'pastell';
@@ -263,13 +258,16 @@ quantity:string" rows="4"></textarea>
   const stars = document.getElementById('stars');
   const layer = document.getElementById('petFlakes');
 
-  // Build candidate pet image URLs
+  // -- restore last theme on load so Pastell survives refresh (same key as app.js)
+  const savedTheme = localStorage.getItem('sm_theme');
+  if (savedTheme) ROOT.setAttribute('data-theme', savedTheme);
+
   const exts  = ['png','jpg','jpeg','webp'];
   const names = [
-    ...Array.from({length:10}, (_,i)=>`cat${i?i:''}`),     // cat, cat1..cat9
-    ...Array.from({length:10}, (_,i)=>`dog${i?i:''}`),     // dog, dog1..dog9
-    ...Array.from({length:10}, (_,i)=>`cat${i?(' '+i):''}`), // cat 1..cat 9
-    ...Array.from({length:10}, (_,i)=>`dog${i?(' '+i):''}`)  // dog 1..dog 9
+    ...Array.from({length:10}, (_,i)=>`cat${i?i:''}`),
+    ...Array.from({length:10}, (_,i)=>`dog${i?i:''}`),
+    ...Array.from({length:10}, (_,i)=>`cat${i?(' '+i):''}`),
+    ...Array.from({length:10}, (_,i)=>`dog${i?(' '+i):''}`)
   ];
   const prefix = location.pathname.startsWith('/ui/') ? '/ui/' : '/';
   const candidates = [];
@@ -278,21 +276,23 @@ quantity:string" rows="4"></textarea>
   let enabled = false;
   let flakes  = [];
   let liveImages = [];
+  let gen = 0;
   const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  function themeIsPastell(){
-    const tHtml = ROOT.getAttribute('data-theme');
-    const tBody = document.body.getAttribute('data-theme');
-    return tHtml === THEME || tBody === THEME;
+  // Maintain --vh for transform-based fall end position
+  function setVHVar(){
+    const vh = (window.visualViewport?.height ?? window.innerHeight);
+    document.documentElement.style.setProperty('--vh', vh + 'px');
   }
+  setVHVar();
+  addEventListener('resize', setVHVar);
 
-  function inches2(){ return (innerWidth/96) * (innerHeight/96); }
-  function decideCount(){ return Math.max(40, Math.min(Math.round(inches2()*4), 350)); }
   const pick = arr => arr[(Math.random()*arr.length)|0];
+  const inches2 = () => (innerWidth/96)*(innerHeight/96);
+  const decideCount = () => Math.max(40, Math.min(Math.round(inches2()*4), 350));
 
   async function loadImages(){
     const loads = await Promise.allSettled(
-      candidates.map(src => new Promise((res, rej)=>{
+      candidates.map(src => new Promise((res,rej)=>{
         const im = new Image();
         im.onload = () => res(src);
         im.onerror = () => rej(src);
@@ -304,152 +304,153 @@ quantity:string" rows="4"></textarea>
     return ok;
   }
 
-  function clearFlakes(){ flakes.forEach(f => f.remove()); flakes = []; }
+  function clearFlakes(){ flakes.forEach(f=>f.remove()); flakes=[]; }
 
   function spawnFlakes(){
     clearFlakes();
     const count = decideCount();
     const xs = [];
     const minGap = 28;
-    for (let i=0; i<count; i++){
+    for (let i=0;i<count;i++){
       let x, tries=0;
-      do { x = Math.random()*innerWidth; tries++; }
-      while (tries<40 && xs.some(p => Math.abs(p-x) < minGap));
+      do{ x=Math.random()*innerWidth; tries++; }
+      while(tries<40 && xs.some(p=>Math.abs(p-x)<minGap));
       xs.push(x);
     }
+    const sizeMin=18, sizeMax=26;
+    xs.forEach(x=>{
+      const img=document.createElement('img');
+      img.className='pet-flake';
+      img.src=pick(liveImages);
+      img.style.width=(sizeMin+Math.random()*(sizeMax-sizeMin)).toFixed(0)+'px';
 
-    const sizeMin = 18, sizeMax = 26;
-    xs.forEach(x => {
-      const img = document.createElement('img');
-      img.className = 'pet-flake';
-      img.src = pick(liveImages);
-      img.style.position = 'absolute';
-      img.style.pointerEvents = 'auto';              // clickable
-      img.style.width = (sizeMin + Math.random()*(sizeMax-sizeMin)).toFixed(0) + 'px';
-      img.style.left  = x + 'px';
-      img.style.top   = (-40 - Math.random()*200) + 'px';
+      // Column = CSS var (no absolute left during animation)
+      img.style.setProperty('--x', x + 'px');
 
-      // random static tilt + horizontal drift amplitude + fall duration
-      img.style.setProperty('--rot',   (Math.random()*24-12).toFixed(1)+'deg');
-      img.style.setProperty('--drift', ((Math.random()<0.5?-1:1)*(6+Math.random()*8)).toFixed(1)+'px');
-      img.style.setProperty('--fall-dur', (55 + Math.random()*10).toFixed(1)+'s');
+      // Hide until we know real height, then spawn just above via --startY
+      img.style.visibility = 'hidden';
+      const setJustAbove = () => {
+        const h = img.naturalHeight || img.getBoundingClientRect().height || 40;
+        const pad = 10 + Math.floor(Math.random()*6); // 10..15
+        img.style.setProperty('--startY', -(h + pad) + 'px');
+        img.style.visibility = 'visible';
+        // restart CSS animation cleanly after setting vars
+        img.style.animation='none'; void img.offsetWidth; img.style.animation='';
+      };
+      if (img.complete) { setJustAbove(); }
+      else { img.addEventListener('load', setJustAbove, { once:true }); }
 
-      img.addEventListener('click', e => {
+      const dur=55+Math.random()*10;
+      img.style.setProperty('--rot',(Math.random()*24-12).toFixed(1)+'deg');
+      img.style.setProperty('--drift',((Math.random()<0.5?-1:1)*(6+Math.random()*8)).toFixed(1)+'px');
+      img.style.setProperty('--fall-dur',dur.toFixed(1)+'s');
+      img.style.setProperty('--delay',(-Math.random()*dur).toFixed(2)+'s');
+
+      img.addEventListener('click',e=>{
         e.stopPropagation();
-        img.classList.add('pop');      // triggers petPop
-        img.addEventListener('animationend', ()=> img.remove(), {once:true});
+        img.classList.add('pop');
+        img.addEventListener('animationend',ev=>{
+          if(ev.animationName==='petPop') recycle(img);
+        },{once:true});
+      });
+
+      img.addEventListener('animationend',ev=>{
+        if(ev.animationName==='petFallTop') recycle(img);
       });
 
       layer.appendChild(img);
       flakes.push(img);
     });
+
   }
 
-  async function enable(){
-    if (enabled || prefersReduced) return disable();
-    enabled = true;
-    if (stars) stars.style.display = 'none';
-    layer.style.display = 'block';     // parent has pointer-events:none in markup
-    layer.style.zIndex  = '0';
+  async function enable(myGen){
+    if (enabled || prefersReduced) return;
+    enabled=true;
+    if (stars) stars.style.display='none';
+    layer.style.display='block';
 
-    if (!liveImages.length){
-      liveImages = await loadImages();
-      if (!liveImages.length){ disable(); return; }
+    if(!liveImages.length){
+      const imgs=await loadImages();
+      if(myGen!==gen) return;
+      liveImages=imgs;
+      if(!liveImages.length){ disable(myGen); return; }
     }
-    spawnFlakes();
+   if (myGen !== gen) return;
+
+// only spawn once, never stack duplicates
+if (!flakes.length) spawnFlakes();
+ 
   }
 
-  function disable(){
-    if (!enabled) return;
-    enabled = false;
+  function disable(myGen){
+    if(myGen!==undefined && myGen!==gen) return;
+    if(!enabled) return;
+    enabled=false;
     clearFlakes();
-    if (stars) stars.style.display = ''; // restore starfield if needed
-    layer.style.display = 'none';
+    if(stars) stars.style.display='';
+    layer.style.display='none';
   }
 
-  function update(){
-    if (themeIsPastell()) enable(); else disable();
+function update(){
+  const isPastell = themeIsPastell();
+  if (isPastell && !enabled) {
+    gen++;
+    enable(gen);
+  } else if (!isPastell && enabled) {
+    gen++;
+    disable(gen);
+  }
+}
+
+  function themeIsPastell(){
+    return ROOT.getAttribute('data-theme')===THEME;
   }
 
-  // React to theme changes on <html> or <body>
-  const mo1 = new MutationObserver(update);
-  mo1.observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
-  const mo2 = new MutationObserver(update);
-  mo2.observe(document.body, {attributes:true, attributeFilter:['data-theme']});
-
-  // Reflect dropdown instantly
-  document.getElementById('themeSelect')?.addEventListener('change', e=>{
-    const v = e.target.value;
-    document.documentElement.setAttribute('data-theme', v);
-    document.body.setAttribute('data-theme', v);
-    update();
+  const mo=new MutationObserver(()=>{
+    cancelAnimationFrame(update.raf);
+    update.raf=requestAnimationFrame(update);
   });
+  mo.observe(ROOT,{attributes:true,attributeFilter:['data-theme']});
 
-  // Resize → re-seed columns
-  addEventListener('resize', () => { if (enabled){ clearFlakes(); spawnFlakes(); } });
+document.getElementById('themeSelect')?.addEventListener('change', e => {
+  const val = e.target.value;
+  ROOT.setAttribute('data-theme', val);
+  localStorage.setItem('sm_theme', val);     // persist selection (matches app.js)
+});
 
-  // Boot
+// On resize, keep columns; only clamp if off-screen
+// On resize, keep columns; only clamp if off-screen (using --x)
+addEventListener('resize', () => {
+  if (!enabled) return;
+  for (const img of flakes) {
+    const w = img.getBoundingClientRect().width || 0;
+    const cs = getComputedStyle(img);
+    const x = parseFloat(cs.getPropertyValue('--x')) || 0;
+    const maxX = Math.max(0, innerWidth - w);
+    if (x > maxX) img.style.setProperty('--x', maxX + 'px');
+  }
+});
+
   update();
+  
+  function recycle(img){
+    img.classList.remove('pop');
+    // keep same column; only move startY just above top (transform var)
+    const pad = 10 + Math.floor(Math.random()*6); // 10..15
+    const h = img.naturalHeight || img.getBoundingClientRect().height || 40;
+    img.style.setProperty('--startY', -(h + pad) + 'px');
+
+    // optional: tiny source shuffle, but do NOT change width/duration/--x
+    if (Math.random() < 0.15) img.src = pick(liveImages);
+
+    // restart animation cleanly
+    img.style.animation='none'; void img.offsetWidth; img.style.animation='';
+  }
+
 })();
 </script>
 
+
 <script src="app.js" type="module"></script></body>
 </html>
-/* === Pastell theme (kawaii pastel core) === */
-html[data-theme="pastell"], body[data-theme="pastell"] {
-  --bg: #fff;                  /* lots of white per your note */
-  --panel: rgba(255,255,255,0.78);
-  --ink: #2a2a2a;
-  --accent: #ffb8d2;           /* light pink */
-  --accent2: #b7dcff;          /* light blue */
-  --muted: #7d8aa0;
-
-  background:
-    radial-gradient(1200px 800px at 10% -10%, #ffe6f1 0%, transparent 60%),
-    radial-gradient(1200px 800px at 110% 10%, #e6f2ff 0%, transparent 60%),
-    var(--bg);
-  color: var(--ink);
-}
-
-html[data-theme="pastell"] .panel,
-body[data-theme="pastell"] .panel {
-  background: var(--panel);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(183,220,255,0.45);
-  box-shadow: 0 8px 30px rgba(255,184,210,0.18);
-}
-
-html[data-theme="pastell"] .title { color: #3a3a3a; }
-html[data-theme="pastell"] .btn { border-color: var(--accent2); }
-html[data-theme="pastell"] .pill { background: linear-gradient(90deg, var(--accent), var(--accent2)); color:#333; }
-
-/* === Pastell pets layer === */
-#petFlakes { pointer-events: none; } /* children enable events themselves */
-.pet-flake {
-  will-change: top, transform;
-  transform: translateX(0) rotate(var(--rot, 0deg));
-  animation:
-    petFall var(--fall-dur, 60s) linear forwards,
-    petDriftX 6s ease-in-out infinite alternate;
-  user-select: none;
-}
-
-/* Click "pop" */
-.pet-flake.pop {
-  animation: petPop .22s ease-out forwards;
-}
-
-/* Keyframes */
-@keyframes petFall {
-  to { top: calc(100vh + 160px); }
-}
-@keyframes petDriftX {
-  from { transform: translateX(0) rotate(var(--rot, 0deg)); }
-  to   { transform: translateX(var(--drift, 12px)) rotate(var(--rot, 0deg)); }
-}
-@keyframes petPop {
-  0%   { transform: scale(1)   rotate(var(--rot, 0deg)); opacity: 1; }
-  60%  { transform: scale(1.18) rotate(var(--rot, 0deg)); opacity: .9; }
-  100% { transform: scale(0.6) rotate(var(--rot, 0deg)); opacity: 0; }
-}
-
