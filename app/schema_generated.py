@@ -2,23 +2,58 @@
 SCHEMA_GENERATED = {
   "auto_detect": {
     "description": "Auto-detect intent from text.",
-    "enums": {},
-    "fieldTypes": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "tone": "enum"
+    },
     "hints": {},
     "label": "Auto Detect",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": []
   },
   "delay_notice": {
     "description": "Notify a customer that a purchase order\u2019s shipping schedule has changed.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "customerName": "string",
       "newShip": "date",
       "partNumber": "string",
       "poNumber": "string",
       "previousShip": "date",
-      "reason": "longtext"
+      "reason": "longtext",
+      "tone": "enum"
     },
     "hints": {
       "customerName": "e.g., John Smith",
@@ -29,7 +64,9 @@ SCHEMA_GENERATED = {
       "reason": "e.g., supplier delay, weather, production hold"
     },
     "label": "Delay Notice",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "poNumber",
       "partNumber",
@@ -41,17 +78,35 @@ SCHEMA_GENERATED = {
   },
   "followup": {
     "description": "Send a short follow-up or status-check message on a prior topic.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "context": "longtext",
-      "customerName": "string"
+      "customerName": "string",
+      "tone": "enum"
     },
     "hints": {
       "context": "e.g., \"the quote for PO-10927\" or \"yesterday\u2019s delivery timing\"",
       "customerName": "e.g., \"John Smith\""
     },
     "label": "Follow-up",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "customerName",
       "context"
@@ -59,13 +114,29 @@ SCHEMA_GENERATED = {
   },
   "invoice_payment": {
     "description": "Notify or confirm payment for an invoice.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "amount": "string",
       "invoiceNumber": "string",
       "paymentDate": "date",
       "paymentMethod": "string",
-      "recipientName": "string"
+      "recipientName": "string",
+      "tone": "enum"
     },
     "hints": {
       "amount": "e.g., 420.00 USD",
@@ -75,7 +146,9 @@ SCHEMA_GENERATED = {
       "recipientName": "e.g., John Smith"
     },
     "label": "Invoice Payment",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "recipientName",
       "invoiceNumber",
@@ -86,12 +159,28 @@ SCHEMA_GENERATED = {
   },
   "invoice_po_followup": {
     "description": "Follow up on an invoice or purchase order previously sent or discussed.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "dueDate": "date",
       "invoiceNumber": "string",
       "poNumber": "string",
-      "recipientName": "string"
+      "recipientName": "string",
+      "tone": "enum"
     },
     "hints": {
       "dueDate": "mm/dd/yyyy",
@@ -100,7 +189,9 @@ SCHEMA_GENERATED = {
       "recipientName": "e.g., John Smith"
     },
     "label": "Invoice / PO Follow-Up",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "recipientName",
       "invoiceNumber",
@@ -110,12 +201,28 @@ SCHEMA_GENERATED = {
   },
   "order_confirmation": {
     "description": "Confirm that an order has been received and provide delivery details.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "itemsSummary": "longtext",
       "poNumber": "string",
       "promisedShip": "date",
-      "recipientName": "string"
+      "recipientName": "string",
+      "tone": "enum"
     },
     "hints": {
       "itemsSummary": "e.g., 10 \u00d7 Part A, 5 \u00d7 Part B",
@@ -124,7 +231,9 @@ SCHEMA_GENERATED = {
       "recipientName": "e.g., John Smith"
     },
     "label": "Order Confirmation",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "recipientName",
       "poNumber",
@@ -180,6 +289,20 @@ SCHEMA_GENERATED = {
           "label": "GILL CORP",
           "value": "091536978"
         }
+      ],
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
       ]
     },
     "fieldTypes": {
@@ -187,7 +310,8 @@ SCHEMA_GENERATED = {
       "notes": "longtext",
       "parts": "longtext",
       "recipientName": "string",
-      "shipAddress": "longtext"
+      "shipAddress": "longtext",
+      "tone": "enum"
     },
     "hints": {
       "fedexAccount": "Select shipper account number",
@@ -199,7 +323,8 @@ SCHEMA_GENERATED = {
     },
     "label": "Order Request",
     "optional": [
-      "notes"
+      "notes",
+      "tone"
     ],
     "required": [
       "recipientName",
@@ -210,12 +335,28 @@ SCHEMA_GENERATED = {
   },
   "packing_slip_docs": {
     "description": "Send or request documentation such as a packing slip, invoice, or certificate.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "customerName": "string",
       "docsList": "longtext",
       "notes": "longtext",
-      "poNumber": "string"
+      "poNumber": "string",
+      "tone": "enum"
     },
     "hints": {
       "customerName": "e.g., John Smith",
@@ -224,7 +365,9 @@ SCHEMA_GENERATED = {
       "poNumber": "e.g., PO-10922"
     },
     "label": "Packing Slip / Documents",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "customerName",
       "poNumber",
@@ -233,13 +376,29 @@ SCHEMA_GENERATED = {
   },
   "qb_order": {
     "description": "QuickBooks order request or confirmation message.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "orderDate": "date",
       "orderNumber": "string",
       "recipientName": "string",
       "senderName": "string",
-      "shipDate": "date"
+      "shipDate": "date",
+      "tone": "enum"
     },
     "hints": {
       "orderDate": "mm/dd/yyyy",
@@ -249,20 +408,38 @@ SCHEMA_GENERATED = {
       "shipDate": "mm/dd/yyyy"
     },
     "label": "QB Order",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "recipientName"
     ]
   },
   "quote_request": {
     "description": "Request pricing and lead time for a specific part and quantity.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
       "customerName": "string",
       "needByDate": "date",
       "notes": "longtext",
       "partNumber": "string",
-      "quantity": "string"
+      "quantity": "string",
+      "tone": "enum"
     },
     "hints": {
       "customerName": "e.g., \"John Smith\"",
@@ -274,7 +451,8 @@ SCHEMA_GENERATED = {
     "label": "Quote Request",
     "optional": [
       "needByDate",
-      "notes"
+      "notes",
+      "tone"
     ],
     "required": [
       "customerName",
@@ -302,6 +480,20 @@ SCHEMA_GENERATED = {
           "label": "USPS",
           "value": "USPS"
         }
+      ],
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
       ]
     },
     "fieldTypes": {
@@ -311,6 +503,7 @@ SCHEMA_GENERATED = {
       "notes": "longtext",
       "poNumber": "string",
       "shipDate": "date",
+      "tone": "enum",
       "trackingNumber": "string"
     },
     "hints": {
@@ -323,7 +516,9 @@ SCHEMA_GENERATED = {
       "trackingNumber": "e.g., 1Z999AA10123456784"
     },
     "label": "Shipment Update",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "customerName",
       "poNumber",
@@ -335,15 +530,33 @@ SCHEMA_GENERATED = {
   },
   "tax_exemption": {
     "description": "Notify a customer about tax-exempt status or send a tax-exempt certificate.",
-    "enums": {},
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
     "fieldTypes": {
-      "recipientName": "string"
+      "recipientName": "string",
+      "tone": "enum"
     },
     "hints": {
       "recipientName": "e.g., \"Accounts Payable\""
     },
     "label": "Tax Exemption",
-    "optional": [],
+    "optional": [
+      "tone"
+    ],
     "required": [
       "recipientName"
     ]

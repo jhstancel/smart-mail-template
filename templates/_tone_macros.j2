@@ -1,0 +1,21 @@
+{% macro greeting(tone, name) -%}
+{%- set t = tone or 'neutral' -%}
+{%- if t == 'polite' -%}Hello {{ name }},{% elif t == 'formal' -%}Dear {{ name }},{% else -%}Hi {{ name }},{% endif -%}
+{%- endmacro %}
+
+{% macro request_intro(tone) -%}
+{%- set t = tone or 'neutral' -%}
+{%- if t == 'polite' -%}Could you please share{% elif t == 'formal' -%}Please provide{% else -%}Please share{% endif -%}
+{%- endmacro %}
+
+{% macro close(tone, sender) -%}
+{%- set t = tone or 'neutral' -%}
+{%- if t == 'polite' -%}Kind regards,{% elif t == 'formal' -%}Sincerely,{% else -%}Best,{% endif %}
+{{ "\n" ~ sender }}
+{%- endmacro %}
+
+{% macro subject_prefix(tone) -%}
+{%- set t = tone or 'neutral' -%}
+{%- if t == 'polite' -%}Request:{% elif t == 'formal' -%}Request:{% else -%}Req:{% endif -%}
+{%- endmacro %}
+
