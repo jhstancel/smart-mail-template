@@ -30,4 +30,7 @@ tests:
         quantity: 2
         neededBy: "11/10/2025"
       expectBodyContains: ["28-4752-09A", "2"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/aerospace_mro/aerospace_mro_quote_request.j2"
 

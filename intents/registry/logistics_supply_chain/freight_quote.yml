@@ -32,4 +32,7 @@ tests:
         destination: "MCO"
         weight: "200 lb"
       expectBodyContains: ["AVL", "MCO", "200 lb"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/logistics_supply_chain/logistics_supply_chain_freight_quote.j2"
 

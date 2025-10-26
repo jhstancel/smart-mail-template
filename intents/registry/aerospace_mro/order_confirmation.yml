@@ -28,4 +28,7 @@ tests:
         quantity: 2
         estimatedShip: "11/05/2025"
       expectBodyContains: ["PO-10927", "11/05/2025"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/aerospace_mro/aerospace_mro_order_confirmation.j2"
 

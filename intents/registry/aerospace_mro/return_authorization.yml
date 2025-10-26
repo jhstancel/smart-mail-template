@@ -29,4 +29,7 @@ tests:
         quantity: 1
         reason: "damaged on arrival"
       expectBodyContains: ["damaged"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/aerospace_mro/aerospace_mro_return_authorization.j2"
 

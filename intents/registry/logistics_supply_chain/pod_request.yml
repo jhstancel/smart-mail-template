@@ -22,4 +22,7 @@ tests:
         customerName: "Alex"
         trackingNumber: "123456789"
       expectBodyContains: ["123456789", "POD"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/logistics_supply_chain/logistics_supply_chain_pod_request.j2"
 

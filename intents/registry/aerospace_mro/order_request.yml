@@ -35,4 +35,7 @@ tests:
         quantity: 2
         shipTo: "Hangar 2, AVL"
       expectBodyContains: ["PO-10927", "28-4752-09A", "Hangar 2"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/aerospace_mro/aerospace_mro_order_request.j2"
 

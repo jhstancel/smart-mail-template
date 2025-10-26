@@ -32,4 +32,7 @@ tests:
         destination: "MCO"
         readyDate: "11/03/2025"
       expectBodyContains: ["AVL", "MCO", "11/03/2025"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/logistics_supply_chain/logistics_supply_chain_shipment_booking.j2"
 

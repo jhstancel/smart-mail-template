@@ -25,4 +25,7 @@ tests:
         partNumber: "28-4752-09A"
         docType: "8130"
       expectBodyContains: ["28-4752-09A", "8130"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/aerospace_mro/aerospace_mro_specification_request.j2"
 

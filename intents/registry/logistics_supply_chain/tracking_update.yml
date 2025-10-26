@@ -28,4 +28,7 @@ tests:
         carrier: "FedEx"
         eta: "11/06/2025"
       expectBodyContains: ["123456789", "FedEx", "11/06/2025"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/logistics_supply_chain/logistics_supply_chain_tracking_update.j2"
 

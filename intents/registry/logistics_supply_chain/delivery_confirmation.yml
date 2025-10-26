@@ -27,4 +27,7 @@ tests:
         deliveredDate: "11/07/2025"
         receivedBy: "Dock 3"
       expectBodyContains: ["11/07/2025", "Dock 3"]
+template:
+  subject: "Subject — {{ field1 }}"
+  bodyPath: "templates/logistics_supply_chain/logistics_supply_chain_delivery_confirmation.j2"
 
