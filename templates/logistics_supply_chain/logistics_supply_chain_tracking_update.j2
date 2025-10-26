@@ -1,0 +1,15 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Tracking Update – {{ trackingNumber }} {% if carrier %}({{ carrier }}){% endif %}
+{{ tonefx.greeting(tone, customerName) }}
+Here’s the latest shipment status:
+
+• Tracking: {{ trackingNumber }}
+{% if carrier %}• Carrier: {{ carrier }}{% endif %}
+{% if status %}• Status: {{ status }}{% endif %}
+{% if eta %}• ETA: {{ eta }}{% endif %}
+{% if link %}• Link: {{ link }}{% endif %}
+
+{{ notes or "We’ll keep you posted on any significant changes." }}
+
+Best,
+

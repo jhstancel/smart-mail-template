@@ -1,0 +1,17 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Freight Quote – {{ origin }} → {{ destination }}
+{{ tonefx.greeting(tone, customerName) }}
+We’d like a freight quote for the following:
+
+• Origin: {{ origin }}
+• Destination: {{ destination }}
+{% if pieces %}• Pieces: {{ pieces }}{% endif %}
+{% if weight %}• Weight: {{ weight }}{% endif %}
+{% if dims %}• Dimensions: {{ dims }}{% endif %}
+{% if serviceLevel %}• Service level: {{ serviceLevel }}{% endif %}
+{% if readyDate %}• Ready date: {{ readyDate }}{% endif %}
+
+{{ notes or "Please include transit time, accessorials, and any special requirements." }}
+
+Thanks,
+

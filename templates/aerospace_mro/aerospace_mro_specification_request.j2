@@ -1,0 +1,13 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Spec Request – {{ partNumber }} {% if docType %}({{ docType }}){% endif %}
+{{ tonefx.greeting(tone, customerName) }}
+Could you provide the technical documentation for the part below?
+
+• Part number: {{ partNumber }}
+{% if docType %}• Document type: {{ docType }}{% endif %}
+{% if neededBy %}• Needed by: {{ neededBy }}{% endif %}
+
+{{ notes or "Electronic copies are preferred. Thank you for your help." }}
+
+Best regards,
+

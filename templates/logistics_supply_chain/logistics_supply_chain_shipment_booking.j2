@@ -1,0 +1,17 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Shipment Booking – {{ origin }} → {{ destination }} (Ready {{ readyDate }})
+{{ tonefx.greeting(tone, customerName) }}
+Please proceed to book the following shipment:
+
+• Origin: {{ origin }}
+• Destination: {{ destination }}
+• Ready: {{ readyDate }}
+{% if pieces %}• Pieces: {{ pieces }}{% endif %}
+{% if weight %}• Weight: {{ weight }}{% endif %}
+{% if dims %}• Dimensions: {{ dims }}{% endif %}
+{% if carrier %}• Carrier: {{ carrier }}{% if accountNumber %} (Acct {{ accountNumber }}){% endif %}{% endif %}
+{% if pickupNotes %}• Pickup notes: {{ pickupNotes }}{% endif %}
+{% if deliveryNotes %}• Delivery notes: {{ deliveryNotes }}{% endif %}
+
+Thank you,
+

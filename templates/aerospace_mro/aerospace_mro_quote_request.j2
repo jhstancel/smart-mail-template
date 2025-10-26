@@ -1,0 +1,14 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: RFQ – {{ partNumber }} (Qty {{ quantity }})
+{{ tonefx.greeting(tone, customerName) }}
+We’re requesting a quote for the following aircraft part:
+
+• Part number: {{ partNumber }}
+• Quantity: {{ quantity }}
+{% if neededBy %}• Needed by: {{ neededBy }}{% endif %}
+{% if incoterms %}• Incoterms: {{ incoterms }}{% endif %}
+
+{{ notes or "Please include lead time, unit price, MOQ, and any alternates if the part is not available." }}
+
+Thank you,
+

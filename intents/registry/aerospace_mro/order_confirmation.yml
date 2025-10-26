@@ -1,0 +1,31 @@
+id: aerospace_mro_order_confirmation
+label: Order Confirmation
+industry: Aerospace & MRO
+description: Confirm receipt of a purchase order and summarize key details.
+
+required: [customerName, poNumber, partNumber, quantity]
+optional: [estimatedShip, notes]
+
+fieldTypes:
+  customerName: string
+  poNumber: string
+  partNumber: string
+  quantity: number
+  estimatedShip: date
+  notes: longtext
+
+hints:
+  poNumber: e.g., PO-10927
+  partNumber: e.g., 28-4752-09A
+  estimatedShip: expected ship date
+
+tests:
+  samples:
+    - fields:
+        customerName: "John Smith"
+        poNumber: "PO-10927"
+        partNumber: "28-4752-09A"
+        quantity: 2
+        estimatedShip: "11/05/2025"
+      expectBodyContains: ["PO-10927", "11/05/2025"]
+

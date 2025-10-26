@@ -1,0 +1,13 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: POD Request – {{ trackingNumber }}
+{{ tonefx.greeting(tone, customerName) }}
+Could you please provide the proof of delivery for the shipment below?
+
+• Tracking: {{ trackingNumber }}
+{% if carrier %}• Carrier: {{ carrier }}{% endif %}
+{% if deliveredDate %}• Delivered: {{ deliveredDate }}{% endif %}
+
+{{ notes or "A PDF or a direct link works great. Thank you!" }}
+
+Best,
+

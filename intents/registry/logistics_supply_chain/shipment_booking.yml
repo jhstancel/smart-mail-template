@@ -1,0 +1,35 @@
+id: logistics_supply_chain_shipment_booking
+label: Shipment Booking
+industry: Logistics & Supply Chain
+description: Book a shipment with lane details and pickup instructions.
+
+required: [customerName, origin, destination, readyDate]
+optional: [pieces, weight, dims, carrier, accountNumber, pickupNotes, deliveryNotes]
+
+fieldTypes:
+  customerName: string
+  origin: string
+  destination: string
+  readyDate: date
+  pieces: number
+  weight: string
+  dims: string
+  carrier: string
+  accountNumber: string
+  pickupNotes: longtext
+  deliveryNotes: longtext
+
+hints:
+  origin: city/state or port
+  destination: city/state or port
+  readyDate: earliest pickup date
+
+tests:
+  samples:
+    - fields:
+        customerName: "Alex"
+        origin: "AVL"
+        destination: "MCO"
+        readyDate: "11/03/2025"
+      expectBodyContains: ["AVL", "MCO", "11/03/2025"]
+

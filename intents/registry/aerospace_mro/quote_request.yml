@@ -1,0 +1,33 @@
+id: aerospace_mro_quote_request
+label: Quote Request
+industry: Aerospace & MRO
+description: Request pricing and lead time for aircraft parts or repair services.
+
+required: [customerName, partNumber, quantity]
+optional: [neededBy, incoterms, notes]
+
+fieldTypes:
+  customerName: string
+  partNumber: string
+  quantity: number
+  neededBy: date
+  incoterms: string
+  notes: longtext
+
+hints:
+  customerName: e.g., John Smith
+  partNumber: e.g., 28-4752-09A
+  quantity: e.g., 2
+  neededBy: target delivery date
+  incoterms: e.g., EXW, FOB
+  notes: special conditions or alternates
+
+tests:
+  samples:
+    - fields:
+        customerName: "John Smith"
+        partNumber: "28-4752-09A"
+        quantity: 2
+        neededBy: "11/10/2025"
+      expectBodyContains: ["28-4752-09A", "2"]
+

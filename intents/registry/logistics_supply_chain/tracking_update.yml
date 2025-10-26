@@ -1,0 +1,31 @@
+id: logistics_supply_chain_tracking_update
+label: Tracking Update
+industry: Logistics & Supply Chain
+description: Provide tracking details or a status change for an in-transit shipment.
+
+required: [customerName, trackingNumber]
+optional: [carrier, eta, status, link, notes]
+
+fieldTypes:
+  customerName: string
+  trackingNumber: string
+  carrier: string
+  eta: date
+  status: string
+  link: string
+  notes: longtext
+
+hints:
+  trackingNumber: carrier tracking number
+  eta: estimated delivery date
+  status: e.g., in transit, out for delivery
+
+tests:
+  samples:
+    - fields:
+        customerName: "Alex"
+        trackingNumber: "123456789"
+        carrier: "FedEx"
+        eta: "11/06/2025"
+      expectBodyContains: ["123456789", "FedEx", "11/06/2025"]
+

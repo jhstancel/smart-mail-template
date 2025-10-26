@@ -1,0 +1,15 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Delivery Confirmation – {{ trackingNumber }}
+{{ tonefx.greeting(tone, customerName) }}
+This shipment has been delivered:
+
+• Tracking: {{ trackingNumber }}
+• Delivered: {{ deliveredDate }}
+{% if carrier %}• Carrier: {{ carrier }}{% endif %}
+{% if receivedBy %}• Received by: {{ receivedBy }}{% endif %}
+{% if podLink %}• POD: {{ podLink }}{% endif %}
+
+{{ notes or "Thanks for shipping with us. Let us know if anything is needed." }}
+
+Regards,
+

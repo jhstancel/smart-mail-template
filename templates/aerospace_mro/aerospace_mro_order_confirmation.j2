@@ -1,0 +1,14 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Order Confirmation – PO {{ poNumber }} / {{ partNumber }}
+{{ tonefx.greeting(tone, customerName) }}
+We’ve received your purchase order and have started processing.
+
+• PO: {{ poNumber }}
+• Part: {{ partNumber }}
+• Qty: {{ quantity }}
+{% if estimatedShip %}• Estimated ship date: {{ estimatedShip }}{% endif %}
+
+{{ notes or "We’ll send tracking details as soon as the shipment leaves our dock." }}
+
+Thank you,
+

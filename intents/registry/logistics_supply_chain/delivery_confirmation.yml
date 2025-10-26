@@ -1,0 +1,30 @@
+id: logistics_supply_chain_delivery_confirmation
+label: Delivery Confirmation
+industry: Logistics & Supply Chain
+description: Confirm a shipment has been delivered, with POD details if available.
+
+required: [customerName, trackingNumber, deliveredDate]
+optional: [carrier, receivedBy, podLink, notes]
+
+fieldTypes:
+  customerName: string
+  trackingNumber: string
+  deliveredDate: date
+  carrier: string
+  receivedBy: string
+  podLink: string
+  notes: longtext
+
+hints:
+  deliveredDate: actual delivery date
+  receivedBy: name on POD
+
+tests:
+  samples:
+    - fields:
+        customerName: "Alex"
+        trackingNumber: "123456789"
+        deliveredDate: "11/07/2025"
+        receivedBy: "Dock 3"
+      expectBodyContains: ["11/07/2025", "Dock 3"]
+

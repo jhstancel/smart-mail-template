@@ -1,0 +1,28 @@
+id: aerospace_mro_specification_request
+label: Specification Request
+industry: Aerospace & MRO
+description: Request drawings, certifications, or technical specifications for an aircraft part.
+
+required: [customerName, partNumber]
+optional: [docType, neededBy, notes]
+
+fieldTypes:
+  customerName: string
+  partNumber: string
+  docType: string
+  neededBy: date
+  notes: longtext
+
+hints:
+  partNumber: e.g., 28-4752-09A
+  docType: e.g., C of C, 8130, drawing
+  neededBy: target date
+
+tests:
+  samples:
+    - fields:
+        customerName: "John Smith"
+        partNumber: "28-4752-09A"
+        docType: "8130"
+      expectBodyContains: ["28-4752-09A", "8130"]
+

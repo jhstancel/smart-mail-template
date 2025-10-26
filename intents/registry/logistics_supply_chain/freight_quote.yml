@@ -1,0 +1,35 @@
+id: logistics_supply_chain_freight_quote
+label: Freight Quote
+industry: Logistics & Supply Chain
+description: Request a freight quote with lanes, weights, and service preferences.
+
+required: [customerName, origin, destination]
+optional: [pieces, weight, dims, serviceLevel, readyDate, notes]
+
+fieldTypes:
+  customerName: string
+  origin: string
+  destination: string
+  pieces: number
+  weight: string
+  dims: string
+  serviceLevel: string
+  readyDate: date
+  notes: longtext
+
+hints:
+  origin: city/state or port
+  destination: city/state or port
+  weight: e.g., 250 lb
+  dims: e.g., 48x40x30 in
+  serviceLevel: e.g., standard, expedited
+
+tests:
+  samples:
+    - fields:
+        customerName: "Alex"
+        origin: "AVL"
+        destination: "MCO"
+        weight: "200 lb"
+      expectBodyContains: ["AVL", "MCO", "200 lb"]
+

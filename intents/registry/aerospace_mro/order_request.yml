@@ -1,0 +1,38 @@
+id: aerospace_mro_order_request
+label: Order Request
+industry: Aerospace & MRO
+description: Submit a formal purchase order for aircraft parts or MRO services.
+
+required: [customerName, poNumber, partNumber, quantity, shipTo]
+optional: [neededBy, carrier, accountNumber, notes]
+
+fieldTypes:
+  customerName: string
+  poNumber: string
+  partNumber: string
+  quantity: number
+  shipTo: string
+  neededBy: date
+  carrier: string
+  accountNumber: string
+  notes: longtext
+
+hints:
+  customerName: e.g., John Smith
+  poNumber: e.g., PO-10927
+  partNumber: e.g., 28-4752-09A
+  shipTo: full address or code
+  carrier: e.g., FedEx, UPS, DHL
+  accountNumber: customer carrier account
+  notes: handling or packaging instructions
+
+tests:
+  samples:
+    - fields:
+        customerName: "John Smith"
+        poNumber: "PO-10927"
+        partNumber: "28-4752-09A"
+        quantity: 2
+        shipTo: "Hangar 2, AVL"
+      expectBodyContains: ["PO-10927", "28-4752-09A", "Hangar 2"]
+

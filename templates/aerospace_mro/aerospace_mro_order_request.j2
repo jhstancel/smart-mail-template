@@ -1,0 +1,16 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: PO {{ poNumber }} – {{ partNumber }} (Qty {{ quantity }})
+{{ tonefx.greeting(tone, customerName) }}
+Please process the following order:
+
+• PO number: {{ poNumber }}
+• Part number: {{ partNumber }}
+• Quantity: {{ quantity }}
+• Ship-to: {{ shipTo }}
+{% if neededBy %}• Needed by: {{ neededBy }}{% endif %}
+{% if carrier %}• Preferred carrier: {{ carrier }}{% if accountNumber %} (Acct {{ accountNumber }}){% endif %}{% endif %}
+
+{{ notes or "Please confirm pricing, lead time, and tracking when available." }}
+
+Thank you,
+

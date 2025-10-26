@@ -1,0 +1,25 @@
+id: logistics_supply_chain_pod_request
+label: POD Request
+industry: Logistics & Supply Chain
+description: Request proof of delivery for a completed shipment.
+
+required: [customerName, trackingNumber]
+optional: [carrier, deliveredDate, notes]
+
+fieldTypes:
+  customerName: string
+  trackingNumber: string
+  carrier: string
+  deliveredDate: date
+  notes: longtext
+
+hints:
+  deliveredDate: if known, helps locate POD
+
+tests:
+  samples:
+    - fields:
+        customerName: "Alex"
+        trackingNumber: "123456789"
+      expectBodyContains: ["123456789", "POD"]
+

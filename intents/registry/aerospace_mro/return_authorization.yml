@@ -1,0 +1,32 @@
+id: aerospace_mro_return_authorization
+label: Return Authorization
+industry: Aerospace & MRO
+description: Request an RMA for returning a shipped part, including reason and condition.
+
+required: [customerName, partNumber, quantity, reason]
+optional: [poNumber, invoiceNumber, condition, photosLink, notes]
+
+fieldTypes:
+  customerName: string
+  partNumber: string
+  quantity: number
+  reason: longtext
+  poNumber: string
+  invoiceNumber: string
+  condition: string
+  photosLink: string
+  notes: longtext
+
+hints:
+  reason: e.g., damage, incorrect part, performance issue
+  condition: e.g., unopened, installed, used
+
+tests:
+  samples:
+    - fields:
+        customerName: "John Smith"
+        partNumber: "28-4752-09A"
+        quantity: 1
+        reason: "damaged on arrival"
+      expectBodyContains: ["damaged"]
+
