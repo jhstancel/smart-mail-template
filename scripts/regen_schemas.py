@@ -21,15 +21,54 @@ APP_SCHEMA_GEN = APP_DIR / "schema_generated.py"
 APP_AUTODETECT_GEN = APP_DIR / "autodetect_rules_generated.py"
 PUBLIC_SCHEMA_JSON = PUBLIC_DIR / "schema.generated.json"
 
+from dataclasses import asdict, is_dataclass
+
+def to_plain(obj):
+    """
+    Convert Pydantic model, dataclass, or plain dict to a JSON-serializable dict.
+    Safely returns {} for None or unrecognized objects.
+    """
+    if obj is None:
+        return {}
+    # Pydantic v2
+    if hasattr(obj, "model_dump"):
+        try:
+            return obj.model_dump()
+        except Exception:
+            pass
+    # Pydantic v1
+    if hasattr(obj, "dict"):
+        try:
+            return obj.dict()
+        except Exception:
+            pass
+    # Dataclass
+    if is_dataclass(obj):
+        try:
+            return asdict(obj)
+        except Exception:
+            pass
+    # Already a mapping
+    if isinstance(obj, dict):
+        return obj
+    return {}
 
 def load_intents() -> List[IntentSpec]:
     if not REGISTRY_DIR.exists():
         return []
     intents: List[IntentSpec] = []
-    for yml in sorted(REGISTRY_DIR.glob("*.yml")):
+    # recurse into subfolders (e.g., intents/registry/<industry>/*.yml)
+    for yml in sorted(REGISTRY_DIR.rglob("*.yml")):
         try:
             data = yaml.safe_load(yml.read_text(encoding="utf-8")) or {}
             spec = IntentSpec(**data)
+
+            # ⬇️ NEW: keep raw YAML so we can read keys not modeled in IntentSpec
+            try:
+                setattr(spec, "_raw", data)
+            except Exception:
+                pass
+
             intents.append(spec)
         except ValidationError as ve:
             print(f"[ERROR] {yml.name} failed validation:\n{ve}\n", file=sys.stderr)
@@ -85,16 +124,26 @@ def build_backend_schema(intents: List[IntentSpec]) -> Dict[str, Dict]:
                     label = labels_map.get(v_str, v_str)
                     vv.append({"label": label, "value": v_str})
                 enums_final[key] = vv
+        industry_value = (
+            getattr(spec, "industry", None)
+            or (getattr(spec, "model_extra", {}) or {}).get("industry")  # pydantic v2
+            or (getattr(spec, "_raw", {}) or {}).get("industry")         # raw YAML attached in load_intents
+            or ""
+        )
 
         out[spec.id] = {
             "label": spec.label,
             "description": spec.description or "",
             "required": spec.required,
-            "optional": optional_final,          # <-- use working copy with 'tone'
-            "fieldTypes": fieldTypes_final,      # <-- use working copy with 'tone'
+            "optional": optional_final,
+            "fieldTypes": fieldTypes_final,
             "hints": hints,
-            "enums": enums_final,                # <-- includes tone converted to {label,value}
+            "enums": enums_final,
+            "industry": industry_value,
+            # Make sure this is JSON-serializable (handles Pydantic/dataclass/dict)
+            "template": to_plain(getattr(spec, "template", None)),
         }
+
     return out
 
 def build_frontend_schema(intents: List[IntentSpec]) -> Dict[str, Dict]:
