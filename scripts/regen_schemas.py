@@ -60,7 +60,9 @@ def load_intents() -> List[IntentSpec]:
     # recurse into subfolders (e.g., intents/registry/<industry>/*.yml)
     for yml in sorted(REGISTRY_DIR.rglob("*.yml")):
         try:
+            
             data = yaml.safe_load(yml.read_text(encoding="utf-8")) or {}
+            data["_file"] = str(yml)  # <-- track original path for folder fallback
             spec = IntentSpec(**data)
 
             # ⬇️ NEW: keep raw YAML so we can read keys not modeled in IntentSpec
@@ -124,10 +126,12 @@ def build_backend_schema(intents: List[IntentSpec]) -> Dict[str, Dict]:
                     label = labels_map.get(v_str, v_str)
                     vv.append({"label": label, "value": v_str})
                 enums_final[key] = vv
+        from pathlib import Path  # safe import even if already at top
         industry_value = (
             getattr(spec, "industry", None)
             or (getattr(spec, "model_extra", {}) or {}).get("industry")  # pydantic v2
             or (getattr(spec, "_raw", {}) or {}).get("industry")         # raw YAML attached in load_intents
+            or Path(getattr(spec, "_raw", {}).get("_file", "")).parent.name.replace("_", " ").title()
             or ""
         )
 
