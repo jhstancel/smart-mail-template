@@ -236,18 +236,65 @@ def generate(req: GenerateReq) -> GenerateResp:
 
     missing = [k for k in required if _is_missing(fields.get(k))]
 
-    # Render template
+# Render template
+# Render template
     env = _env()
-    try:
-        tpl = env.get_template(f"{intent}.j2")
-    except TemplateNotFound:
-        # Don’t crash the whole app if a template file is missing
-        raise HTTPException(status_code=500, detail=f"Missing template: templates/{intent}.j2")
 
+    def _normalize_body_path(p: str) -> str:
+        """Strip leading 'templates/' so Jinja finds files under its root."""
+        if p and p.startswith("templates/"):
+            return p[len("templates/"):]
+        return p
+
+    # Pull path (+subject) from schema if available; fallback to <intent>.j2
+    schema_entry = SCHEMA.get(intent, {})
+    tpl_info = schema_entry.get("template") or {}
+    body_path = tpl_info.get("bodyPath")
+    template_name = _normalize_body_path(body_path) if body_path else f"{intent}.j2"
+
+    try:
+        tpl = env.get_template(template_name)
+    except TemplateNotFound:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Missing template: templates/{template_name}",
+        )
+
+    # Render body
     try:
         body = tpl.render(**fields)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Template render error for '{intent}': {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Template render error for '{intent}': {e}",
+        )
+
+    # Render subject:
+    # 1) Prefer YAML template.subject (rendered as Jinja with fields)
+    # 2) Else try to read first "Subject: ..." line from the Jinja source
+    # 3) Else fallback to the intent label
+    subject_value = None
+    yaml_subject = tpl_info.get("subject")
+    if yaml_subject:
+        try:
+            subject_value = env.from_string(yaml_subject).render(**fields)
+        except Exception:
+            subject_value = yaml_subject
+
+    if not subject_value:
+        try:
+            src, _, _ = env.loader.get_source(env, template_name)
+            for line in src.splitlines():
+                s = line.strip()
+                if s.startswith("Subject:"):
+                    subject_raw = s.split("Subject:", 1)[1].strip()
+                    subject_value = env.from_string(subject_raw).render(**fields)
+                    break
+        except Exception:
+            pass
+
+    if not subject_value:
+        subject_value = schema_entry.get("label") or intent
 
     # Clean up body & add polite closing if absent
     body = _strip_subject_line(body)
