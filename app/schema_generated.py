@@ -288,7 +288,7 @@ SCHEMA_GENERATED = {
       "tone": "enum"
     },
     "hints": {},
-    "industry": "",
+    "industry": "Registry",
     "label": "Auto Detect",
     "optional": [
       "tone"
@@ -334,7 +334,7 @@ SCHEMA_GENERATED = {
       "previousShip": "previous confirmed ship date",
       "reason": "e.g., supplier delay, weather, production hold"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Delay Notice",
     "optional": [
       "tone"
@@ -379,7 +379,7 @@ SCHEMA_GENERATED = {
       "context": "e.g., \"the quote for PO-10927\" or \"yesterday\u2019s delivery timing\"",
       "customerName": "e.g., \"John Smith\""
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Follow-up",
     "optional": [
       "tone"
@@ -656,7 +656,7 @@ SCHEMA_GENERATED = {
       "paymentMethod": "e.g., ACH, Check, Credit Card",
       "recipientName": "e.g., John Smith"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Invoice Payment",
     "optional": [
       "tone"
@@ -704,7 +704,7 @@ SCHEMA_GENERATED = {
       "poNumber": "e.g., PO-10892",
       "recipientName": "e.g., John Smith"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Invoice / PO Follow-Up",
     "optional": [
       "tone"
@@ -1256,7 +1256,7 @@ SCHEMA_GENERATED = {
       "promisedShip": "mm/dd/yyyy",
       "recipientName": "e.g., John Smith"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Order Confirmation",
     "optional": [
       "tone"
@@ -1352,7 +1352,7 @@ SCHEMA_GENERATED = {
       "recipientName": "e.g., \"UP Aviation Receiving\"",
       "shipAddress": "Full street, city, state, zip"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Order Request",
     "optional": [
       "notes",
@@ -1400,7 +1400,7 @@ SCHEMA_GENERATED = {
       "notes": "Optional internal note or context",
       "poNumber": "e.g., PO-10922"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Packing Slip / Documents",
     "optional": [
       "tone"
@@ -1448,7 +1448,7 @@ SCHEMA_GENERATED = {
       "senderName": "e.g., \"Kennedy Harper\"",
       "shipDate": "mm/dd/yyyy"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "QB Order",
     "optional": [
       "tone"
@@ -1494,7 +1494,7 @@ SCHEMA_GENERATED = {
       "partNumber": "e.g., \"PN-10423\"",
       "quantity": "e.g., \"2\""
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Quote Request",
     "optional": [
       "needByDate",
@@ -1588,7 +1588,7 @@ SCHEMA_GENERATED = {
       "shipDate": "mm/dd/yyyy",
       "trackingNumber": "e.g., 1Z999AA10123456784"
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Shipment Update",
     "optional": [
       "carrierOther",
@@ -1633,7 +1633,7 @@ SCHEMA_GENERATED = {
     "hints": {
       "recipientName": "e.g., \"Accounts Payable\""
     },
-    "industry": "",
+    "industry": "Registry",
     "label": "Tax Exemption",
     "optional": [
       "tone"
