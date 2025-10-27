@@ -713,60 +713,73 @@ function renderIntentGridFromData(list){
     intentGrid.appendChild(node);
   }
 }
+
+
 function buildIntentsChecklist(){
   const box = document.getElementById('intentChecks');
   if(!box) return;
 
   box.innerHTML = '';
   const current = loadVisibleIntents(); // Set or null
-  const items = (INTENTS || [])
-    .filter(x => x && x.name !== 'auto_detect')
-    .slice()
-    .sort((a,b) => (a.label||a.name).localeCompare(b.label||b.name));
 
-  // helper to rebuild & render after any change
+  // prefer it.industry; else SCHEMA fallback; else "Other"
+  const getIndustry = (it) => {
+    const byIntents = it && it.industry;
+    const bySchema  = (typeof SCHEMA === 'object' && SCHEMA && SCHEMA[it.name] && SCHEMA[it.name].industry) || null;
+    return byIntents || bySchema || 'Other';
+  };
+
+  // bucket items by industry
+  const grouped = {};
+  (INTENTS || []).forEach(it=>{
+    if (!it || it.name === 'auto_detect') return;
+    const key = getIndustry(it);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(it);
+  });
+
+  // persist selections on change
   function commitFromUI(){
     const s = new Set();
-    items.forEach(it=>{
+    (INTENTS || []).forEach(it=>{
       const cb = document.getElementById(`vi_${it.name}`);
       if(cb && cb.checked) s.add(it.name);
     });
-    saveVisibleIntents(s);
-    renderIntentGridFromData(INTENTS);
-    buildIntentsChecklist();
+    saveVisibleIntents([...s]);
   }
 
-  items.forEach(it=>{
-    const id = `vi_${it.name}`;
-    const wrap = document.createElement('div');
-    wrap.className = 'kv';
-    wrap.innerHTML = `
-      <label class="toggle" for="${id}">
-        <input id="${id}" type="checkbox" ${isIntentVisible(it.name, current) ? 'checked':''} />
-        ${it.label || it.name}
-      </label>
-      <div class="muted">${it.description || ''}</div>
-    `;
-    box.appendChild(wrap);
+  // render groups alphabetically; items sorted by label
+  Object.keys(grouped).sort((a,b)=>a.localeCompare(b)).forEach(groupName=>{
+    // header
+    const header = document.createElement('div');
+    header.className = 'vi-section-title';
+    header.textContent = groupName;
+    box.appendChild(header);
 
-    // live update on toggle
-    const cb = wrap.querySelector('input[type="checkbox"]');
-    if(cb){
-      cb.addEventListener('change', commitFromUI);
-    }
+    // items
+    grouped[groupName]
+      .slice()
+      .sort((a,b)=>(a.label||a.name).localeCompare(b.label||b.name))
+      .forEach(it=>{
+        const id = `vi_${it.name}`;
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = id;
+        cb.checked = current?.includes(it.name);
+        cb.onchange = ()=>commitFromUI();
+
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.textContent = it.label || it.name;
+
+        box.appendChild(cb);
+        box.appendChild(label);
+        box.appendChild(document.createElement('br'));
+      });
   });
-
-  // Buttons
-  const btnSave  = document.getElementById('vi_save');
-  const btnAll   = document.getElementById('vi_all');
-  const btnNone  = document.getElementById('vi_none');
-  const btnReset = document.getElementById('vi_reset');
-
-  if(btnSave)  btnSave.onclick  = commitFromUI;
-  if(btnAll)   btnAll.onclick   = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=true; }); commitFromUI(); };
-  if(btnNone)  btnNone.onclick  = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=false;}); commitFromUI(); };
-  if(btnReset) btnReset.onclick = ()=>{ localStorage.removeItem(VI_KEY); buildIntentsChecklist(); renderIntentGridFromData(INTENTS); };
 }
+
+
 
 async function loadIntents(){
   try{
