@@ -731,4 +731,12 @@ body[data-theme="pastell"] {
 }
 html[data-theme="pastell"] { background: transparent !important; }
 body[data-theme="pastell"] { background-color: transparent; }
+.vi-section-title {
+  font-weight: 600;
+  font-size: 1.1em;
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.2em;
+}
 
