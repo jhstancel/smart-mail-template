@@ -392,6 +392,236 @@
       "subject": "Follow-up \u2013 {{ context }}"
     }
   },
+  "healthcare_pharma_lab_result_notification": {
+    "description": "Notify patient/provider that lab results are available.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "collectedDate": "date",
+      "notes": "longtext",
+      "portalLink": "string",
+      "recipientName": "string",
+      "resultSummary": "longtext",
+      "testName": "string",
+      "tone": "enum"
+    },
+    "hints": {},
+    "industry": "Healthcare & Pharma",
+    "label": "Lab Result Notification",
+    "optional": [
+      "testName",
+      "collectedDate",
+      "resultSummary",
+      "portalLink",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "recipientName"
+    ],
+    "template": {
+      "bodyPath": "templates/healthcare_pharma/healthcare_pharma_lab_result_notification.j2",
+      "subject": "Lab Results {% if testName %}\u2013 {{ testName }}{% endif %}"
+    }
+  },
+  "healthcare_pharma_patient_appointment": {
+    "description": "Confirm or schedule a patient appointment with date/time and location.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "appointmentDate": "date",
+      "appointmentTime": "string",
+      "location": "string",
+      "patientName": "string",
+      "prepNotes": "longtext",
+      "tone": "enum"
+    },
+    "hints": {},
+    "industry": "Healthcare & Pharma",
+    "label": "Patient Appointment",
+    "optional": [
+      "appointmentDate",
+      "appointmentTime",
+      "location",
+      "prepNotes",
+      "tone"
+    ],
+    "required": [
+      "patientName"
+    ],
+    "template": {
+      "bodyPath": "templates/healthcare_pharma/healthcare_pharma_patient_appointment.j2",
+      "subject": "Appointment{% if appointmentDate %} {{ appointmentDate }}{% endif %}{% if appointmentTime %} {{ appointmentTime }}{% endif %}"
+    }
+  },
+  "healthcare_pharma_prior_authorization": {
+    "description": "Request prior authorization details for treatment or medication.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "diagnosis": "string",
+      "insurer": "string",
+      "medication": "string",
+      "notes": "longtext",
+      "patientName": "string",
+      "procedure": "string",
+      "requestType": "string",
+      "tone": "enum"
+    },
+    "hints": {
+      "requestType": "e.g., medication or procedure"
+    },
+    "industry": "Healthcare & Pharma",
+    "label": "Prior Authorization",
+    "optional": [
+      "diagnosis",
+      "medication",
+      "procedure",
+      "insurer",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "patientName",
+      "requestType"
+    ],
+    "template": {
+      "bodyPath": "templates/healthcare_pharma/healthcare_pharma_prior_authorization.j2",
+      "subject": "Prior Authorization \u2013 {{ patientName }} {% if medication %}({{ medication }}){% endif %}{% if procedure %}({{ procedure }}){% endif %}"
+    }
+  },
+  "healthcare_pharma_referral_request": {
+    "description": "Request a referral or specialist consultation.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "notes": "longtext",
+      "patientName": "string",
+      "preferredSpecialty": "string",
+      "reason": "longtext",
+      "tone": "enum",
+      "urgency": "string"
+    },
+    "hints": {
+      "urgency": "e.g., routine, urgent"
+    },
+    "industry": "Healthcare & Pharma",
+    "label": "Referral Request",
+    "optional": [
+      "preferredSpecialty",
+      "urgency",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "patientName",
+      "reason"
+    ],
+    "template": {
+      "bodyPath": "templates/healthcare_pharma/healthcare_pharma_referral_request.j2",
+      "subject": "Referral Request \u2013 {{ patientName }}"
+    }
+  },
+  "healthcare_pharma_sample_request": {
+    "description": "Request product samples for clinical or evaluation use.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "neededBy": "date",
+      "notes": "longtext",
+      "productName": "string",
+      "quantity": "number",
+      "recipientName": "string",
+      "tone": "enum"
+    },
+    "hints": {},
+    "industry": "Healthcare & Pharma",
+    "label": "Sample Request",
+    "optional": [
+      "quantity",
+      "neededBy",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "recipientName",
+      "productName"
+    ],
+    "template": {
+      "bodyPath": "templates/healthcare_pharma/healthcare_pharma_sample_request.j2",
+      "subject": "Sample Request \u2013 {{ productName }} {% if quantity %}(Qty {{ quantity }}){% endif %}"
+    }
+  },
   "invoice_payment": {
     "description": "Notify or confirm payment for an invoice.",
     "enums": {
@@ -754,6 +984,244 @@
     "template": {
       "bodyPath": "templates/logistics_supply_chain/logistics_supply_chain_tracking_update.j2",
       "subject": "Subject \u2014 {{ field1 }}"
+    }
+  },
+  "manufacturing_capacity_availability": {
+    "description": "Share capacity availability for a period, with lead time guidance.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "capacityNotes": "longtext",
+      "customerName": "string",
+      "leadTime": "string",
+      "notes": "longtext",
+      "timeWindow": "string",
+      "tone": "enum"
+    },
+    "hints": {
+      "leadTime": "e.g., 3\u20134 weeks ARO",
+      "timeWindow": "e.g., Nov\u2013Dec 2025"
+    },
+    "industry": "Manufacturing",
+    "label": "Capacity Availability",
+    "optional": [
+      "timeWindow",
+      "capacityNotes",
+      "leadTime",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "customerName"
+    ],
+    "template": {
+      "bodyPath": "templates/manufacturing/manufacturing_capacity_availability.j2",
+      "subject": "Capacity Availability {{ '\u2013 ' + timeWindow if timeWindow else '' }}"
+    }
+  },
+  "manufacturing_production_status_update": {
+    "description": "Provide status on production order or work order progress.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "currentStage": "string",
+      "customerName": "string",
+      "estimatedCompletion": "date",
+      "notes": "longtext",
+      "tone": "enum",
+      "workOrder": "string"
+    },
+    "hints": {
+      "currentStage": "e.g., machining, assembly, QA",
+      "workOrder": "e.g., WO-10293"
+    },
+    "industry": "Manufacturing",
+    "label": "Production Status Update",
+    "optional": [
+      "currentStage",
+      "estimatedCompletion",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "customerName",
+      "workOrder"
+    ],
+    "template": {
+      "bodyPath": "templates/manufacturing/manufacturing_production_status_update.j2",
+      "subject": "Production Status \u2013 {{ workOrder }} {% if currentStage %}({{ currentStage }}){% endif %}"
+    }
+  },
+  "manufacturing_quality_issue_report": {
+    "description": "Report a quality nonconformance with details and request disposition.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "customerName": "string",
+      "issue": "longtext",
+      "lotNumber": "string",
+      "notes": "longtext",
+      "partNumber": "string",
+      "photosLink": "string",
+      "qtyAffected": "number",
+      "requestedAction": "string",
+      "tone": "enum"
+    },
+    "hints": {
+      "requestedAction": "e.g., rework, replace, credit"
+    },
+    "industry": "Manufacturing",
+    "label": "Quality Issue Report",
+    "optional": [
+      "lotNumber",
+      "qtyAffected",
+      "photosLink",
+      "requestedAction",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "customerName",
+      "partNumber",
+      "issue"
+    ],
+    "template": {
+      "bodyPath": "templates/manufacturing/manufacturing_quality_issue_report.j2",
+      "subject": "Quality Issue \u2013 {{ partNumber }} {% if lotNumber %}(Lot {{ lotNumber }}){% endif %}"
+    }
+  },
+  "manufacturing_shipment_schedule": {
+    "description": "Share a forward shipment schedule by dates/quantities.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "carrier": "string",
+      "customerName": "string",
+      "incoterms": "string",
+      "notes": "longtext",
+      "scheduleTable": "longtext",
+      "tone": "enum"
+    },
+    "hints": {
+      "scheduleTable": "e.g., 11/05 \u2013 50 pcs; 11/19 \u2013 75 pcs"
+    },
+    "industry": "Manufacturing",
+    "label": "Shipment Schedule",
+    "optional": [
+      "scheduleTable",
+      "carrier",
+      "incoterms",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "customerName"
+    ],
+    "template": {
+      "bodyPath": "templates/manufacturing/manufacturing_shipment_schedule.j2",
+      "subject": "Shipment Schedule Update"
+    }
+  },
+  "manufacturing_spec_change_notification": {
+    "description": "Notify customer of a specification or drawing change.",
+    "enums": {
+      "tone": [
+        {
+          "label": "neutral",
+          "value": "neutral"
+        },
+        {
+          "label": "polite",
+          "value": "polite"
+        },
+        {
+          "label": "formal",
+          "value": "formal"
+        }
+      ]
+    },
+    "fieldTypes": {
+      "changeSummary": "longtext",
+      "customerName": "string",
+      "docLink": "string",
+      "effectiveDate": "date",
+      "notes": "longtext",
+      "partNumber": "string",
+      "tone": "enum"
+    },
+    "hints": {},
+    "industry": "Manufacturing",
+    "label": "Spec Change Notification",
+    "optional": [
+      "changeSummary",
+      "effectiveDate",
+      "docLink",
+      "notes",
+      "tone"
+    ],
+    "required": [
+      "customerName",
+      "partNumber"
+    ],
+    "template": {
+      "bodyPath": "templates/manufacturing/manufacturing_spec_change_notification.j2",
+      "subject": "Specification Change \u2013 {{ partNumber }} {% if effectiveDate %}(Effective {{ effectiveDate }}){% endif %}"
     }
   },
   "order_confirmation": {

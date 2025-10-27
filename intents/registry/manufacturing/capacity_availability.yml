@@ -1,0 +1,19 @@
+id: manufacturing_capacity_availability
+label: Capacity Availability
+industry: Manufacturing
+description: Share capacity availability for a period, with lead time guidance.
+required: [customerName]
+optional: [timeWindow, capacityNotes, leadTime, notes]
+fieldTypes:
+  customerName: string
+  timeWindow: string
+  capacityNotes: longtext
+  leadTime: string
+  notes: longtext
+hints:
+  timeWindow: e.g., Nov–Dec 2025
+  leadTime: e.g., 3–4 weeks ARO
+template:
+  subject: "Capacity Availability {{ '– ' + timeWindow if timeWindow else '' }}"
+  bodyPath: "templates/manufacturing/manufacturing_capacity_availability.j2"
+

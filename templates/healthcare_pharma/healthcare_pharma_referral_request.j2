@@ -1,0 +1,14 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Referral Request – {{ patientName }}
+{{ tonefx.greeting(tone) }}
+We’re requesting a referral for:
+
+• Patient: {{ patientName }}
+• Reason: {{ reason }}
+{% if preferredSpecialty %}• Preferred specialty: {{ preferredSpecialty }}{% endif %}
+{% if urgency %}• Urgency: {{ urgency }}{% endif %}
+
+{{ notes or "Please advise availability and any required documentation." }}
+
+Thank you,
+

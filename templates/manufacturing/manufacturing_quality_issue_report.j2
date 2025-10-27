@@ -1,0 +1,16 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Quality Issue – {{ partNumber }} {% if lotNumber %}(Lot {{ lotNumber }}){% endif %}
+{{ tonefx.greeting(tone, customerName) }}
+We encountered the following nonconformance:
+
+• Part: {{ partNumber }}
+{% if lotNumber %}• Lot: {{ lotNumber }}{% endif %}
+{% if qtyAffected %}• Qty affected: {{ qtyAffected }}{% endif %}
+• Issue: {{ issue }}
+{% if photosLink %}• Photos: {{ photosLink }}{% endif %}
+{% if requestedAction %}• Requested action: {{ requestedAction }}{% endif %}
+
+{{ notes or "Please advise disposition and any additional containment steps." }}
+
+Thank you,
+

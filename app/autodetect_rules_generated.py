@@ -51,6 +51,26 @@ AUTODETECT_GENERATED = {
       "touching base"
     ]
   },
+  "healthcare_pharma_lab_result_notification": {
+    "boosts": {},
+    "keywords": []
+  },
+  "healthcare_pharma_patient_appointment": {
+    "boosts": {},
+    "keywords": []
+  },
+  "healthcare_pharma_prior_authorization": {
+    "boosts": {},
+    "keywords": []
+  },
+  "healthcare_pharma_referral_request": {
+    "boosts": {},
+    "keywords": []
+  },
+  "healthcare_pharma_sample_request": {
+    "boosts": {},
+    "keywords": []
+  },
   "invoice_payment": {
     "boosts": {
       "containsPO": 0.03,
@@ -96,6 +116,26 @@ AUTODETECT_GENERATED = {
     "keywords": []
   },
   "logistics_supply_chain_tracking_update": {
+    "boosts": {},
+    "keywords": []
+  },
+  "manufacturing_capacity_availability": {
+    "boosts": {},
+    "keywords": []
+  },
+  "manufacturing_production_status_update": {
+    "boosts": {},
+    "keywords": []
+  },
+  "manufacturing_quality_issue_report": {
+    "boosts": {},
+    "keywords": []
+  },
+  "manufacturing_shipment_schedule": {
+    "boosts": {},
+    "keywords": []
+  },
+  "manufacturing_spec_change_notification": {
     "boosts": {},
     "keywords": []
   },

@@ -1,0 +1,19 @@
+id: manufacturing_production_status_update
+label: Production Status Update
+industry: Manufacturing
+description: Provide status on production order or work order progress.
+required: [customerName, workOrder]
+optional: [currentStage, estimatedCompletion, notes]
+fieldTypes:
+  customerName: string
+  workOrder: string
+  currentStage: string
+  estimatedCompletion: date
+  notes: longtext
+hints:
+  workOrder: e.g., WO-10293
+  currentStage: e.g., machining, assembly, QA
+template:
+  subject: "Production Status – {{ workOrder }} {% if currentStage %}({{ currentStage }}){% endif %}"
+  bodyPath: "templates/manufacturing/manufacturing_production_status_update.j2"
+

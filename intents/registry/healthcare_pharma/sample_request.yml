@@ -1,0 +1,16 @@
+id: healthcare_pharma_sample_request
+label: Sample Request
+industry: Healthcare & Pharma
+description: Request product samples for clinical or evaluation use.
+required: [recipientName, productName]
+optional: [quantity, neededBy, notes]
+fieldTypes:
+  recipientName: string
+  productName: string
+  quantity: number
+  neededBy: date
+  notes: longtext
+template:
+  subject: "Sample Request – {{ productName }} {% if quantity %}(Qty {{ quantity }}){% endif %}"
+  bodyPath: "templates/healthcare_pharma/healthcare_pharma_sample_request.j2"
+

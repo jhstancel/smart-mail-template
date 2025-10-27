@@ -1,0 +1,21 @@
+id: manufacturing_quality_issue_report
+label: Quality Issue Report
+industry: Manufacturing
+description: Report a quality nonconformance with details and request disposition.
+required: [customerName, partNumber, issue]
+optional: [lotNumber, qtyAffected, photosLink, requestedAction, notes]
+fieldTypes:
+  customerName: string
+  partNumber: string
+  issue: longtext
+  lotNumber: string
+  qtyAffected: number
+  photosLink: string
+  requestedAction: string
+  notes: longtext
+hints:
+  requestedAction: e.g., rework, replace, credit
+template:
+  subject: "Quality Issue – {{ partNumber }} {% if lotNumber %}(Lot {{ lotNumber }}){% endif %}"
+  bodyPath: "templates/manufacturing/manufacturing_quality_issue_report.j2"
+

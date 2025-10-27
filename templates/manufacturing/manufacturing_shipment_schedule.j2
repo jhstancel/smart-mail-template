@@ -1,0 +1,13 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Shipment Schedule Update
+{{ tonefx.greeting(tone, customerName) }}
+Here is the current shipment plan:
+
+{% if scheduleTable %}{{ scheduleTable }}{% else %}• Dates and quantities to be confirmed based on production and carrier availability.{% endif %}
+{% if carrier %}• Carrier: {{ carrier }}{% endif %}
+{% if incoterms %}• Incoterms: {{ incoterms }}{% endif %}
+
+{{ notes or "We’ll confirm tracking as each lot departs." }}
+
+Regards,
+

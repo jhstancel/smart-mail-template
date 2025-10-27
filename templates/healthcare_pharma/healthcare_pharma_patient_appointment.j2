@@ -1,0 +1,12 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Appointment {% if appointmentDate %}{{ appointmentDate }}{% endif %} {% if appointmentTime %}{{ appointmentTime }}{% endif %}
+{{ tonefx.greeting(tone, patientName) }}
+Your appointment details are below:
+
+{% if appointmentDate %}• Date: {{ appointmentDate }}{% endif %}
+{% if appointmentTime %}• Time: {{ appointmentTime }}{% endif %}
+{% if location %}• Location: {{ location }}{% endif %}
+{% if prepNotes %}• Prep: {{ prepNotes }}{% endif %}
+
+Please reply to confirm or request a change.
+

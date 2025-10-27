@@ -1,0 +1,16 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Prior Authorization – {{ patientName }} {% if medication %}({{ medication }}){% endif %}{% if procedure %}({{ procedure }}){% endif %}
+{{ tonefx.greeting(tone) }}
+We’re requesting prior authorization for:
+
+• Patient: {{ patientName }}
+• Type: {{ requestType }}
+{% if diagnosis %}• Diagnosis: {{ diagnosis }}{% endif %}
+{% if medication %}• Medication: {{ medication }}{% endif %}
+{% if procedure %}• Procedure: {{ procedure }}{% endif %}
+{% if insurer %}• Insurer: {{ insurer }}{% endif %}
+
+{{ notes or "Please advise required documentation and expected turnaround time." }}
+
+Thank you,
+

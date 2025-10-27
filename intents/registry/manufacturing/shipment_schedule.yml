@@ -1,0 +1,18 @@
+id: manufacturing_shipment_schedule
+label: Shipment Schedule
+industry: Manufacturing
+description: Share a forward shipment schedule by dates/quantities.
+required: [customerName]
+optional: [scheduleTable, carrier, incoterms, notes]
+fieldTypes:
+  customerName: string
+  scheduleTable: longtext
+  carrier: string
+  incoterms: string
+  notes: longtext
+hints:
+  scheduleTable: e.g., 11/05 – 50 pcs; 11/19 – 75 pcs
+template:
+  subject: "Shipment Schedule Update"
+  bodyPath: "templates/manufacturing/manufacturing_shipment_schedule.j2"
+

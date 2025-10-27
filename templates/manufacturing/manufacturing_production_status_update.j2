@@ -1,0 +1,13 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Production Status – {{ workOrder }} {% if currentStage %}({{ currentStage }}){% endif %}
+{{ tonefx.greeting(tone, customerName) }}
+Here’s the latest on your production:
+
+• Work order: {{ workOrder }}
+{% if currentStage %}• Current stage: {{ currentStage }}{% endif %}
+{% if estimatedCompletion %}• Est. completion: {{ estimatedCompletion }}{% endif %}
+
+{{ notes or "We’ll notify you immediately if anything changes the schedule." }}
+
+Best,
+

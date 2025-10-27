@@ -1,0 +1,18 @@
+id: healthcare_pharma_referral_request
+label: Referral Request
+industry: Healthcare & Pharma
+description: Request a referral or specialist consultation.
+required: [patientName, reason]
+optional: [preferredSpecialty, urgency, notes]
+fieldTypes:
+  patientName: string
+  reason: longtext
+  preferredSpecialty: string
+  urgency: string
+  notes: longtext
+hints:
+  urgency: e.g., routine, urgent
+template:
+  subject: "Referral Request – {{ patientName }}"
+  bodyPath: "templates/healthcare_pharma/healthcare_pharma_referral_request.j2"
+

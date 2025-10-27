@@ -1,0 +1,17 @@
+id: healthcare_pharma_lab_result_notification
+label: Lab Result Notification
+industry: Healthcare & Pharma
+description: Notify patient/provider that lab results are available.
+required: [recipientName]
+optional: [testName, collectedDate, resultSummary, portalLink, notes]
+fieldTypes:
+  recipientName: string
+  testName: string
+  collectedDate: date
+  resultSummary: longtext
+  portalLink: string
+  notes: longtext
+template:
+  subject: "Lab Results {% if testName %}– {{ testName }}{% endif %}"
+  bodyPath: "templates/healthcare_pharma/healthcare_pharma_lab_result_notification.j2"
+

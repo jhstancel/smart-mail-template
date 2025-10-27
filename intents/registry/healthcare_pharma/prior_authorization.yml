@@ -1,0 +1,20 @@
+id: healthcare_pharma_prior_authorization
+label: Prior Authorization
+industry: Healthcare & Pharma
+description: Request prior authorization details for treatment or medication.
+required: [patientName, requestType]
+optional: [diagnosis, medication, procedure, insurer, notes]
+fieldTypes:
+  patientName: string
+  requestType: string
+  diagnosis: string
+  medication: string
+  procedure: string
+  insurer: string
+  notes: longtext
+hints:
+  requestType: e.g., medication or procedure
+template:
+  subject: "Prior Authorization – {{ patientName }} {% if medication %}({{ medication }}){% endif %}{% if procedure %}({{ procedure }}){% endif %}"
+  bodyPath: "templates/healthcare_pharma/healthcare_pharma_prior_authorization.j2"
+

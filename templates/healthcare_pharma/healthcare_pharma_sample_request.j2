@@ -1,0 +1,13 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Sample Request – {{ productName }} {% if quantity %}(Qty {{ quantity }}){% endif %}
+{{ tonefx.greeting(tone, recipientName) }}
+Could you provide samples of the following:
+
+• Product: {{ productName }}
+{% if quantity %}• Quantity: {{ quantity }}{% endif %}
+{% if neededBy %}• Needed by: {{ neededBy }}{% endif %}
+
+{{ notes or "Please confirm availability and shipping details." }}
+
+Best regards,
+

@@ -1,0 +1,11 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Lab Results {% if testName %}– {{ testName }}{% endif %}
+{{ tonefx.greeting(tone, recipientName) }}
+Your lab results are available.
+
+{% if collectedDate %}• Collected: {{ collectedDate }}{% endif %}
+{% if resultSummary %}{{ resultSummary }}{% else %}Please review details via the patient portal.{% endif %}
+{% if portalLink %}• Portal: {{ portalLink }}{% endif %}
+
+{{ notes or "Contact us if you have questions about your results." }}
+

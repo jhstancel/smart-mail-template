@@ -1,0 +1,14 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Specification Change – {{ partNumber }} {% if effectiveDate %}(Effective {{ effectiveDate }}){% endif %}
+{{ tonefx.greeting(tone, customerName) }}
+This is to inform you of a change to the following:
+
+• Part: {{ partNumber }}
+{% if changeSummary %}• Summary: {{ changeSummary }}{% endif %}
+{% if effectiveDate %}• Effective date: {{ effectiveDate }}{% endif %}
+{% if docLink %}• Documentation: {{ docLink }}{% endif %}
+
+{{ notes or "Please review and confirm if any additional approvals are required." }}
+
+Best,
+

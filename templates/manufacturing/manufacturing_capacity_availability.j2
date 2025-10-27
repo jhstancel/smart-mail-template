@@ -1,0 +1,13 @@
+{% import "_tone_macros.j2" as tonefx %}
+Subject: Capacity Availability {{ '– ' + timeWindow if timeWindow else '' }}
+{{ tonefx.greeting(tone, customerName) }}
+We currently have the following capacity available:
+
+{% if timeWindow %}• Window: {{ timeWindow }}{% endif %}
+{% if leadTime %}• Lead time: {{ leadTime }}{% endif %}
+{% if capacityNotes %}{{ capacityNotes }}{% else %}We can accommodate small to mid-size lots and expedited requests depending on material availability.{% endif %}
+
+{{ notes or "Let us know your target schedule and quantities to confirm a slot." }}
+
+Regards,
+

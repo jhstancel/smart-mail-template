@@ -1,0 +1,17 @@
+id: manufacturing_spec_change_notification
+label: Spec Change Notification
+industry: Manufacturing
+description: Notify customer of a specification or drawing change.
+required: [customerName, partNumber]
+optional: [changeSummary, effectiveDate, docLink, notes]
+fieldTypes:
+  customerName: string
+  partNumber: string
+  changeSummary: longtext
+  effectiveDate: date
+  docLink: string
+  notes: longtext
+template:
+  subject: "Specification Change – {{ partNumber }} {% if effectiveDate %}(Effective {{ effectiveDate }}){% endif %}"
+  bodyPath: "templates/manufacturing/manufacturing_spec_change_notification.j2"
+

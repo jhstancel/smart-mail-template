@@ -1,0 +1,16 @@
+id: healthcare_pharma_patient_appointment
+label: Patient Appointment
+industry: Healthcare & Pharma
+description: Confirm or schedule a patient appointment with date/time and location.
+required: [patientName]
+optional: [appointmentDate, appointmentTime, location, prepNotes]
+fieldTypes:
+  patientName: string
+  appointmentDate: date
+  appointmentTime: string
+  location: string
+  prepNotes: longtext
+template:
+  subject: "Appointment{% if appointmentDate %} {{ appointmentDate }}{% endif %}{% if appointmentTime %} {{ appointmentTime }}{% endif %}"
+  bodyPath: "templates/healthcare_pharma/healthcare_pharma_patient_appointment.j2"
+
