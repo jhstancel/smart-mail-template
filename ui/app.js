@@ -150,14 +150,15 @@ async function postJSON(url, data){
 
 async function loadSchema(){
   try{
-    const res = await fetch('/schema');
-    if(!res.ok) throw new Error('Failed to fetch /schema');
-    SCHEMA = await res.json();
+    SCHEMA = await Data.fetchSchema();
   }catch(e){
     console.error('Error loading /schema:', e);
     SCHEMA = {};
   }
 }
+
+
+
 /* ===== Global defaults helpers ===== */
 function loadGlobalDefaults(){
   try{
@@ -540,20 +541,22 @@ function renderIntentGridFromData(list){
 const buildIntentsChecklist = window.Settings.buildIntentsChecklist;
 
 
+
 async function loadIntents(){
   try{
-    const res = await fetch('/intents');
-    if(!res.ok) throw new Error('Failed to fetch /intents');
-    const data = await res.json();
+    const data = await Data.fetchIntents();
     INTENTS = Array.isArray(data) ? data : [];
     renderIntentGridFromData(INTENTS);
-
   }catch(err){
     console.error('Error loading intents:', err);
     INTENTS = [];
     intentGrid.innerHTML = '';
   }
 }
+
+
+
+
 // Robust event delegation for My Templates list (works after list rebuilds)
 (function wireUserTplListDelegation(){
   const list = document.getElementById('userTplList');
@@ -1504,15 +1507,9 @@ async function runCorruption(){
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
   try {
-    // Fetch generated schema
-    const schemaRes = await fetch('/schema');
-    if (!schemaRes.ok) throw new Error('Failed to load schema');
-    SCHEMA = await schemaRes.json();
-
-    // Fetch compact intent list for cards
-    const intentsRes = await fetch('/intents');
-    if (!intentsRes.ok) throw new Error('Failed to load intents');
-    const data = await intentsRes.json();
+const { schema: _schema, intents: _intents } = await Data.fetchAll();
+SCHEMA = _schema;
+const data = _intents;
 
     // Render cards dynamically from schema/intents
 if (Array.isArray(data) && data.length) {
