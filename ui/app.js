@@ -11,10 +11,9 @@ const saveVisibleIntents = (...args) =>
     ? window.Settings.saveVisibleIntents(...args)
     : undefined;
 
-function isIntentVisible(name, viSet){
-  if(name === 'auto_detect') return true;
-  if(!viSet) return true;
-  return viSet.has(name);
+function isIntentVisible(itOrName, set){
+  const key = (typeof itOrName === 'string') ? itOrName : (itOrName?.id || itOrName?.name);
+  return set && set.size ? set.has(key) : true;
 }
 
 /* =========================================================================================
@@ -526,11 +525,9 @@ const closeAllSubs = (...args) =>
 async function loadIntents(){
   try{
     const data = await Data.fetchIntents();
-    INTENTS = Array.isArray(data) ? data : [];
     renderIntentGridFromData(INTENTS);
   }catch(err){
     console.error('Error loading intents:', err);
-    INTENTS = [];
     intentGrid.innerHTML = '';
   }
 }
@@ -1180,8 +1177,6 @@ function upsertTemplate(def){
 if (i >= 0) all[i] = def; else all.unshift(def);
   window.UserTemplates.saveAll(all);
   // refresh combined intents + UI + visibility list
-  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
-  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
   renderIntentGridFromData(INTENTS);
   buildIntentsChecklist();
  window.UserTemplates.init();
@@ -1200,9 +1195,6 @@ function deleteTemplate(id){
   const vi = loadVisibleIntents();
   if(vi && vi.has(id)){ vi.delete(id); saveVisibleIntents(vi); }
 
-  // rebuild list of intents
-  const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
-  INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
 
   // re-render everything
   renderIntentGridFromData(INTENTS);
@@ -1296,6 +1288,14 @@ async function runCorruption(){
 const { schema: _schema, intents: _intentsFinal } = await Data.hydrateAll({ mergeUserTemplates: true });
 SCHEMA  = _schema;
 INTENTS = _intentsFinal;
+
+// Now paint the UI using normalized INTENTS (has id/name/label/description/industry)
+if (typeof renderIntentGridFromData === 'function') {
+  renderIntentGridFromData(INTENTS);
+}
+if (typeof buildIntentsChecklist === 'function') {
+  buildIntentsChecklist();
+}
 
 // initial render + side-panels
 renderIntentGridFromData(INTENTS);
@@ -1515,27 +1515,45 @@ els.topK.appendChild(b);
   // Suggestions only: do NOT auto-select here.
 }
 
-async function predictNow(hintVal){
-  if(inflight){ try{ inflight.abort(); }catch{} }
+// global inflight defined once above
+let inflight = null;
+
+/**
+ * Predict the most likely intent based on subject/body hint.
+ * Compatible with new modular INTENTS (from Data.hydrateAll()).
+ */
+async function predictNow(hintVal) {
+  // Abort any previous inflight request
+  if (inflight) {
+    try { inflight.abort(); } catch {}
+  }
   inflight = new AbortController();
 
   const payload = {
-    to:       (els.to?.value || '').trim(),
-    subject:  (els.subject?.value || '').trim(),
-    body_hint: (hintVal || '').trim()
+    to:        (els.to?.value || '').trim(),
+    subject:   (els.subject?.value || '').trim(),
+    body_hint: (hintVal || '').trim(),
   };
-  if(!payload.subject && !payload.body_hint){ setPredictStatus(''); hidePredictInfo(); return; }
+
+  // If there’s nothing meaningful to analyze, reset and bail early
+  if (!payload.subject && !payload.body_hint) {
+    setPredictStatus('');
+    hidePredictInfo();
+    return;
+  }
 
   setPredictStatus('Predicting…');
-  try{
+
+  try {
     const res = await fetch('/predict', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
-      signal: inflight.signal
+      signal: inflight.signal,
     });
 
-    if(!res.ok){
+    // Bail on network or server error
+    if (!res.ok) {
       console.warn('/predict failed', res.status, await res.text());
       setPredictStatus('Prediction failed.');
       hidePredictInfo();
@@ -1544,12 +1562,22 @@ async function predictNow(hintVal){
 
     const data = await res.json();
     console.debug('predict:', data);
+
+    // 🟢 Integrate normalized INTENTS (ensure Data.hydrateAll ran)
+    if (Array.isArray(window.INTENTS) && window.INTENTS.length) {
+      data.availableIntents = window.INTENTS;  // helpful if updatePredictUI needs label/desc
+    }
+
     updatePredictUI(data);
     setPredictStatus('');
-  }catch(err){
-    if(err?.name === 'AbortError') return;
+  } catch (err) {
+    // Abort → silent cancel, otherwise show failure
+    if (err?.name === 'AbortError') return;
+    console.error('Predict error:', err);
     setPredictStatus('Prediction failed.');
     hidePredictInfo();
+  } finally {
+    inflight = null;
   }
 }
 
