@@ -582,7 +582,8 @@ function buildIntentsChecklist(){
           row.className = 'kv';
           row.innerHTML = `
             <label class="toggle">
-              <input type="checkbox" id="${id}" ${current?.includes(it.name)?'checked':''}/>
+<input type="checkbox" id="${id}" ${current?.has(it.name)?'checked':''}/>
+              
               <span style="font-weight:800">${it.label || it.name}</span>
             </label>
             <div class="muted">${it.description || ''}</div>
@@ -604,11 +605,11 @@ function buildIntentsChecklist(){
   });
   document.getElementById('vi_reset')?.addEventListener('click', ()=>{
     const restored = loadVisibleIntents();
-    (INTENTS||[]).forEach(it=>{
-      const cb = document.getElementById(`vi_${it.name}`);
-      if(cb) cb.checked = restored ? restored.includes(it.name) : false;
-    });
-    commitFromUI();
+(INTENTS||[]).forEach(it=>{
+  const cb = document.getElementById(`vi_${it.name}`);
+  if(cb) cb.checked = restored ? restored.has(it.name) : false;
+});
+commitFromUI();
   });
 }
 
@@ -1240,27 +1241,8 @@ function closeAllSubs(){
   [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
   document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
 }
-let currentlyOpen = null;
-function openOnly(which){
-  // toggle: if clicking the same item, close all
-  if(currentlyOpen === which){
-    closeAllSubs(); currentlyOpen = null;
-    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
-    return;
-  }
-  closeAllSubs();
-  if(which==='theme'     && subTheme)     subTheme.classList.add('open');
-  if(which==='typing'    && subTyping)    subTyping.classList.add('open');
-  if(which==='intents'   && subIntents)  { subIntents.classList.add('open');  buildIntentsChecklist?.(); }
-  if(which==='usertpls'  && subUserTpls) { subUserTpls.classList.add('open'); buildUserTemplatesUI?.(); }
-  if(which==='defaults'  && subDefaults)  subDefaults.classList.add('open');
-const opened = (
-  which==='theme'    ? subTheme   :
-  which==='typing'   ? subTyping  :
-  which==='intents'  ? subIntents :
-  which==='usertpls' ? subUserTpls:
-  which==='defaults' ? subDefaults: null
-);
+// use Settings.openOnly (moved to ui/settings.js)
+const openOnly = window.Settings.openOnly;
 
 const menu = opened?.closest('.settings-menu');
 if (menu) {
