@@ -199,8 +199,8 @@ function renderFields(intent){
   // --- Local templates (u:...) -> build fields from local def, not SCHEMA
   if (intent.startsWith('u:')) {
     if(fieldsHint) fieldsHint.textContent = '';
-    const def = loadUserTemplates().find(t => t.id === intent);
-    if(!def){ return; }
+const def = window.UserTemplates.loadAll().find(t => t.id === intent);    
+if(!def){ return; }
 
     const required = (def.fields || []).filter(f => f.required).map(f => f.name);
     const optional = (def.fields || []).filter(f => !f.required).map(f => f.name);
@@ -523,8 +523,9 @@ async function loadIntents(){
     e.preventDefault(); e.stopPropagation();
     const action = btn.getAttribute('data-ut-action');
     const id = btn.getAttribute('data-ut-id');
-    const all = (typeof loadUserTemplates === 'function' ? loadUserTemplates() : []) || [];
-    const tpl = all.find(t => t.id === id);
+const all = window.UserTemplates.loadAll();
+    
+const tpl = all.find(t => t.id === id);
 
     if(action === 'edit' && typeof openEditor === 'function'){
       openEditor('edit', tpl);
@@ -863,63 +864,8 @@ function initComposeModeUI(){
     applyComposeMode(b.dataset.mode);
   });
 }
-function buildUserTemplatesUI(){
-  const wrap = document.getElementById('userTplList');
-  if(!wrap) return;
 
-  const list = loadUserTemplates();         // <-- unified
-  wrap.innerHTML = '';
 
-  if(!list.length){
-    const empty = document.createElement('div');
-    empty.className = 'tpl-card';
-    empty.innerHTML = `<div class="tpl-main">
-        <div>
-          <div class="tpl-title">No templates yet</div>
-          <div class="tpl-desc">Click “+ New” to create your first local template.</div>
-        </div>
-      </div>`;
-    wrap.appendChild(empty);
-    return;
-  }
-
-  list.forEach(t=>{
-    const card = document.createElement('div');
-    card.className = 'tpl-card';
-    card.innerHTML = `
-      <div class="tpl-main">
-        <span class="tpl-badge">local</span>
-        <div>
-          <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
-          ${t.description ? `<div class="tpl-desc">${t.description}</div>` : ''}
-        </div>
-      </div>
-      <div class="tpl-actions">
-        <button class="btn ghost" type="button">Edit</button>
-        <button class="btn ghost" type="button">Duplicate</button>
-        <button class="btn danger" type="button">Delete</button>
-      </div>
-    `;
-    const [btnEdit, btnDup, btnDel] = card.querySelectorAll('.tpl-actions .btn');
-
-btnEdit.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
-});
-btnDup.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  const copy = { ...t, id: `${t.id || 'u:tpl'}_${Date.now()}`, label: (t.label ? t.label+' (copy)' : 'Untitled (copy)') };
-  const next = loadUserTemplates(); next.unshift(copy); saveUserTemplates(next); buildUserTemplatesUI();
-});
-btnDel.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  const next = loadUserTemplates().filter(x => x.id !== t.id);
-  saveUserTemplates(next); buildUserTemplatesUI();
-});
-
-    wrap.appendChild(card);
-  });
-}
 // moved to ui/intents.grid.js
 const renderIntentGridFromData = window.IntentsGrid.render;
 
@@ -1112,18 +1058,10 @@ const fBody    = document.getElementById('ute_body');
 
 const USER_TPLS_KEY = 'sm_user_templates_v1';   // array of {id:'u:xxx', name:'u:xxx', label, description, fields[], subject, body}
 
-function loadUserTemplates(){
-  try{
-    const raw = localStorage.getItem(USER_TPLS_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    if(Array.isArray(arr)) return arr;
-  }catch(_e){}
-  return [];
-}
-function saveUserTemplates(list){
-  try{ localStorage.setItem(USER_TPLS_KEY, JSON.stringify(list||[])); }catch(_e){}
-}
-
+const userTemplatesAsIntents = window.UserTemplates.asIntents;
+const buildUserTemplatesUI   = window.UserTemplates.buildUI;
+const loadUserTemplates  = window.UserTemplates.loadAll;
+const saveUserTemplates  = window.UserTemplates.saveAll;
 // Convert compact field lines into [{name,type,required,hint?}]
 function parseFieldLines(text){
   const out = [];
@@ -1145,18 +1083,6 @@ function renderLocalTemplate(def, data){
   return { subject: sub(def.subject || ''), body: sub(def.body || '') };
 }
 
-// Build "intent-like" objects so they mix into the grid
-function userTemplatesAsIntents(){
-  return loadUserTemplates().map(t => ({
-    name: t.id,                      // e.g., u:my_quote
-    label: t.label || t.name || t.id,
-    description: t.description || 'Local template',
-    required: (t.fields||[]).filter(f=>f.required).map(f=>f.name),
-    optional: (t.fields||[]).filter(f=>!f.required).map(f=>f.name),
-    fieldTypes: Object.fromEntries((t.fields||[]).map(f=>[f.name, f.type||'string'])),
-    _local: true,
-  }));
-}
 function openEditor(mode, existing){
   if (mode === 'new' && !existing){
     fId.value     = '';                // valid starter id
@@ -1232,26 +1158,27 @@ function collectEditor(){
   const fields = parseFieldLines(fFields.value);
   return { id, name:id, label, description, fields, subject: fSubj.value || '', body: fBody.value || '' };
 }
+  
 function upsertTemplate(def){
-  const all = loadUserTemplates();
+  const all = window.UserTemplates.loadAll();
   const i = all.findIndex(x=>x.id===def.id);
-  if(i>=0) all[i]=def; else all.unshift(def);   // ✅ new first
-  saveUserTemplates(all);
-
+if (i >= 0) all[i] = def; else all.unshift(def);
+  window.UserTemplates.saveAll(all);
   // refresh combined intents + UI + visibility list
   const coreIntents = INTENTS.filter(x => !String(x.name||'').startsWith('u:'));
   INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
   renderIntentGridFromData(INTENTS);
   buildIntentsChecklist();
-  buildUserTemplatesUI();
+ window.UserTemplates.init();
 }
 
 // helper for deleting templates by id (shared by row & top buttons)
 function deleteTemplate(id){
   if(!id) return;
-  // remove from storage
-  const next = loadUserTemplates().filter(t => t.id !== id);
-  saveUserTemplates(next);
+const next = window.UserTemplates.loadAll(); 
+next.unshift(copy); 
+window.UserTemplates.saveAll(next); 
+window.UserTemplates.init();
 
   // also remove from Visible Intents if present
   const vi = loadVisibleIntents();
@@ -1264,7 +1191,7 @@ function deleteTemplate(id){
   // re-render everything
   renderIntentGridFromData(INTENTS);
   buildIntentsChecklist();
-  buildUserTemplatesUI();
+window.UserTemplates.init();
 }
 
 // Cancel button: close dialog and reopen Settings
@@ -1357,8 +1284,9 @@ INTENTS = _intentsFinal;
 // initial render + side-panels
 renderIntentGridFromData(INTENTS);
 buildIntentsChecklist();
-buildUserTemplatesUI();
+window.UserTemplates.init();
 if (window.scheduleAutodetect) window.scheduleAutodetect();
+
 
   } catch (err) {
     console.error('Error initializing schema/intents:', err);
@@ -1997,7 +1925,7 @@ function onSave(e){
   }
   try{
     if(typeof upsertTemplate === 'function') upsertTemplate(def);
-    if(typeof buildUserTemplatesUI === 'function') buildUserTemplatesUI();
+    if(typeof buildUserTemplatesUI === 'function') window.UserTemplates.init();
     if(typeof renderIntentGridFromData === 'function' && Array.isArray(window.INTENTS)){
       renderIntentGridFromData(window.INTENTS);
     }
