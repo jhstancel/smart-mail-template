@@ -1,8 +1,15 @@
 // ===== Visible Intents (persist to localStorage) =====
 const VI_KEY = 'sm_visible_intents_v1';
-// moved to ui/settings.js (keep aliases so old calls work)
-const loadVisibleIntents = window.Settings.loadVisibleIntents;
-const saveVisibleIntents = window.Settings.saveVisibleIntents;
+// moved to ui/settings.js (keep aliases so old calls work) — make them safe
+const loadVisibleIntents = (...args) =>
+  (window.Settings && typeof window.Settings.loadVisibleIntents === 'function')
+    ? window.Settings.loadVisibleIntents(...args)
+    : new Set();
+
+const saveVisibleIntents = (...args) =>
+  (window.Settings && typeof window.Settings.saveVisibleIntents === 'function')
+    ? window.Settings.saveVisibleIntents(...args)
+    : undefined;
 
 function isIntentVisible(name, viSet){
   if(name === 'auto_detect') return true;
@@ -492,8 +499,11 @@ function makeIntentCard(item){
   return div;
 }
 
-// moved to ui/settings.js (keep alias so old calls still work)
-const buildIntentsChecklist = window.Settings.buildIntentsChecklist;
+// moved to ui/settings.js (keep alias so old calls still work) — make it safe
+const buildIntentsChecklist = (...args) =>
+  (window.Settings && typeof window.Settings.buildIntentsChecklist === 'function')
+    ? window.Settings.buildIntentsChecklist(...args)
+    : undefined;
 
 
 
@@ -840,7 +850,7 @@ const renderIntentGridFromData = window.IntentsGrid.render;
 
 
 // Settings wiring moved to ui/settings.js
-Settings.init();
+window.Settings && typeof window.Settings.init === 'function' && window.Settings.init();
 
 
 
