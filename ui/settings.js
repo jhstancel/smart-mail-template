@@ -3,9 +3,9 @@
   const Settings = global.Settings || {};
 
   // --- Storage key (keep name stable to preserve user prefs) ---
-  const STORAGE_KEYS = {
-    visibleIntents: 'visibleIntents'
-  };
+const STORAGE_KEYS = {
+  visibleIntents: 'sm_visible_intents_v1'
+};
 
   // Load the user's visible intents as a Set<string>
   function loadVisibleIntents(){
@@ -112,21 +112,6 @@
 
 
 
-// -- Settings: Visible Intents checklist (moved from app.js; no behavior change) --
-(function attachBuildIntentsChecklist(global){
-  const Settings = global.Settings || (global.Settings = {});
-  // use the same helpers we already moved
-  const loadVisibleIntents = Settings.loadVisibleIntents;
-  const saveVisibleIntents = Settings.saveVisibleIntents;
-
-  function buildIntentsChecklist(){
-    /* PASTE ORIGINAL FUNCTION BODY HERE (unchanged) */
-  }
-
-  Settings.buildIntentsChecklist = buildIntentsChecklist;
-})(window);
-
-
 
 
 
@@ -172,5 +157,86 @@
   }
 
   Settings.init = init;
+})(window);
+
+
+
+
+
+
+
+// -- Settings: Visible Intents checklist (moved from app.js; no behavior change) --
+(function attachBuildIntentsChecklist(global){
+  const Settings = global.Settings || (global.Settings = {});
+  // use the same helpers we already moved
+  const loadVisibleIntents = Settings.loadVisibleIntents;
+  const saveVisibleIntents = Settings.saveVisibleIntents;
+
+function buildIntentsChecklist(){
+  const box = document.getElementById('intentChecks');
+  if(!box) return;
+
+  box.innerHTML = '';
+  const current = loadVisibleIntents(); // Set or null
+
+  // prefer it.industry; else SCHEMA fallback; else "Other"
+  const getIndustry = (it) => {
+    const byIntents = it && it.industry;
+    const bySchema  = (typeof SCHEMA === 'object' && SCHEMA && SCHEMA[it.name] && SCHEMA[it.name].industry) || null;
+    return byIntents || bySchema || 'Other';
+  };
+
+  // bucket items by industry
+  const grouped = {};
+  (INTENTS || []).forEach(it=>{
+    if (!it || it.name === 'auto_detect') return;
+    const key = getIndustry(it);
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(it);
+  });
+
+  // persist selections on change
+  function commitFromUI(){
+    const s = new Set();
+    (INTENTS || []).forEach(it=>{
+      const cb = document.getElementById(`vi_${it.name}`);
+      if(cb && cb.checked) s.add(it.name);
+    });
+    saveVisibleIntents([...s]);
+  }
+
+  // render groups alphabetically; items sorted by label
+  Object.keys(grouped).sort((a,b)=>a.localeCompare(b)).forEach(groupName=>{
+    // header
+    const header = document.createElement('div');
+    header.className = 'vi-section-title';
+    header.textContent = groupName;
+    box.appendChild(header);
+
+    // items
+    grouped[groupName]
+      .slice()
+      .sort((a,b)=>(a.label||a.name).localeCompare(b.label||b.name))
+      .forEach(it=>{
+        const id = `vi_${it.name}`;
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = id;
+        cb.checked = current?.has(it.name);
+        cb.onchange = ()=>commitFromUI();
+
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.textContent = it.label || it.name;
+
+        box.appendChild(cb);
+        box.appendChild(label);
+        box.appendChild(document.createElement('br'));
+      });
+  });
+}
+
+
+  Settings.buildIntentsChecklist = buildIntentsChecklist;
 })(window);
 
