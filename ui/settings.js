@@ -1,18 +1,40 @@
 // ui/settings.js
-// Temporary namespace wrapper. No behavior change.
-// In the next step, we’ll move the actual function bodies here.
-
 (function (global) {
-  // These will be filled from app.js (we’ll wire them below).
-  const Settings = {
-    // placeholders that will be rebound after app.js loads
-    openOnly:    function(){},
-    buildIntentsChecklist: function(){},
-    loadVisibleIntents:    function(){ return new Set(); },
-    saveVisibleIntents:    function(){},
+  const Settings = global.Settings || {};
+
+  // --- Storage key (keep name stable to preserve user prefs) ---
+  const STORAGE_KEYS = {
+    visibleIntents: 'visibleIntents'
   };
 
-  // expose namespace
+  // Load the user's visible intents as a Set<string>
+  function loadVisibleIntents(){
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.visibleIntents);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return new Set(Array.isArray(arr) ? arr : []);
+    } catch (_e) {
+      return new Set();
+    }
+  }
+
+  // Save visible intents from Set<string> or string[]
+  function saveVisibleIntents(list){
+    try {
+      const arr = Array.isArray(list) ? list : Array.from(list || []);
+      localStorage.setItem(STORAGE_KEYS.visibleIntents, JSON.stringify(arr));
+    } catch (_e) {
+      /* no-op */
+    }
+  }
+
+  // Keep existing placeholders for the others (we'll move them later)
+  Settings.loadVisibleIntents = loadVisibleIntents;
+  Settings.saveVisibleIntents = saveVisibleIntents;
+  Settings.openOnly = Settings.openOnly || function(){};
+  Settings.buildIntentsChecklist = Settings.buildIntentsChecklist || function(){};
+
   global.Settings = Settings;
 })(window);
 

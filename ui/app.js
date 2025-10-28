@@ -2,22 +2,10 @@
 
 // ===== Visible Intents (persist to localStorage) =====
 const VI_KEY = 'sm_visible_intents_v1';
+// moved to ui/settings.js (keep aliases so old calls work)
+const loadVisibleIntents = window.Settings.loadVisibleIntents;
+const saveVisibleIntents = window.Settings.saveVisibleIntents;
 
-function loadVisibleIntents(){
-  try{
-    const raw = localStorage.getItem(VI_KEY);
-    if(!raw) return null;
-    const arr = JSON.parse(raw);
-    if(Array.isArray(arr)) return new Set(arr);
-  }catch(_e){}
-  return null;
-}
-function saveVisibleIntents(set){
-  try{
-    const arr = Array.from(set || []);
-    localStorage.setItem(VI_KEY, JSON.stringify(arr));
-  }catch(_e){}
-}
 function isIntentVisible(name, viSet){
   if(name === 'auto_detect') return true;
   if(!viSet) return true;
