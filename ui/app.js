@@ -2445,4 +2445,23 @@ function onSave(e){
   // Wire buttons (single bind)
   if(btnSave)   btnSave.addEventListener('click', onSave,   { once:false });
   if(btnCancel) btnCancel.addEventListener('click', onCancel,{ once:false });
+// === register Settings functions into namespace (no behavior change) ===
+(function bindSettingsNamespace(global){
+  if (!global.Settings) return; // guard if file order changes
+
+  // If these exist in app.js, bind them; otherwise keep placeholders.
+  if (typeof openOnly === 'function') {
+    global.Settings.openOnly = openOnly;
+  }
+  if (typeof buildIntentsChecklist === 'function') {
+    global.Settings.buildIntentsChecklist = buildIntentsChecklist;
+  }
+  if (typeof loadVisibleIntents === 'function') {
+    global.Settings.loadVisibleIntents = loadVisibleIntents;
+  }
+  if (typeof saveVisibleIntents === 'function') {
+    global.Settings.saveVisibleIntents = saveVisibleIntents;
+  }
+})(window);
+
 })();
