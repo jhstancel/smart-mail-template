@@ -739,15 +739,6 @@ function highlightMissing(keys){
 const collectFields   = window.Generate.collectFields;
 
   // Prefer hidden parts JSON (new editor uses #partsHidden; old table uses #f_parts)
-  const partsHidden = document.getElementById('partsHidden') || document.getElementById('f_parts');
-  if(partsHidden){
-    try{
-      const arr = JSON.parse(partsHidden.value || '[]');
-      if(Array.isArray(arr)) fields.parts = arr;
-    }catch(_){}
-  }
-  return fields;
-}
 function selectIntentById(intentId){
   try{
     // Allow schema-backed AND local (u:...) intents
