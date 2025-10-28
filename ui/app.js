@@ -107,6 +107,11 @@ const btnGenerate  = document.getElementById('btnGenerate');
 const outSubject   = document.getElementById('outSubject');
 const outBody      = document.getElementById('outBody');
 
+/* Settings menu elements (used below) */
+const settingsMenu = document.getElementById('settingsMenu');
+const settingsBtn  = document.getElementById('settingsBtn');
+const themeSelect  = document.getElementById('themeSelect');
+
 /* ===== App state ===== */
 let INTENTS = [];            // from /intents
 let SELECTED_INTENT = '';    // '' or 'auto_detect' means auto-mode
@@ -503,6 +508,17 @@ function makeIntentCard(item){
 const buildIntentsChecklist = (...args) =>
   (window.Settings && typeof window.Settings.buildIntentsChecklist === 'function')
     ? window.Settings.buildIntentsChecklist(...args)
+    : undefined;
+
+// Safe wrappers for Settings.openOnly / Settings.closeAllSubs (used below)
+const openOnly = (...args) =>
+  (window.Settings && typeof window.Settings.openOnly === 'function')
+    ? window.Settings.openOnly(...args)
+    : undefined;
+
+const closeAllSubs = (...args) =>
+  (window.Settings && typeof window.Settings.closeAllSubs === 'function')
+    ? window.Settings.closeAllSubs(...args)
     : undefined;
 
 
