@@ -113,173 +113,9 @@ tr.querySelectorAll('input').forEach(inp => {
 
 
 
-/* ===== Canvas: Starfield (subtle) ===== */
-const Starfield = (function(){
-  const c = document.getElementById('stars');
-  const ctx = c.getContext('2d');
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  let stars=[], rafId=null, running=false;
-  function resize(){ c.width=innerWidth*dpr; c.height=innerHeight*dpr; ctx.setTransform(dpr,0,0,dpr,0,0); }
-  function init(){
-    stars = [];
-    const count = Math.floor((innerWidth*innerHeight)/9000);
-    for(let i=0;i<count;i++){
-      stars.push({x:Math.random()*innerWidth, y:Math.random()*innerHeight, r:Math.random()*1.2+0.2, a:Math.random()*0.4+0.4, v:Math.random()*0.04+0.01});
-    }
-  }
-  function draw(){
-    if(!running) return;
-    ctx.clearRect(0,0,innerWidth,innerHeight);
-    stars.forEach(s=>{
-      s.y+=s.v; if(s.y>innerHeight) s.y=-5;
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
-      ctx.fillStyle=`rgba(200,230,255,${s.a})`; ctx.fill();
-    });
-    rafId = requestAnimationFrame(draw);
-  }
-  function start(){ if(running) return; running=true; resize(); init(); draw(); }
-  function stop(){ running=false; if(rafId) cancelAnimationFrame(rafId); }
-  addEventListener('resize', ()=>{ if(running){ resize(); init(); }});
-  return { start, stop };
-})();
-/* ===== Pastell Pets (falling images; spawn once; recycle just above top) ===== */
-const PastellPets = (function(){
-  const LAYER_ID = 'petFlakes';
-  const IMG_LIST = [
-    'ui/pets/cat.png','ui/pets/cat1.png','ui/pets/cat2.jpg','ui/pets/cat3.jpg',
-    'ui/pets/cat4.png','ui/pets/cat5.jpeg','ui/pets/cat6.png','ui/pets/cat7.jpeg',
-    'ui/pets/dog.jpeg','ui/pets/dog1.png'
-  ];
-
-  let enabled = false;
-  let layer = null;
-  let flakes = [];
-  let spawned = false;
-
-  function ensureLayer(){
-    if (layer && document.body.contains(layer)) return layer;
-    layer = document.getElementById(LAYER_ID);
-    if (!layer) {
-      layer = document.createElement('div');
-      layer.id = LAYER_ID;
-      layer.style.position = 'fixed';
-      layer.style.inset = '0';
-      layer.style.pointerEvents = 'none';
-      layer.style.overflow = 'hidden';
-      layer.style.zIndex = '-1';
-      document.body.appendChild(layer);
-    }
-    return layer;
-  }
-
-  function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
-
-  function offscreenY(img){
-    const h = img.naturalHeight || img.getBoundingClientRect().height || 40;
-    const pad = 10 + Math.floor(Math.random()*6); // 10..15px
-    return -(h + pad);
-  }
-
-  function clampColumnsOnResize(){
-    if(!enabled || !flakes.length) return;
-    const W = innerWidth;
-    flakes.forEach(img=>{
-      const w = img.getBoundingClientRect().width || 0;
-      const x = parseFloat(img.style.left) || 0;
-      const maxX = Math.max(0, W - w);
-      if (x > maxX) img.style.left = maxX + 'px';
-    });
-  }
-  addEventListener('resize', clampColumnsOnResize);
-
-  function restartAnimation(img){
-    // force CSS animation to restart cleanly
-    img.style.animation='none';
-    // reflow
-    void img.offsetWidth;
-    img.style.animation='';
-  }
-
-  function recycle(img){
-    img.classList.remove('pop');
-    img.style.top = offscreenY(img) + 'px';  // just above viewport
-    // keep same X/column; keep same duration for conveyor-belt feel
-    restartAnimation(img);
-  }
-
-  function placeInitial(img, x){
-    img.style.left = x + 'px';
-    // Hide until we know the actual height so there’s no on-screen flash
-    img.style.visibility = 'hidden';
-
-    const setY = ()=>{
-      img.style.top = offscreenY(img) + 'px';
-      img.style.visibility = 'visible';
-      restartAnimation(img);
-    };
-
-    // If cached, naturalHeight is available immediately
-    if (img.complete && (img.naturalHeight || img.getBoundingClientRect().height)) {
-      setY();
-    } else {
-      img.addEventListener('load', setY, { once:true });
-      // Safety: if load never fires (rare), do a microtask measure
-      queueMicrotask(()=>{ if (img.style.visibility === 'hidden') setY(); });
-    }
-  }
-
-  function spawnOnce(){
-    if (spawned) return;
-    spawned = true;
-
-    const count = Math.max(14, Math.min(28, Math.round(innerWidth / 80)));
-    const xs = Array.from({length:count}, (_,i)=> Math.round((i+0.5)*(innerWidth/count)));
-
-    xs.forEach(x=>{
-      const img = document.createElement('img');
-      img.className = 'pet-flake';
-      img.src = pick(IMG_LIST);
-      // Width range is modest; keep durations steady for lane illusion
-      const w = (18 + Math.random()*(26-18))|0;
-      img.style.width = w + 'px';
-
-      // sensible defaults for CSS-driven fall (if your CSS uses them)
-      const dur = 55 + Math.random()*10; // long, gentle fall
-      img.style.setProperty('--fall-dur', dur.toFixed(1) + 's');
-      img.style.setProperty('--rot', (Math.random()*24-12).toFixed(1) + 'deg');
-      img.style.setProperty('--drift', ((Math.random()<0.5?-1:1)*(6+Math.random()*8)).toFixed(1) + 'px');
-      img.style.setProperty('--delay', (-Math.random()*dur).toFixed(2) + 's');
-
-      // initial placement (hidden until Y is above viewport)
-      placeInitial(img, x);
-
-      img.addEventListener('animationend', (ev)=>{
-        // If you named your keyframes 'petFallTop', we can check ev.animationName.
-        // Recycling on any end is fine here:
-        recycle(img);
-      });
-
-      ensureLayer().appendChild(img);
-      flakes.push(img);
-    });
-  }
-
-  function enable(){
-    if (enabled) return;
-    enabled = true;
-    ensureLayer().style.display = 'block';
-    if (!flakes.length) spawnOnce();
-  }
-
-  function disable(){
-    enabled = false;
-    spawned = false; // so we can spawn again next time Pastell is picked
-    if (layer) layer.style.display = 'none';
-    // Do NOT remove nodes: keeps memory warm if user toggles back soon.
-  }
-
-  return { enable, disable };
-})();
+// Effects provided by ui/effects/*.js
+const Starfield   = window.Starfield || { start(){}, stop(){} };
+const PastellPets = window.PastellPets || { enable(){}, disable(){} };
 
 /* ===== Tiny helpers ===== */
 const $  = sel => document.querySelector(sel);
@@ -713,60 +549,81 @@ function renderIntentGridFromData(list){
     intentGrid.appendChild(node);
   }
 }
+
 function buildIntentsChecklist(){
   const box = document.getElementById('intentChecks');
   if(!box) return;
 
   box.innerHTML = '';
   const current = loadVisibleIntents(); // Set or null
-  const items = (INTENTS || [])
-    .filter(x => x && x.name !== 'auto_detect')
-    .slice()
-    .sort((a,b) => (a.label||a.name).localeCompare(b.label||b.name));
 
-  // helper to rebuild & render after any change
+  // group by industry (already present on INTENTS)
+  const grouped = {};
+  (INTENTS || []).forEach(it=>{
+    if(!it || it.name === 'auto_detect') return;
+    const key = it.industry || 'Other';
+    (grouped[key] ||= []).push(it);
+  });
+
   function commitFromUI(){
     const s = new Set();
-    items.forEach(it=>{
+    (INTENTS || []).forEach(it=>{
       const cb = document.getElementById(`vi_${it.name}`);
       if(cb && cb.checked) s.add(it.name);
     });
-    saveVisibleIntents(s);
-    renderIntentGridFromData(INTENTS);
-    buildIntentsChecklist();
+    saveVisibleIntents([...s]);
   }
 
-  items.forEach(it=>{
-    const id = `vi_${it.name}`;
-    const wrap = document.createElement('div');
-    wrap.className = 'kv';
-    wrap.innerHTML = `
-      <label class="toggle" for="${id}">
-        <input id="${id}" type="checkbox" ${isIntentVisible(it.name, current) ? 'checked':''} />
-        ${it.label || it.name}
-      </label>
-      <div class="muted">${it.description || ''}</div>
-    `;
-    box.appendChild(wrap);
+  // render groups alphabetically, keep "Other" last
+  Object.keys(grouped)
+    .sort((a,b)=> (a==='Other')-(b==='Other') || a.localeCompare(b))
+    .forEach(groupName=>{
+      // header
+      const header = document.createElement('div');
+      header.className = 'vi-section-title';
+      header.textContent = groupName;
+      box.appendChild(header);
 
-    // live update on toggle
-    const cb = wrap.querySelector('input[type="checkbox"]');
-    if(cb){
-      cb.addEventListener('change', commitFromUI);
-    }
+      // items
+      grouped[groupName]
+        .slice()
+        .sort((a,b)=>(a.label||a.name).localeCompare(b.label||b.name))
+        .forEach(it=>{
+          const id = `vi_${it.name}`;
+          const row = document.createElement('div');
+          row.className = 'kv';
+          row.innerHTML = `
+            <label class="toggle">
+              <input type="checkbox" id="${id}" ${current?.includes(it.name)?'checked':''}/>
+              <span style="font-weight:800">${it.label || it.name}</span>
+            </label>
+            <div class="muted">${it.description || ''}</div>
+          `;
+          row.querySelector('input').addEventListener('change', commitFromUI);
+          box.appendChild(row);
+        });
+    });
+
+  // keep your existing buttons working
+  document.getElementById('vi_save') ?.addEventListener('click', commitFromUI);
+  document.getElementById('vi_all')  ?.addEventListener('click', ()=>{
+    (INTENTS||[]).forEach(it=>{ const cb = document.getElementById(`vi_${it.name}`); if(cb) cb.checked = true; });
+    commitFromUI();
   });
-
-  // Buttons
-  const btnSave  = document.getElementById('vi_save');
-  const btnAll   = document.getElementById('vi_all');
-  const btnNone  = document.getElementById('vi_none');
-  const btnReset = document.getElementById('vi_reset');
-
-  if(btnSave)  btnSave.onclick  = commitFromUI;
-  if(btnAll)   btnAll.onclick   = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=true; }); commitFromUI(); };
-  if(btnNone)  btnNone.onclick  = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=false;}); commitFromUI(); };
-  if(btnReset) btnReset.onclick = ()=>{ localStorage.removeItem(VI_KEY); buildIntentsChecklist(); renderIntentGridFromData(INTENTS); };
+  document.getElementById('vi_none') ?.addEventListener('click', ()=>{
+    (INTENTS||[]).forEach(it=>{ const cb = document.getElementById(`vi_${it.name}`); if(cb) cb.checked = false; });
+    commitFromUI();
+  });
+  document.getElementById('vi_reset')?.addEventListener('click', ()=>{
+    const restored = loadVisibleIntents();
+    (INTENTS||[]).forEach(it=>{
+      const cb = document.getElementById(`vi_${it.name}`);
+      if(cb) cb.checked = restored ? restored.includes(it.name) : false;
+    });
+    commitFromUI();
+  });
 }
+
 
 async function loadIntents(){
   try{
