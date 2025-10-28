@@ -1507,43 +1507,15 @@ async function runCorruption(){
   if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
   try {
-const { schema: _schema, intents: _intents } = await Data.fetchAll();
-SCHEMA = _schema;
-const data = _intents;
+// one-shot hydration (schema + intents + optional user templates)
+const { schema: _schema, intents: _intentsFinal } = await Data.hydrateAll({ mergeUserTemplates: true });
+SCHEMA  = _schema;
+INTENTS = _intentsFinal;
 
-    // Render cards dynamically from schema/intents
-if (Array.isArray(data) && data.length) {
-  // Include auto_detect
-  INTENTS = data.map(x => ({
-  name: x.id,
-  label: x.label || x.id,
-  description: "",
-  required: [],
-  hidden: false,
-  industry: x.industry || "Other"
-}));
-
-  // Put Auto Detect first
-  INTENTS.sort((a, b) => (a.name === 'auto_detect' ? -1 : b.name === 'auto_detect' ? 1 : a.label.localeCompare(b.label)));
-} else {
-  // No /intents endpoint or empty → build from schema directly
-  INTENTS = Object.keys(SCHEMA).map(k => ({
-    name: k,
-    label: SCHEMA[k].label || toTitle(k),
-    description: SCHEMA[k].description || '',
-    required: SCHEMA[k].required || [],
-    hidden: false
-  }));
-  INTENTS.sort((a, b) => (a.name === 'auto_detect' ? -1 : b.name === 'auto_detect' ? 1 : a.label.localeCompare(b.label)));
-}
-
-    // --- Merge local templates (My Templates) ---
-    const coreIntents = INTENTS;
-    const localIntents = userTemplatesAsIntents();
-    INTENTS = [...coreIntents, ...localIntents];
+// initial render + side-panels
 renderIntentGridFromData(INTENTS);
 buildIntentsChecklist();
-buildUserTemplatesUI(); // populate the My Templates list
+buildUserTemplatesUI();
 if (window.scheduleAutodetect) window.scheduleAutodetect();
 
   } catch (err) {
