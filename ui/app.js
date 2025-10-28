@@ -512,39 +512,8 @@ async function loadIntents(){
 
 
 
-// Robust event delegation for My Templates list (works after list rebuilds)
-(function wireUserTplListDelegation(){
-  const list = document.getElementById('userTplList');
-  if (!list) return;
-  list.addEventListener('click', (e)=>{
-    const btn = e.target.closest('[data-ut-action]');
-    if(!btn) return;
-
-    e.preventDefault(); e.stopPropagation();
-    const action = btn.getAttribute('data-ut-action');
-    const id = btn.getAttribute('data-ut-id');
-const all = window.UserTemplates.loadAll();
-    
-const tpl = all.find(t => t.id === id);
-
-    if(action === 'edit' && typeof openEditor === 'function'){
-      openEditor('edit', tpl);
-      return;
-    }
-    if(action === 'dup' && typeof openEditor === 'function'){
-      openEditor('dup', tpl);
-      return;
-    }
-    if(action === 'delete' && typeof deleteTemplate === 'function'){
-      deleteTemplate(id);
-      return;
-    }
-  });
-})();
-
 
 // === Order Request: Parts editor (Part Number + Quantity with inline +/–) ===
-
 function initOrderRequestPartsEditor(container) {
 // Clear and use the card itself (same as other fields)
 container.innerHTML = "";
@@ -1060,8 +1029,6 @@ const USER_TPLS_KEY = 'sm_user_templates_v1';   // array of {id:'u:xxx', name:'u
 
 const userTemplatesAsIntents = window.UserTemplates.asIntents;
 const buildUserTemplatesUI   = window.UserTemplates.buildUI;
-const loadUserTemplates  = window.UserTemplates.loadAll;
-const saveUserTemplates  = window.UserTemplates.saveAll;
 // Convert compact field lines into [{name,type,required,hint?}]
 function parseFieldLines(text){
   const out = [];
@@ -1175,10 +1142,11 @@ if (i >= 0) all[i] = def; else all.unshift(def);
 // helper for deleting templates by id (shared by row & top buttons)
 function deleteTemplate(id){
   if(!id) return;
-const next = window.UserTemplates.loadAll(); 
-next.unshift(copy); 
-window.UserTemplates.saveAll(next); 
-window.UserTemplates.init();
+
+  // remove from storage
+  const next = window.UserTemplates.loadAll().filter(t => t.id !== id);
+  window.UserTemplates.saveAll(next);
+  window.UserTemplates.init();
 
   // also remove from Visible Intents if present
   const vi = loadVisibleIntents();
@@ -1191,7 +1159,7 @@ window.UserTemplates.init();
   // re-render everything
   renderIntentGridFromData(INTENTS);
   buildIntentsChecklist();
-window.UserTemplates.init();
+  window.UserTemplates.init();
 }
 
 // Cancel button: close dialog and reopen Settings
