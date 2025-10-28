@@ -163,157 +163,87 @@ const STORAGE_KEYS = {
 
 
 
-
-
-// -- Settings: Visible Intents checklist (moved from app.js; no behavior change) --
 (function attachBuildIntentsChecklist(global){
   const Settings = global.Settings || (global.Settings = {});
-  // use the same helpers we already moved
   const loadVisibleIntents = Settings.loadVisibleIntents;
   const saveVisibleIntents = Settings.saveVisibleIntents;
 
-function buildIntentsChecklist(){
-  const box = document.getElementById('intentChecks');
-  if(!box) return;
-
-  box.innerHTML = '';
-  const current = loadVisibleIntents(); // Set or null
-
-  // prefer it.industry; else SCHEMA fallback; else "Other"
-  const getIndustry = (it) => {
-    const byIntents = it && it.industry;
-    const bySchema  = (typeof SCHEMA === 'object' && SCHEMA && SCHEMA[it.name] && SCHEMA[it.name].industry) || null;
-    return byIntents || bySchema || 'Other';
-  };
-
-  // bucket items by industry
-  const grouped = {};
-  (INTENTS || []).forEach(it=>{
-    if (!it || it.name === 'auto_detect') return;
-    const key = getIndustry(it);
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(it);
-  });
-
-  // persist selections on change
-  function commitFromUI(){
-    const s = new Set();
-    (INTENTS || []).forEach(it=>{
-      const cb = document.getElementById(`vi_${it.name}`);
-      if(cb && cb.checked) s.add(it.name);
-    });
-    saveVisibleIntents([...s]);
-  }
-
-  // render groups alphabetically; items sorted by label
-  Object.keys(grouped).sort((a,b)=>a.localeCompare(b)).forEach(groupName=>{
-    // header
-    const header = document.createElement('div');
-    header.className = 'vi-section-title';
-    header.textContent = groupName;
-    box.appendChild(header);
-
-    // items
-    grouped[groupName]
-      .slice()
-      .sort((a,b)=>(a.label||a.name).localeCompare(b.label||b.name))
-      .forEach(it=>{
-        const id = `vi_${it.name}`;
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.id = id;
-        cb.checked = current?.has(it.name);
-        cb.onchange = ()=>commitFromUI();
-
-        const label = document.createElement('label');
-        label.htmlFor = id;
-        label.textContent = it.label || it.name;
-
-        box.appendChild(cb);
-        box.appendChild(label);
-        box.appendChild(document.createElement('br'));
-      });
-  });
-}
-  Settings.buildIntentsChecklist = buildIntentsChecklist;
-})(window);
-
-
-
-
-
-
-
-
-
-
-
-
-
-(function(){
-  const VI_KEY = 'sm_visible_intents_v1'; // must match app.js expectation
-
-  function toSet(arr){
-    const s = new Set();
-    (arr || []).forEach(x => { if (x) s.add(String(x)); });
-    return s;
-  }
-
-  function loadVisibleIntents(){
+  // Helper: safe description (prefer /intents payload; fallback to SCHEMA)
+  function getDescription(it){
+    const d = it?.description;
+    if (d) return d;
     try {
-      const raw = localStorage.getItem(VI_KEY);
-      if (!raw) return new Set();
-      const arr = JSON.parse(raw);
-      return toSet(arr);
-    } catch(_) { return new Set(); }
+      const meta = (global.SCHEMA && (global.SCHEMA[it.id] || global.SCHEMA[it.name])) || null;
+      return (meta && meta.description) || '';
+    } catch { return ''; }
   }
 
-  function saveVisibleIntents(set){
+  // Helper: industry with fallbacks
+  function getIndustry(it){
+    if (it?.industry) return it.industry;
     try {
-      const arr = Array.from(set || []);
-      localStorage.setItem(VI_KEY, JSON.stringify(arr));
-    } catch(_) {}
+      const meta = (global.SCHEMA && (global.SCHEMA[it.id] || global.SCHEMA[it.name])) || null;
+      return (meta && meta.industry) || 'Other';
+    } catch { return 'Other'; }
   }
 
-  // Build the checklist, grouped by industry headers if present
   function buildIntentsChecklist(){
     const box = document.getElementById('intentChecks');
     if (!box) return;
 
-    const vi = loadVisibleIntents();
-    const list = Array.isArray(window.INTENTS) ? window.INTENTS.slice() : [];
+    const vi = loadVisibleIntents();                 // Set<string> of ids
+    const list = Array.isArray(global.INTENTS) ? global.INTENTS.slice() : [];
 
-    // group by industry
+    // Group by industry (stable order)
     const groups = new Map();
     for (const it of list){
-      const key = it.industry || 'Other';
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(it);
+      // Normalize shape: prefer `id` (backend) but handle older `name`
+      const id = it.id || it.name;
+      const label = it.label || id;
+      const industry = getIndustry(it);
+      const desc = getDescription(it);
+
+      const norm = { id, label, industry, description: desc };
+      if (!groups.has(industry)) groups.set(industry, []);
+      groups.get(industry).push(norm);
     }
 
-    // render
+    // Render
     box.innerHTML = '';
     for (const [group, items] of groups){
+      // Section header
       const h = document.createElement('div');
       h.className = 'vi-section-title';
       h.textContent = group;
       box.appendChild(h);
 
+      // Items
+      items.sort((a,b)=>a.label.localeCompare(b.label));
       for (const it of items){
-        const id = `vi_${it.id}`;
         const row = document.createElement('div');
         row.className = 'kv';
 
-        const label = document.createElement('label');
-        label.htmlFor = id;
-        label.innerHTML = `<b>${it.label || it.id}</b><div class="muted">${it.description || ''}</div>`;
+        const id = `vi_${it.id}`;
 
         const cb = document.createElement('input');
         cb.type = 'checkbox';
         cb.id = id;
-        cb.checked = vi.size ? vi.has(it.id) : (it.id === 'auto_detect' || it.id === 'delay_notice'); // keep your preferred defaults
+
+        // Default state (first run): keep Auto Detect and Delay Notice visible
+        const defaultOn = (it.id === 'auto_detect' || it.id === 'delay_notice');
+        cb.checked = vi.size ? vi.has(it.id) : defaultOn;
+
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.innerHTML = `<b>${it.label}</b>${it.description ? `<div class="muted">${it.description}</div>` : ''}`;
+
+        // LIVE UPDATE: save + re-render grid immediately on toggle
         cb.addEventListener('change', ()=>{
           if (cb.checked) vi.add(it.id); else vi.delete(it.id);
+          saveVisibleIntents(vi);
+          if (typeof global.renderIntentGridFromData === 'function' && Array.isArray(global.INTENTS)) {
+            global.renderIntentGridFromData(global.INTENTS);
+          }
         });
 
         row.appendChild(cb);
@@ -322,69 +252,133 @@ function buildIntentsChecklist(){
       }
     }
 
-    // Buttons
+    // Footer buttons
     const btnSave  = document.getElementById('vi_save');
     const btnAll   = document.getElementById('vi_all');
     const btnNone  = document.getElementById('vi_none');
     const btnReset = document.getElementById('vi_reset');
 
+    // “Save” is now optional (toggling already saves), but keep it
     btnSave && btnSave.addEventListener('click', ()=>{
       saveVisibleIntents(vi);
-      // immediate refresh of the grid using current global INTENTS
-      if (window.renderIntentGridFromData && Array.isArray(window.INTENTS)) {
-        window.renderIntentGridFromData(window.INTENTS);
+      if (typeof global.renderIntentGridFromData === 'function' && Array.isArray(global.INTENTS)) {
+        global.renderIntentGridFromData(global.INTENTS);
       }
     });
 
     btnAll && btnAll.addEventListener('click', ()=>{
-      (window.INTENTS || []).forEach(it => vi.add(it.id));
-      // reflect in UI
+      (global.INTENTS || []).forEach(it => vi.add(it.id || it.name));
+      saveVisibleIntents(vi);
+      // reflect UI and grid
       box.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = true);
+      if (typeof global.renderIntentGridFromData === 'function' && Array.isArray(global.INTENTS)) {
+        global.renderIntentGridFromData(global.INTENTS);
+      }
     });
 
     btnNone && btnNone.addEventListener('click', ()=>{
       vi.clear();
+      saveVisibleIntents(vi);
       box.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+      if (typeof global.renderIntentGridFromData === 'function' && Array.isArray(global.INTENTS)) {
+        global.renderIntentGridFromData(global.INTENTS);
+      }
     });
 
     btnReset && btnReset.addEventListener('click', ()=>{
-      vi.clear();
-      // your defaults: keep auto_detect
-      vi.add('auto_detect');
+      vi.clear(); vi.add('auto_detect'); vi.add('delay_notice');
+      saveVisibleIntents(vi);
       box.querySelectorAll('input[type=checkbox]').forEach(cb => {
-        const id = cb.id.replace(/^vi_/, '');
+        const id = cb.id.replace(/^vi_/,'');
         cb.checked = vi.has(id);
       });
+      if (typeof global.renderIntentGridFromData === 'function' && Array.isArray(global.INTENTS)) {
+        global.renderIntentGridFromData(global.INTENTS);
+      }
     });
   }
 
-  // expose to app.js
-  window.Settings = Object.assign(window.Settings || {}, {
-    loadVisibleIntents,
-    saveVisibleIntents,
-    buildIntentsChecklist,
-    openOnly(which){
-      // keep your existing openOnly code if you had one; this is a safe stub
-      document.querySelectorAll('.settings-subpanel').forEach(p=>p.classList.remove('open'));
-      const id = which === 'intents' ? 'subIntents'
-              : which === 'theme'   ? 'subTheme'
-              : which === 'typing'  ? 'subTyping'
-              : which === 'usertpls'? 'subUserTpls'
-              : which === 'defaults'? 'subDefaults'
-              : '';
-      if (id) document.getElementById(id)?.classList.add('open');
-      const row = document.querySelector(`.settings-item[data-item="${which}"] .chev`);
-      document.querySelectorAll('.settings-item .chev').forEach(c=>c.classList.remove('rot90'));
-      row?.classList.add('rot90');
-    },
-    closeAllSubs(){
-      document.querySelectorAll('.settings-subpanel').forEach(p=>p.classList.remove('open'));
-      document.querySelectorAll('.settings-item .chev').forEach(c=>c.classList.remove('rot90'));
-    },
-    init(){
-      // build on load so the panel is ready
-      buildIntentsChecklist();
-    }
-  });
-})();
+  Settings.buildIntentsChecklist = buildIntentsChecklist;
+})(window);
+
+
+
+
+
+
+// --- Consolidated Visible Intents + live grid refresh ---
+(function (global) {
+  const Settings = global.Settings || (global.Settings = {});
+  const VI_KEY = 'sm_visible_intents_v1'; // must match app.js expectation
+
+  function toSet(arr) {
+    const s = new Set();
+    (arr || []).forEach(x => { if (x) s.add(String(x)); });
+    return s;
+  }
+
+  function loadVisibleIntents() {
+    try {
+      const raw = localStorage.getItem(VI_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return toSet(arr);
+    } catch (_) { return new Set(); }
+  }
+
+  function saveVisibleIntents(set) {
+    try {
+      const arr = Array.from(set || []);
+      localStorage.setItem(VI_KEY, JSON.stringify(arr));
+    } catch (_) {}
+  }
+
+  // 🟢 Reassign the canonical functions (remove duplicates above)
+  Settings.loadVisibleIntents = loadVisibleIntents;
+  Settings.saveVisibleIntents = saveVisibleIntents;
+
+  // 🟢 Patch buildIntentsChecklist to live-refresh grid
+  const origBuild = Settings.buildIntentsChecklist;
+  Settings.buildIntentsChecklist = function(){
+    if (typeof origBuild !== 'function') return;
+    origBuild();
+
+    // ensure all checkboxes trigger live refresh
+    const box = document.getElementById('intentChecks');
+    if (!box) return;
+    box.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (typeof global.renderIntentGridFromData === 'function' && Array.isArray(global.INTENTS)) {
+          global.renderIntentGridFromData(global.INTENTS);
+        }
+      });
+    });
+  };
+
+  // 🟢 Keep existing panel open/close stubs for compatibility
+  Settings.openOnly = Settings.openOnly || function(which) {
+    document.querySelectorAll('.settings-subpanel').forEach(p => p.classList.remove('open'));
+    const id = which === 'intents' ? 'subIntents'
+            : which === 'theme'   ? 'subTheme'
+            : which === 'typing'  ? 'subTyping'
+            : which === 'usertpls'? 'subUserTpls'
+            : which === 'defaults'? 'subDefaults'
+            : '';
+    if (id) document.getElementById(id)?.classList.add('open');
+    const row = document.querySelector(`.settings-item[data-item="${which}"] .chev`);
+    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+    row?.classList.add('rot90');
+  };
+
+  Settings.closeAllSubs = Settings.closeAllSubs || function(){
+    document.querySelectorAll('.settings-subpanel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+  };
+
+  Settings.init = Settings.init || function(){
+    Settings.buildIntentsChecklist();
+  };
+
+  global.Settings = Settings;
+})(window);
 

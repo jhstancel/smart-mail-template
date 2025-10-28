@@ -22,28 +22,37 @@
 
   global.Data = { fetchSchema, fetchIntents, fetchAll };
 })(window);
-// --- Higher-level hydration (no behavior change) ---
+
+// --- Higher-level hydration (normalized INTENTS) ---
 (function (global) {
   const Data = global.Data || (global.Data = {});
 
-  // map /intents rows to your INTENTS item shape
-  function mapIntentRow(x) {
+  // Normalize one /intents row with SCHEMA fallbacks:
+  // id (canonical), name (alias), label, description, industry
+  function mapIntentRow(x, schemaById) {
+    const id   = x.id || x.name;
+    const meta = (schemaById && schemaById[id]) || {};
     return {
-      name: x.id,
-      label: x.label || x.id,
-      description: "",     // unchanged: UI fills/overrides elsewhere
-      required: [],        // unchanged
-      hidden: false,       // unchanged
-      industry: x.industry || "Other"
+      id,                     // canonical
+      name: id,               // alias for older code paths
+      label: x.label || meta.label || id,
+      description: x.description || meta.description || '',
+      industry: x.industry || meta.industry || 'Other',
+      // keep shape-compatible fields if callers expect them
+      required: Array.isArray(meta.required) ? meta.required.slice() : [],
+      hidden: false
     };
   }
 
-  // Merge optional user templates (if your app defines userTemplatesAsIntents)
   function mergeUserTemplates(coreIntents) {
-    const extra = (global.userTemplatesAsIntents && typeof global.userTemplatesAsIntents === 'function')
-      ? global.userTemplatesAsIntents()
-      : [];
-    // keep order: core first, then user-defined
+    // Prefer the new namespace; fall back if older alias is present
+    const asIntents =
+      (global.UserTemplates && typeof global.UserTemplates.asIntents === 'function')
+        ? global.UserTemplates.asIntents
+        : (global.userTemplatesAsIntents && typeof global.userTemplatesAsIntents === 'function')
+            ? global.userTemplatesAsIntents
+            : null;
+    const extra = asIntents ? asIntents() : [];
     return [...coreIntents, ...extra];
   }
 
@@ -53,7 +62,8 @@
    */
   async function hydrateAll(opts = {}) {
     const { schema, intents } = await Data.fetchAll();
-    const core = Array.isArray(intents) ? intents.map(mapIntentRow) : [];
+    const schemaById = (schema && typeof schema === 'object') ? schema : {};
+    const core = Array.isArray(intents) ? intents.map(row => mapIntentRow(row, schemaById)) : [];
     const merged = (opts.mergeUserTemplates ?? true) ? mergeUserTemplates(core) : core;
     return { schema, intents: merged };
   }
