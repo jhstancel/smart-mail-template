@@ -1,5 +1,3 @@
-
-
 // ===== Visible Intents (persist to localStorage) =====
 const VI_KEY = 'sm_visible_intents_v1';
 // moved to ui/settings.js (keep aliases so old calls work)
@@ -538,80 +536,8 @@ function renderIntentGridFromData(list){
   }
 }
 
-function buildIntentsChecklist(){
-  const box = document.getElementById('intentChecks');
-  if(!box) return;
-
-  box.innerHTML = '';
-  const current = loadVisibleIntents(); // Set or null
-
-  // group by industry (already present on INTENTS)
-  const grouped = {};
-  (INTENTS || []).forEach(it=>{
-    if(!it || it.name === 'auto_detect') return;
-    const key = it.industry || 'Other';
-    (grouped[key] ||= []).push(it);
-  });
-
-  function commitFromUI(){
-    const s = new Set();
-    (INTENTS || []).forEach(it=>{
-      const cb = document.getElementById(`vi_${it.name}`);
-      if(cb && cb.checked) s.add(it.name);
-    });
-    saveVisibleIntents([...s]);
-  }
-
-  // render groups alphabetically, keep "Other" last
-  Object.keys(grouped)
-    .sort((a,b)=> (a==='Other')-(b==='Other') || a.localeCompare(b))
-    .forEach(groupName=>{
-      // header
-      const header = document.createElement('div');
-      header.className = 'vi-section-title';
-      header.textContent = groupName;
-      box.appendChild(header);
-
-      // items
-      grouped[groupName]
-        .slice()
-        .sort((a,b)=>(a.label||a.name).localeCompare(b.label||b.name))
-        .forEach(it=>{
-          const id = `vi_${it.name}`;
-          const row = document.createElement('div');
-          row.className = 'kv';
-          row.innerHTML = `
-            <label class="toggle">
-<input type="checkbox" id="${id}" ${current?.has(it.name)?'checked':''}/>
-              
-              <span style="font-weight:800">${it.label || it.name}</span>
-            </label>
-            <div class="muted">${it.description || ''}</div>
-          `;
-          row.querySelector('input').addEventListener('change', commitFromUI);
-          box.appendChild(row);
-        });
-    });
-
-  // keep your existing buttons working
-  document.getElementById('vi_save') ?.addEventListener('click', commitFromUI);
-  document.getElementById('vi_all')  ?.addEventListener('click', ()=>{
-    (INTENTS||[]).forEach(it=>{ const cb = document.getElementById(`vi_${it.name}`); if(cb) cb.checked = true; });
-    commitFromUI();
-  });
-  document.getElementById('vi_none') ?.addEventListener('click', ()=>{
-    (INTENTS||[]).forEach(it=>{ const cb = document.getElementById(`vi_${it.name}`); if(cb) cb.checked = false; });
-    commitFromUI();
-  });
-  document.getElementById('vi_reset')?.addEventListener('click', ()=>{
-    const restored = loadVisibleIntents();
-(INTENTS||[]).forEach(it=>{
-  const cb = document.getElementById(`vi_${it.name}`);
-  if(cb) cb.checked = restored ? restored.has(it.name) : false;
-});
-commitFromUI();
-  });
-}
+// moved to ui/settings.js (keep alias so old calls still work)
+const buildIntentsChecklist = window.Settings.buildIntentsChecklist;
 
 
 async function loadIntents(){

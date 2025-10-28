@@ -38,6 +38,13 @@
   global.Settings = Settings;
 })(window);
 
+
+
+
+
+
+
+
 // -- Settings panel open/close (self-contained) --
 (function attachOpenOnly(global){
   // local helpers
@@ -95,5 +102,27 @@
   }
 
   (global.Settings = global.Settings || {}).openOnly = openOnly;
+})(window);
+
+
+
+
+
+
+
+
+
+// -- Settings: Visible Intents checklist (moved from app.js; no behavior change) --
+(function attachBuildIntentsChecklist(global){
+  const Settings = global.Settings || (global.Settings = {});
+  // use the same helpers we already moved
+  const loadVisibleIntents = Settings.loadVisibleIntents;
+  const saveVisibleIntents = Settings.saveVisibleIntents;
+
+  function buildIntentsChecklist(){
+    /* PASTE ORIGINAL FUNCTION BODY HERE (unchanged) */
+  }
+
+  Settings.buildIntentsChecklist = buildIntentsChecklist;
 })(window);
 
