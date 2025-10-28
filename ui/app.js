@@ -60,25 +60,7 @@ function smartParseParts(raw){
   return out;
 }
 
-function syncPartsHidden(){
-  const hidden = document.getElementById('f_parts');
-  if(!hidden) return;
-
-  const tbody = document.querySelector('#parts_table tbody');
-  if(tbody){
-    const rows = [...tbody.querySelectorAll('tr')].map(tr=>{
-      const pn  = tr.querySelector('input[data-k="partNumber"]')?.value?.trim();
-      const qty = tr.querySelector('input[data-k="quantity"]')?.value?.trim();
-      return (pn && qty) ? { partNumber: pn, quantity: qty } : null;
-    }).filter(Boolean);
-    hidden.value = rows.length ? JSON.stringify(rows) : '[]';
-  } else {
-    const raw = document.getElementById('f_parts_text')?.value || '';
-    const parsed = smartParseParts(raw);
-    hidden.value = parsed.length ? JSON.stringify(parsed) : '[]';
-  }
-}
-
+const syncPartsHidden = window.Generate.syncPartsHidden;
 function addPartsRow(tbody, partNumber = "", quantity = ""){
   const tr = document.createElement('tr');
   tr.innerHTML = `
@@ -509,33 +491,6 @@ function makeIntentCard(item){
 
   return div;
 }
-function renderIntentGridFromData(list){
-  intentGrid.innerHTML = '';
-
-  const viSet = loadVisibleIntents(); // Set or null
-  const visible = Array.isArray(list)
-    ? list.filter(x => !x.hidden && isIntentVisible(x.name, viSet))
-    : [];
-  const normals = visible
-    .filter(x => x.name !== 'auto_detect')
-    .sort((a,b)=>{
-      const ao = typeof a.order === 'number' ? a.order : 1_000_000;
-      const bo = typeof b.order === 'number' ? b.order : 1_000_000;
-      if (ao !== bo) return ao - bo;
-      const al = (a.label || a.name).toLowerCase();
-      const bl = (b.label || b.name).toLowerCase();
-      return al.localeCompare(bl);
-    });
-
-  normals.forEach(x => intentGrid.appendChild(makeIntentCard(x)));
-
-  const auto = visible.find(x => x.name === 'auto_detect');
-  if (auto){
-    const node = makeIntentCard(auto);
-    node.style.background = 'linear-gradient(180deg, var(--card-bg1), var(--card-bg2))';
-    intentGrid.appendChild(node);
-  }
-}
 
 // moved to ui/settings.js (keep alias so old calls still work)
 const buildIntentsChecklist = window.Settings.buildIntentsChecklist;
@@ -781,15 +736,7 @@ function highlightMissing(keys){
     }
   });
 }
-function collectFields(intent){
-  const fields = {};
-  document.querySelectorAll('#fields [id^="f_"]').forEach(el=>{
-    const key = el.id.slice(2);
-    if(!key) return;
-    if(el.tagName === 'SELECT') fields[key] = el.value;
-    else if(el.type === 'checkbox') fields[key] = !!el.checked;
-    else fields[key] = el.value ?? '';
-  });
+const collectFields   = window.Generate.collectFields;
 
   // Prefer hidden parts JSON (new editor uses #partsHidden; old table uses #f_parts)
   const partsHidden = document.getElementById('partsHidden') || document.getElementById('f_parts');
@@ -830,28 +777,9 @@ function selectIntentById(intentId){
   }
 }
 
-async function doGenerate(){
-  const btn = btnGenerate;
+const doGenerate      = window.Generate.doGenerate;
 
-  try{
-    if(btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); }
 
-    // Local template? Render on the client and return early
-    if(SELECTED_INTENT && SELECTED_INTENT.startsWith('u:')){
-      const defs = loadUserTemplates();
-      const def  = defs.find(t=>t.id===SELECTED_INTENT);
-      if(def){
-        const out = renderLocalTemplate(def, collectFields(SELECTED_INTENT));
-        if(liveState.compose){
-          await typeInto(outSubject, out.subject || '');
-          await typeInto(outBody,    out.body || '');
-        }else{
-          if(outSubject) outSubject.textContent = out.subject || '';
-          if(outBody)    outBody.textContent    = out.body || '';
-        }
-        return;
-      }
-    }
 const usingAuto = !SELECTED_INTENT || SELECTED_INTENT === 'auto_detect';
 
 let intent = SELECTED_INTENT;
@@ -1080,6 +1008,8 @@ btnDel.addEventListener('click', (e)=>{
     wrap.appendChild(card);
   });
 }
+// moved to ui/intents.grid.js
+const renderIntentGridFromData = window.IntentsGrid.render;
 
 
 // Settings wiring moved to ui/settings.js
