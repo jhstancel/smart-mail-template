@@ -954,46 +954,68 @@ on(themeSelect, 'change', ()=>{
       flashBtn(copyBodyBtn, 'Copied');
     });
   }
-if(clearBtn){
-  clearBtn.addEventListener('click', ()=>{
-    if(outSubject) outSubject.textContent = '';
-    if(outBody)    outBody.textContent = '';
-    document.querySelectorAll('#fields input, #fields select, #fields textarea')
-      .forEach(i=> i.value = '');
-    flashBtn(clearBtn, 'Cleared');
+if (clearBtn) {
+  clearBtn.addEventListener('click', () => {
+    // Clear outputs
+    if (outSubject) outSubject.value = '';
+    if (outBody)    outBody.value = '';
+
+    // Clear all fields (inputs, selects, textareas)
+    document.querySelectorAll('#fields input, #fields select, #fields textarea').forEach(el => {
+      if (el.tagName === 'INPUT') {
+        const t = el.getAttribute('type');
+        if (t === 'checkbox' || t === 'radio') {
+          el.checked = false;
+        } else {
+          el.value = '';
+        }
+      } else if (el.tagName === 'SELECT') {
+        el.selectedIndex = 0;  // or = -1 if you want nothing selected
+      } else {
+        // textarea or other
+        el.value = '';
+      }
+    });
+
+    // Optional UI feedback
+    if (typeof flashBtn === 'function') {
+      flashBtn(clearBtn, 'Cleared');
+    } else if (window.UX?.notify) {
+      window.UX.notify('Cleared');
+    }
   });
 }
 
-  /* ===== Global Defaults wiring ===== */
-  loadGlobalDefaults(); // hydrate Settings UI with saved values (if any)
+/* ===== Global Defaults wiring ===== */
+loadGlobalDefaults(); // hydrate Settings UI with saved values (if any)
 
-  const gAddr  = document.getElementById('g_shipAddress');
-  const gAcct  = document.getElementById('g_fedexAccount');
-  const gSave  = document.getElementById('g_save');
-  const gApply = document.getElementById('g_apply');
-  const gClear = document.getElementById('g_clear');
+const gAddr  = document.getElementById('g_shipAddress');
+const gAcct  = document.getElementById('g_fedexAccount');
+const gSave  = document.getElementById('g_save');
+const gApply = document.getElementById('g_apply');
+const gClear = document.getElementById('g_clear');
 
-  function captureDefaultsFromUI(){
-    GLOBAL_DEFAULTS.shipAddress  = (gAddr?.value || '').trim();
-  }
+function captureDefaultsFromUI() {
+  GLOBAL_DEFAULTS.shipAddress = (gAddr?.value || '').trim();
+  GLOBAL_DEFAULTS.fedexAccount = (gAcct?.value || '').trim();
+}
 
-  if(gApply){
-    gApply.addEventListener('click', ()=>{
-      captureDefaultsFromUI();
-      if(gSave?.checked) saveGlobalDefaults();
-      // Re-render fields for current intent so defaults prefill immediately
-      if(SELECTED_INTENT){ renderFields(SELECTED_INTENT); }
-    });
-  }
+if (gApply) {
+  gApply.addEventListener('click', () => {
+    captureDefaultsFromUI();
+    if (gSave?.checked) saveGlobalDefaults();
+    // Re-render fields for current intent so defaults prefill immediately
+    if (SELECTED_INTENT) { renderFields(SELECTED_INTENT); }
+  });
+}
 
-  if(gClear){
-    gClear.addEventListener('click', ()=>{
-      const persist = !!gSave?.checked;
-      clearGlobalDefaults(persist);
-      if(SELECTED_INTENT){ renderFields(SELECTED_INTENT); }
-    });
-  }
-})();
+if (gClear) {
+  gClear.addEventListener('click', () => {
+    const persist = !!gSave?.checked;
+    clearGlobalDefaults(persist);
+    if (SELECTED_INTENT) { renderFields(SELECTED_INTENT); }
+  });
+}
 
 
 
@@ -1934,7 +1956,6 @@ function onSave(e){
     selectIntentById(def.id);                            // show its fields
     // close dialog + settings so user sees the main composer
     dlg.close?.();
-    const settingsMenu = document.getElementById('settingsMenu');
     settingsMenu?.classList.remove('open');
     document.getElementById('settingsBtn')?.setAttribute('aria-expanded','false');
     document.getElementById('fieldsTitle')?.scrollIntoView({behavior:'smooth', block:'start'});
@@ -1975,23 +1996,5 @@ function onSave(e){
   // Wire buttons (single bind)
   if(btnSave)   btnSave.addEventListener('click', onSave,   { once:false });
   if(btnCancel) btnCancel.addEventListener('click', onCancel,{ once:false });
-// === register Settings functions into namespace (no behavior change) ===
-(function bindSettingsNamespace(global){
-  if (!global.Settings) return; // guard if file order changes
-
-  // If these exist in app.js, bind them; otherwise keep placeholders.
-  if (typeof openOnly === 'function') {
-    global.Settings.openOnly = openOnly;
-  }
-  if (typeof buildIntentsChecklist === 'function') {
-    global.Settings.buildIntentsChecklist = buildIntentsChecklist;
-  }
-  if (typeof loadVisibleIntents === 'function') {
-    global.Settings.loadVisibleIntents = loadVisibleIntents;
-  }
-  if (typeof saveVisibleIntents === 'function') {
-    global.Settings.saveVisibleIntents = saveVisibleIntents;
-  }
-})(window);
 
 })();
