@@ -1864,12 +1864,14 @@ async function runCorruption(){
 if (Array.isArray(data) && data.length) {
   // Include auto_detect
   INTENTS = data.map(x => ({
-    name: x.id || x.name,
-    label: x.label || (x.id ? toTitle(x.id) : ''),
-    description: SCHEMA[x.id || x.name]?.description || '',
-    required: SCHEMA[x.id || x.name]?.required || [],
-    hidden: false
-  }));
+  name: x.id,
+  label: x.label || x.id,
+  description: "",
+  required: [],
+  hidden: false,
+  industry: x.industry || "Other"
+}));
+
   // Put Auto Detect first
   INTENTS.sort((a, b) => (a.name === 'auto_detect' ? -1 : b.name === 'auto_detect' ? 1 : a.label.localeCompare(b.label)));
 } else {
