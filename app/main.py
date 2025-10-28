@@ -46,26 +46,27 @@ def _load_schema() -> Dict[str, Any]:
 
 SCHEMA: Dict[str, Any] = _load_schema()
 
-# Build compact intent list for cards (id + label + industry). Always include auto_detect if present.
+# Build compact intent list for cards (id + label + description + industry).
+# Also include "name" as an alias for id to simplify frontend code.
 def _intents_list() -> List[Dict[str, str]]:
-    items = []
+    items: List[Dict[str, str]] = []
     for iid, meta in (SCHEMA or {}).items():
-        label = ""
-        industry = "Other"
-        if isinstance(meta, dict):
-            label_val = meta.get("label")
-            label = (label_val or iid) if isinstance(label_val, str) else iid
-            # include industry if present in schema
-            if isinstance(meta.get("industry"), str) and meta.get("industry").strip():
-                industry = meta["industry"].strip()
+        if not isinstance(meta, dict):
+            meta = {}
+        label = (meta.get("label") or iid) if isinstance(meta.get("label"), str) else iid
+        desc  = meta.get("description") or ""
+        industry = meta.get("industry") or "Registry"
         items.append({
             "id": iid,
+            "name": iid,               # alias for convenience on the UI
             "label": label or iid,
-            "industry": industry
+            "description": desc,
+            "industry": industry,
         })
+
     # Put Auto Detect first; then alphabetical by label
     def sort_key(x):
-        return (0 if x["id"] == "auto_detect" else 1, x["label"].lower())
+        return (0 if x["id"] == "auto_detect" else 1, (x.get("label") or "").lower())
     items.sort(key=sort_key)
     return items
 

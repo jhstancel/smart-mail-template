@@ -235,8 +235,156 @@ function buildIntentsChecklist(){
       });
   });
 }
-
-
   Settings.buildIntentsChecklist = buildIntentsChecklist;
 })(window);
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function(){
+  const VI_KEY = 'sm_visible_intents_v1'; // must match app.js expectation
+
+  function toSet(arr){
+    const s = new Set();
+    (arr || []).forEach(x => { if (x) s.add(String(x)); });
+    return s;
+  }
+
+  function loadVisibleIntents(){
+    try {
+      const raw = localStorage.getItem(VI_KEY);
+      if (!raw) return new Set();
+      const arr = JSON.parse(raw);
+      return toSet(arr);
+    } catch(_) { return new Set(); }
+  }
+
+  function saveVisibleIntents(set){
+    try {
+      const arr = Array.from(set || []);
+      localStorage.setItem(VI_KEY, JSON.stringify(arr));
+    } catch(_) {}
+  }
+
+  // Build the checklist, grouped by industry headers if present
+  function buildIntentsChecklist(){
+    const box = document.getElementById('intentChecks');
+    if (!box) return;
+
+    const vi = loadVisibleIntents();
+    const list = Array.isArray(window.INTENTS) ? window.INTENTS.slice() : [];
+
+    // group by industry
+    const groups = new Map();
+    for (const it of list){
+      const key = it.industry || 'Other';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(it);
+    }
+
+    // render
+    box.innerHTML = '';
+    for (const [group, items] of groups){
+      const h = document.createElement('div');
+      h.className = 'vi-section-title';
+      h.textContent = group;
+      box.appendChild(h);
+
+      for (const it of items){
+        const id = `vi_${it.id}`;
+        const row = document.createElement('div');
+        row.className = 'kv';
+
+        const label = document.createElement('label');
+        label.htmlFor = id;
+        label.innerHTML = `<b>${it.label || it.id}</b><div class="muted">${it.description || ''}</div>`;
+
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.id = id;
+        cb.checked = vi.size ? vi.has(it.id) : (it.id === 'auto_detect' || it.id === 'delay_notice'); // keep your preferred defaults
+        cb.addEventListener('change', ()=>{
+          if (cb.checked) vi.add(it.id); else vi.delete(it.id);
+        });
+
+        row.appendChild(cb);
+        row.appendChild(label);
+        box.appendChild(row);
+      }
+    }
+
+    // Buttons
+    const btnSave  = document.getElementById('vi_save');
+    const btnAll   = document.getElementById('vi_all');
+    const btnNone  = document.getElementById('vi_none');
+    const btnReset = document.getElementById('vi_reset');
+
+    btnSave && btnSave.addEventListener('click', ()=>{
+      saveVisibleIntents(vi);
+      // immediate refresh of the grid using current global INTENTS
+      if (window.renderIntentGridFromData && Array.isArray(window.INTENTS)) {
+        window.renderIntentGridFromData(window.INTENTS);
+      }
+    });
+
+    btnAll && btnAll.addEventListener('click', ()=>{
+      (window.INTENTS || []).forEach(it => vi.add(it.id));
+      // reflect in UI
+      box.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = true);
+    });
+
+    btnNone && btnNone.addEventListener('click', ()=>{
+      vi.clear();
+      box.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    });
+
+    btnReset && btnReset.addEventListener('click', ()=>{
+      vi.clear();
+      // your defaults: keep auto_detect
+      vi.add('auto_detect');
+      box.querySelectorAll('input[type=checkbox]').forEach(cb => {
+        const id = cb.id.replace(/^vi_/, '');
+        cb.checked = vi.has(id);
+      });
+    });
+  }
+
+  // expose to app.js
+  window.Settings = Object.assign(window.Settings || {}, {
+    loadVisibleIntents,
+    saveVisibleIntents,
+    buildIntentsChecklist,
+    openOnly(which){
+      // keep your existing openOnly code if you had one; this is a safe stub
+      document.querySelectorAll('.settings-subpanel').forEach(p=>p.classList.remove('open'));
+      const id = which === 'intents' ? 'subIntents'
+              : which === 'theme'   ? 'subTheme'
+              : which === 'typing'  ? 'subTyping'
+              : which === 'usertpls'? 'subUserTpls'
+              : which === 'defaults'? 'subDefaults'
+              : '';
+      if (id) document.getElementById(id)?.classList.add('open');
+      const row = document.querySelector(`.settings-item[data-item="${which}"] .chev`);
+      document.querySelectorAll('.settings-item .chev').forEach(c=>c.classList.remove('rot90'));
+      row?.classList.add('rot90');
+    },
+    closeAllSubs(){
+      document.querySelectorAll('.settings-subpanel').forEach(p=>p.classList.remove('open'));
+      document.querySelectorAll('.settings-item .chev').forEach(c=>c.classList.remove('rot90'));
+    },
+    init(){
+      // build on load so the panel is ready
+      buildIntentsChecklist();
+    }
+  });
+})();
 
