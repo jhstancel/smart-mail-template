@@ -1079,113 +1079,14 @@ btnDel.addEventListener('click', (e)=>{
 }
 
 
-/* =========================================================================================
- * Settings menu + Theme + Typing toggles + Copy/Clear + Global Defaults wiring
- * =======================================================================================*/
-(function wireUI(){
-  // Initialize segmented control + apply current mode (Preview/Type/Off)
-  initComposeModeUI();
-  // Reflect current mode on the Generate button (redundant safeguard)
-  if(btnGenerate){ btnGenerate.style.display = liveState.preview ? 'none' : ''; }
-
-  // auto-generate when fields change (gated by livePreview)
-  document.getElementById('fields')?.addEventListener('input', ()=>{
-    scheduleLiveGenerate(250);
-  });
-
-  // also auto-generate if you’re in Auto Detect draft area and they type
-  document.getElementById('subject')?.addEventListener('input', ()=> scheduleLiveGenerate(300));
-  document.getElementById('hint')?.addEventListener('input',    ()=> scheduleLiveGenerate(300));
-
-const settingsBtn   = document.querySelector('.settings-btn');
-const settingsMenu  = document.querySelector('.settings-menu');
-
-// Keep the settings menu open when interacting with its contents
-if (settingsMenu && !settingsMenu._stopper){
-  settingsMenu._stopper = true;
-  settingsMenu.addEventListener('click', (e)=> e.stopPropagation());
-}
+// Settings wiring moved to ui/settings.js
+Settings.init();
 
 
-const subIntents    = document.getElementById('subIntents'); 
-const subUserTpls   = document.getElementById('subUserTpls');
-const subTheme      = document.getElementById('subTheme');
-const subTyping     = document.getElementById('subTyping');
-const subDefaults   = document.getElementById('subDefaults');
-const themeSelect   = document.getElementById('themeSelect');    // NEW
 
-// === VISUAL FIX: make Theme "Preset" a single full-width dropdown, no label, no overflow ===
-(function fixThemePresetRow(){
-  if (!themeSelect) return;
 
-  // Find the row that contains the label + select
-  const row = themeSelect.closest('.settings-row') || (subTheme && subTheme.querySelector('.settings-row'));
-  if (!row) return;
 
-  // 1) Remove the "Preset" label entirely
-  const labelEl = row.querySelector('label');
-  if (labelEl) labelEl.remove();
 
-  // 2) Make the select the only element and ensure it doesn't bleed out of its panel
-  Object.assign(row.style, {
-    display: 'block',
-    padding: '0',
-    overflow: 'hidden'
-  });
-
-  Object.assign(themeSelect.style, {
-    display: 'block',
-    width: '100%',
-    maxWidth: '100%',
-    boxSizing: 'border-box',
-    marginTop: '2px',
-    marginBottom: '2px'
-  });
-})();
-// === VISUAL FIX 2: remove outer subpanel padding/border around Theme preset ===
-(function flattenThemeSubpanel(){
-  const subTheme = document.getElementById('subTheme');
-  if (!subTheme) return;
-
-  // remove the rounded background box look
-  Object.assign(subTheme.style, {
-    background: 'transparent',
-    border: 'none',
-    boxShadow: 'none',
-    padding: '0',
-    marginTop: '6px'
-  });
-
-  // tighten spacing so it aligns cleanly with the rest of the menu
-  const row = subTheme.querySelector('.settings-row');
-  if (row) {
-    row.style.margin = '0';
-  }
-})();
-
-function closeAllSubs(){
-  [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
-  document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
-}
-// use Settings.openOnly (moved to ui/settings.js)
-const openOnly = window.Settings.openOnly;
-
-const menu = opened?.closest('.settings-menu');
-if (menu) {
-  // Scroll so the *header row* sits at the very top of the menu viewport.
-  const header = menu.querySelector(`.settings-item[data-item="${which}"]`);
-  requestAnimationFrame(()=>{
-    if (header) menu.scrollTo({ top: header.offsetTop - 6, behavior: 'smooth' });
-  });
-}
-
-  currentlyOpen = which;
-  document.querySelectorAll('.settings-item').forEach(row=>{
-    const chev = row.querySelector('.chev');
-    if(!chev) return;
-    chev.classList.toggle('rot90', row.getAttribute('data-item')===which);
-  });
-}
 
 
 function toggleMenu(){

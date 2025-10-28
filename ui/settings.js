@@ -126,3 +126,51 @@
   Settings.buildIntentsChecklist = buildIntentsChecklist;
 })(window);
 
+
+
+
+
+
+
+
+// -- Settings initialization and menu wiring (moved from app.js) --
+(function initSettings(global){
+  const Settings = global.Settings || (global.Settings = {});
+
+  function init(){
+    // == Grab UI elements ==
+    const btn = document.getElementById('btnSettings');
+    const menu = document.getElementById('settingsMenu');
+    if(!btn || !menu) return;
+
+    // == Wire toggle button ==
+    btn.addEventListener('click', () => {
+      menu.classList.toggle('open');
+      if(menu.classList.contains('open')){
+        Settings.openOnly(global.currentlyOpen || 'theme');
+      } else {
+        document.querySelectorAll('.settings-item .chev').forEach(c=>c.classList.remove('rot90'));
+      }
+    });
+
+    // == Each sidebar item ==
+    document.querySelectorAll('.settings-item').forEach(row=>{
+      row.addEventListener('click', () => {
+        const which = row.getAttribute('data-item');
+        Settings.openOnly(which);
+      });
+    });
+
+    // == Escape key closes settings ==
+    document.addEventListener('keydown', (e)=>{
+      if(e.key==='Escape'){
+        menu.classList.remove('open');
+        document.querySelectorAll('.settings-item .chev').forEach(c=>c.classList.remove('rot90'));
+        global.currentlyOpen = null;
+      }
+    });
+  }
+
+  Settings.init = init;
+})(window);
+
