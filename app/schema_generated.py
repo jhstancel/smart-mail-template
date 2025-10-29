@@ -1642,7 +1642,7 @@ SCHEMA_GENERATED = {
       "recipientName"
     ],
     "template": {
-      "bodyPath": "templates/tax_exemption.txt",
+      "bodyPath": "templates/tax_exemption.j2",
       "subject": "Tax Exempt Certificate Attached"
     }
   }

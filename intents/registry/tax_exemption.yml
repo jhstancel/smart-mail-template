@@ -13,7 +13,7 @@ hints:
 
 template:
   subject: "Tax Exempt Certificate Attached"
-  bodyPath: "templates/tax_exemption.txt"
+  bodyPath: "templates/tax_exemption.j2"
 
 autodetect:
   keywords: ["tax exempt", "exemption", "sales tax", "resale certificate"]
