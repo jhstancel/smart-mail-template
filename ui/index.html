@@ -450,33 +450,42 @@ addEventListener('resize', () => {
 
 })();
 </script>
+
+<!-- Guards & state -->
+<script src="ui/js/guards/intents-guard.js"></script>
+<script src="ui/js/state/visible-intents.js"></script>
+
+<!-- Utils -->
+<script src="ui/js/utils/dom.js"></script>
+<script src="ui/js/utils/text.js"></script>
+
+<!-- Visual themes (optional) -->
+<script src="ui/js/bg/starfield.js"></script>
+<script src="ui/js/bg/pastell-pets.js"></script>
+
+<!-- Core UI modules -->
+<script src="ui/js/mode/compose-mode.js"></script>
+<script src="ui/js/intents/grid.js"></script>
+<script src="ui/js/fields/render-fields.js"></script>
+<script src="ui/js/parts/order-parts-editor.js"></script>
+<script src="ui/js/settings/wire-ui.js"></script>
+
+<!-- User templates -->
+<script src="ui/js/usertpl/store.js"></script>
+<script src="ui/js/usertpl/editor-dialog.js"></script>
+<script src="ui/js/usertpl/list-delegation.js"></script>
+
+<!-- Generate & autodetect -->
+<script src="ui/js/generate/generate.js"></script>
 <script src="ui/js/autodetect/predict.js"></script>
+
+<!-- Fun (optional) -->
+<script src="ui/js/easter/corruption.js"></script>
 <script src="ui/js/easter/evil-larry.js"></script>
 <script src="ui/js/easter/nyan.js"></script>
 
-<script src="ui/js/usertpl/store.js"></script>
-<script src="ui/js/usertpl/editor-dialog.js"></script>
-<script src="ui/js/mode/compose-mode.js"></script>
-<script src="ui/js/settings/wire-ui.js"></script>
-<script src="ui/js/easter/corruption.js"></script>
+<!-- App bootstrap -->
 <script src="ui/js/main.js"></script>
-<!-- Batch 1 modules (already added earlier) -->
-<script src="ui/js/guards/intents-guard.js"></script>
-<script src="ui/js/utils/dom.js"></script>
-<script src="ui/js/state/visible-intents.js"></script>
-<script src="ui/js/defaults/global-defaults.js"></script>
-<script src="ui/js/dates/dates.js"></script>
-<script src="ui/js/net/api.js"></script>
-<script src="ui/js/utils/text.js"></script>
-
-<!-- Batch 2 modules -->
-<script src="ui/js/fields/render-fields.js"></script>
-<script src="ui/js/intents/grid.js"></script>
-<script src="ui/js/parts/order-parts-editor.js"></script>
-<script src="ui/js/usertpl/list-delegation.js"></script>
-
-<!-- Legacy aggregator still holding generate/autodetect/etc. -->
-<script src="ui/app.js"></script>
 
 
 </body>
