@@ -106,7 +106,13 @@ export function upsertTemplate(def){
   saveUserTemplates(all);
 
   const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
-  window.INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+  const merged = [...coreIntents, ...userTemplatesAsIntents()];
+  if (typeof window.setINTENTSFromHydrator === 'function') {
+    window.setINTENTSFromHydrator(merged);
+  } else {
+    window.INTENTS = merged; // fallback if guard hasn’t loaded yet
+  }
+
   window.renderIntentGridFromData?.(window.INTENTS);
   window.buildIntentsChecklist?.();
   buildUserTemplatesUI();
@@ -120,7 +126,13 @@ export function deleteTemplate(id){
   if(vi && vi.has(id)){ vi.delete(id); window.saveVisibleIntents?.(vi); }
 
   const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
-  window.INTENTS = [...coreIntents, ...userTemplatesAsIntents()];
+  const merged = [...coreIntents, ...userTemplatesAsIntents()];
+if (typeof window.setINTENTSFromHydrator === 'function') {
+  window.setINTENTSFromHydrator(merged);
+} else {
+  window.INTENTS = merged; // fallback if guard hasn’t loaded yet
+}
+
   window.renderIntentGridFromData?.(window.INTENTS);
   window.buildIntentsChecklist?.();
   buildUserTemplatesUI();

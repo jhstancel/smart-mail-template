@@ -1,9 +1,10 @@
 export const PastellPets = (function(){
   const LAYER_ID = 'petFlakes';
   const IMG_LIST = [
-    'ui/pets/cat.png','ui/pets/cat1.png','ui/pets/cat2.jpg','ui/pets/cat3.jpg',
-    'ui/pets/cat4.png','ui/pets/cat5.jpeg','ui/pets/cat6.png','ui/pets/cat7.jpeg',
-    'ui/pets/dog.jpeg','ui/pets/dog1.png'
+  'pets/cat.png','pets/cat1.png','pets/cat2.png','pets/cat3.png',
+  'pets/cat4.png','pets/cat5.png','pets/cat6.png','pets/cat7.png',
+  'pets/dog.png','pets/dog1.png','pets/dog3.png','pets/dog4.png',
+  'pets/dog6.png','pets/dog7.png','pets/dog8.png','pets/dog9.png'
   ];
   let enabled = false, layer = null, flakes = [], spawned = false;
 
