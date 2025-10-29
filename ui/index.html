@@ -452,7 +452,7 @@ addEventListener('resize', () => {
 </script>
 
 
-<!-- Batch 1 modules (must load before app.js) -->
+<!-- Batch 1 modules (already added earlier) -->
 <script src="ui/js/guards/intents-guard.js"></script>
 <script src="ui/js/utils/dom.js"></script>
 <script src="ui/js/state/visible-intents.js"></script>
@@ -461,8 +461,15 @@ addEventListener('resize', () => {
 <script src="ui/js/net/api.js"></script>
 <script src="ui/js/utils/text.js"></script>
 
-<!-- Legacy aggregator (still holds everything else for now) -->
+<!-- Batch 2 modules -->
+<script src="ui/js/fields/render-fields.js"></script>
+<script src="ui/js/intents/grid.js"></script>
+<script src="ui/js/parts/order-parts-editor.js"></script>
+<script src="ui/js/usertpl/list-delegation.js"></script>
+
+<!-- Legacy aggregator still holding generate/autodetect/etc. -->
 <script src="ui/app.js"></script>
+
 
 </body>
 </html>
