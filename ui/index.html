@@ -452,5 +452,17 @@ addEventListener('resize', () => {
 </script>
 
 
-<script src="app.js" type="module"></script></body>
+<!-- Batch 1 modules (must load before app.js) -->
+<script src="ui/js/guards/intents-guard.js"></script>
+<script src="ui/js/utils/dom.js"></script>
+<script src="ui/js/state/visible-intents.js"></script>
+<script src="ui/js/defaults/global-defaults.js"></script>
+<script src="ui/js/dates/dates.js"></script>
+<script src="ui/js/net/api.js"></script>
+<script src="ui/js/utils/text.js"></script>
+
+<!-- Legacy aggregator (still holds everything else for now) -->
+<script src="ui/app.js"></script>
+
+</body>
 </html>
