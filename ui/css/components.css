@@ -1,0 +1,16 @@
+.muted{ color:var(--muted); font-size:12px; }
+.pill{ padding:4px 10px; border-radius:999px; border:1px solid var(--panel-border); background:color-mix(in srgb, var(--bg) 85%, white 15%); }
+.btn{
+  background: linear-gradient(180deg, var(--btn-grad1), var(--btn-grad2)); color:#fff; font-weight:900; letter-spacing:.3px;
+  border:none; border-radius:12px; padding:11px 14px; cursor:pointer;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--btn-grad1) 35%, transparent), 0 0 40px color-mix(in srgb, var(--btn-grad1) 18%, transparent) inset;
+  transition: transform .15s ease, box-shadow .25s ease, filter .15s ease;
+}
+.btn:hover{ transform: translateY(-1px) scale(1.03); filter: brightness(1.03); }
+.btn.secondary{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none; }
+.btn.toast{ background: linear-gradient(180deg, var(--ok), color-mix(in srgb, var(--ok) 80%, black 20%)) !important;
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--ok) 35%, transparent), 0 0 40px color-mix(in srgb, var(--ok) 18%, transparent) inset !important; }
+.btn.small{ padding:8px 12px; border-radius:10px; font-weight:800; }
+.btn.ghost{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none; }
+.inline{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+

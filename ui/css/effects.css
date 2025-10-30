@@ -1,0 +1,19 @@
+/* Starfield */
+canvas#stars{ position:fixed; inset:0; z-index:-3; }
+.glow-veil{
+  position:fixed; inset:-10vmax; z-index:-2; pointer-events:none;
+  background:
+    radial-gradient(60vmax 60vmax at 20% -10%, rgba(120,170,255,.12), transparent 60%),
+    radial-gradient(50vmax 50vmax at 110% 20%, rgba(120,220,255,.10), transparent 55%),
+    radial-gradient(40vmax 35vmax at 40% 120%, rgba(160,140,255,.08), transparent 60%);
+  filter: blur(40px);
+}
+/* Hide effects on non-cosmic */
+body:not([data-theme="cosmic"]) canvas#stars,
+body:not([data-theme="cosmic"]) .glow-veil{ display:none; }
+
+/* Intro glow */
+.glow-in{ animation: glowIn 700ms ease-out; }
+@media (prefers-reduced-motion: reduce){ .glow-in{ animation:none !important; } }
+@keyframes glowIn{ 0%{ background: color-mix(in srgb, var(--accent) 14%, transparent) } 100%{ background: transparent; } }
+

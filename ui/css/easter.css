@@ -1,0 +1,49 @@
+.evil-larry{
+  position:fixed; left:0; top:0; width:420px; height:420px; z-index:9999; pointer-events:none;
+  will-change:transform,opacity; transform:translate(-50%,-420px) rotate(0deg);
+  filter: drop-shadow(0 20px 50px rgba(0,0,0,.55));
+}
+.evil-larry img{ display:block; width:100%; height:100%; object-fit:contain; user-select:none; font-size:0; }
+
+.nyan-cat{
+  position:fixed; left:-100px; top:0; width:96px; height:auto; z-index:9998; pointer-events:none;
+  will-change:transform,opacity; image-rendering: crisp-edges;
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,.25));
+}
+.nyan-ribbon{
+  position:fixed; left:0; top:0; z-index:9997; pointer-events:none; will-change:transform,opacity; border-radius:3px;
+  opacity:.95; mix-blend-mode:screen; animation: nyanFade 1.8s ease-out forwards; box-shadow: 0 0 10px rgba(255,255,255,.25); filter: blur(.3px);
+}
+@keyframes nyanFade{ to{ opacity:0; transform: translateX(-16px) scaleX(1.2) scaleY(.9); filter: blur(3px); } }
+
+/* Corruption overlay */
+.corrupt-overlay{
+  position:fixed; inset:0; z-index:40; pointer-events:none;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,0,0,.03), rgba(0,255,255,.03) 2px, transparent 3px, transparent 6px),
+    radial-gradient(60vmax 60vmax at 50% -10%, rgba(255,255,255,.06), transparent 60%);
+  mix-blend-mode: overlay; opacity:.0; transition:opacity .25s ease;
+}
+body.corrupting .corrupt-overlay{ opacity:.9; animation: jitter .15s infinite alternate; }
+body.corrupting{ filter: hue-rotate(20deg) contrast(1.1) saturate(1.2); }
+@keyframes jitter{ from{ transform: translate(-1px,0) skewX(.3deg) } to{ transform: translate(1px,0) skewX(-.3deg) } }
+
+/* Flash / buffer / print overlays */
+.flash{ position:fixed; inset:0; background:white; z-index:50; opacity:0; pointer-events:none; }
+.flash.show{ animation: flashbang .7s ease-out both; }
+@keyframes flashbang{ 0%{opacity:0} 20%{opacity:1} 100%{opacity:0} }
+
+.buffer{ position:fixed; inset:0; background:color-mix(in srgb, var(--bg) 70%, black 30%); z-index:45; display:none; align-items:center; justify-content:center; color:var(--ink); }
+.buffer.show{ display:flex; }
+.buffer-card{ background:var(--glass); border:1px solid var(--panel-border); border-radius:16px; padding:18px; width:min(520px, 90vw); box-shadow: var(--shadow-2); text-align:center; }
+.bar{ height:10px; border-radius:10px; background:color-mix(in srgb, var(--bg) 85%, white 15%); overflow:hidden; border:1px solid var(--panel-border); }
+.bar > i{ display:block; height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+
+.print-mask{ position:fixed; inset:0; background:var(--bg); z-index:44; display:none; }
+.print-mask.show{ display:block; animation: printReveal 2.4s steps(24) forwards .2s; }
+@keyframes printReveal{ from{ clip-path: inset(0 0 100% 0); } to{ clip-path: inset(100% 0 0 0); } }
+
+.print-line{ position:fixed; left:0; right:0; top:0; height:2px; z-index:46; background: color-mix(in srgb, var(--ink) 40%, transparent); display:none; }
+.print-line.show{ display:block; animation: lineSweep 2.4s linear forwards .2s; }
+@keyframes lineSweep{ from{ transform: translateY(0) } to{ transform: translateY(100vh) } }
+

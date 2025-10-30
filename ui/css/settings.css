@@ -1,0 +1,42 @@
+.settings{ position:fixed; top:12px; right:12px; z-index:20; }
+.settings-btn{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  width:38px; height:38px; border-radius:12px; border:1px solid var(--panel-border);
+  background:color-mix(in srgb, var(--bg) 85%, white 15%); box-shadow: var(--shadow-1); cursor:pointer;
+  transition: transform .15s ease, box-shadow .25s ease; position:relative;
+}
+.settings-btn:hover{ transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.settings-menu{
+  margin-top:8px; min-width:260px; max-width:320px; display:none; flex-direction:column; gap:6px;
+  padding:10px; border-radius:14px; border:1px solid var(--panel-border); background:var(--glass);
+  box-shadow: var(--shadow-2); max-height:210vh; overflow:auto;
+}
+.settings-menu.open{ display:flex; }
+.settings-item{
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  border:1px solid var(--card-border); border-radius:12px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  padding:10px 12px; cursor:pointer; box-shadow: var(--shadow-1);
+}
+.settings-item .label{ font-weight:700; }
+.settings-item .hint{ color:var(--muted); font-size:12px; }
+.settings-subpanel{ display:none; margin:0; padding:0; border:0; }
+.settings-subpanel.open{
+  display:block; max-height:none; overflow:visible; opacity:1; margin-top:6px; padding:12px;
+  border:1px solid var(--card-border); border-radius:14px; background: color-mix(in srgb, var(--bg) 90%, white 10%);
+}
+.settings-row{ display:flex; align-items:center; gap:10px; }
+.settings-row select{ min-width:200px; }
+.seg{
+  display:inline-flex; gap:6px; align-items:center; padding:6px; border-radius:14px;
+  background:color-mix(in srgb, var(--bg) 85%, white 15%); border:1px solid var(--panel-border);
+}
+.seg .opt{
+  appearance:none; border:1px solid transparent; background:transparent; padding:8px 14px; border-radius:12px;
+  font-weight:800; cursor:pointer; transition:transform .08s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
+}
+.seg .opt:hover{ transform:translateY(-1px); }
+.seg .opt[aria-selected="true"]{ background:#fff; color:var(--ink); border-color:var(--panel-border); box-shadow: var(--shadow-1); }
+body[data-theme="dark-minimal"] .seg .opt[aria-selected="true"],
+body[data-theme="cosmic"] .seg .opt[aria-selected="true"]{ background:color-mix(in srgb, var(--glass) 80%, black 20%); }
+

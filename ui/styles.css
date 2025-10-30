@@ -669,40 +669,26 @@ html[data-theme="pastell"] .panel {
 
 /* ==== Pastell — floating pets (single source of truth) ==== */
 /* Make the layer truly full screen and behind content */
-#petFlakes {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  overflow: hidden; /* no scrollbars when we go below 100vh */
+/* Pets waterfall (compositor-friendly) */
+#petFlakes .pet-flake{
+  position: absolute;
+  top: var(--startTop, -40px);   /* JS sets static top once */
+  will-change: transform;
+  animation-name: pet-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--fall-dur, 60s);
+  animation-delay: var(--delay, 0s);
+  /* Optional: image-rendering for pixel art */
+  /* image-rendering: auto; */
+}
+
+@keyframes pet-fall{
+  0%   { transform: translateY(0) rotate(var(--rot, 0deg)) translateX(0); }
+  100% { transform: translateY(calc(100vh + 120px)) rotate(var(--rot, 0deg)) translateX(var(--drift, 0px)); }
 }
 
 /* Each pet uses CSS variables for X and starting Y */
-.pet-flake {
-  position: absolute; /* anchor is the layer; we’ll use transform for motion */
-  left: 0; top: 0;
-  opacity: 1;
-  transform: translate3d(var(--x, 0px), var(--startY, -100px), 0)
-             rotate(var(--rot, 0deg));
-  animation: petFallTop linear var(--fall-dur, 10s) var(--delay, 0s) both;
-  will-change: transform;
-}
-
-@keyframes petFallTop {
-  from {
-    transform: translate3d(var(--x, 0px), var(--startY, -100px), 0)
-               rotate(var(--rot, 0deg));
-  }
-  to {
-    /* end well below the viewport so animationend fires reliably */
-    transform: translate3d(var(--x, 0px), calc(var(--vh, 100vh) + 120px), 0)
-               rotate(calc(var(--rot, 0deg) + var(--spin, 0deg)));
-  }
-}
-
-
-
-
 
 
 .pet-flake.pop{ animation: petPop .22s ease-out forwards; }
@@ -726,9 +712,6 @@ body[data-theme="pastell"] {
   background-attachment: scroll; /* prevent compositing seam */
 }
 
-#petFlakes {
-  z-index: -1 !important; /* always behind content panels */
-}
 html[data-theme="pastell"] { background: transparent !important; }
 body[data-theme="pastell"] { background-color: transparent; }
 .vi-section-title {

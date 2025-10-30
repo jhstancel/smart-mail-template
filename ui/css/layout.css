@@ -1,0 +1,10 @@
+.wrap{ max-width:1080px; margin:48px auto; padding:0 20px; }
+.panel{
+  background:var(--glass);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border:1px solid var(--panel-border); border-radius:18px; box-shadow: var(--shadow-1); padding:18px;
+}
+.title{ font-weight:800; letter-spacing:.3px; margin:0 0 10px; font-size:20px; }
+.subtitle{ color:var(--muted); margin-top:2px; font-size:13px; }
+.hr{ height:1px; background:linear-gradient(90deg, transparent, var(--panel-border), transparent); margin:14px 0 10px; border:none; }
+

@@ -1,0 +1,28 @@
+/* Waterfall pets — compositor friendly; JS only tweaks CSS vars */
+#petFlakes .pet-flake{
+  position:absolute;
+  top: var(--startTop, -40px); /* JS sets once */
+  will-change: transform;
+  animation-name: pet-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  animation-duration: var(--fall-dur, 60s);
+  animation-delay: var(--delay, 0s);
+}
+/* Fall loop */
+@keyframes pet-fall{
+  0%   { transform: translateY(0) rotate(var(--rot, 0deg)) translateX(0); }
+  100% { transform: translateY(calc(100vh + 120px)) rotate(var(--rot, 0deg)) translateX(var(--drift, 0px)); }
+}
+/* Pop effect (used occasionally) */
+.pet-flake.pop{ animation: petPop .22s ease-out forwards; }
+@keyframes petPop{
+  0%{ transform: scale(1); opacity:.95; }
+  60%{ transform: scale(1.25); opacity:1; }
+  100%{ transform: scale(.7); opacity:0; }
+}
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce){
+  #petFlakes, .pet-flake{ animation: none !important; }
+}
+

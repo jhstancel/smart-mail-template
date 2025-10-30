@@ -1,0 +1,34 @@
+/* Headers/rows */
+.kv:has(#partsCardBody) .parts-header{ margin-top:0; padding:0; background:transparent; min-height:0; }
+.kv:has(#partsCardBody) label + #partsCardBody{ margin-top:0; }
+.kv:has(#partsCardBody) .parts-header{ margin-bottom:6px; }
+.kv:has(#partsCardBody) .parts-header > *{ background:transparent !important; }
+
+.parts-header{ display:grid; grid-template-columns:1fr 1fr 40px; gap:12px; align-items:center; margin-bottom:6px; }
+.parts-row{ display:grid; grid-template-columns:1fr 1fr 40px; gap:12px; align-items:center; margin:8px 0; }
+.icon-btn{ width:40px; height:40px; border-radius:999px; display:flex; align-items:center; justify-content:center;
+  background:#fff; font-size:18px; line-height:1; cursor:pointer; }
+.parts-minus{ border:1px solid rgba(255,100,100,.45); }
+.parts-plus { border:1px solid rgba(80,180,120,.45); color:#2f855a; background:#fff; }
+.parts-minus:hover{ border-color: rgba(255,80,80,.8); }
+.parts-plus:hover{  border-color: rgba(60,160,100,.8); color:#276749; }
+.parts-input{ height:40px; width:100%; color:inherit; background:transparent;
+  border:1px solid var(--card-border); border-radius:12px; transition: border-color .2s, box-shadow .2s; }
+.parts-input:focus{ border-color: var(--accent); box-shadow: 0 0 0 2px rgba(99,156,255,.25); outline:none; }
+.parts-qty{ text-align:center; }
+.parts-plus-row{ margin-top:8px; }
+
+/* Tables + buttons */
+.parts-editor{ display:flex; flex-direction:column; gap:8px; }
+.parts-table{ width:100%; border-collapse:separate; border-spacing:0 6px; }
+.parts-table th, .parts-table td{ text-align:left; padding:6px; }
+.parts-table input.input{ width:100%; }
+.btn-mini{ border:1px solid var(--card-border); background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  border-radius:10px; padding:6px 8px; cursor:pointer; }
+.btn-mini.danger{ border-color: rgba(255,100,100,.5); }
+.parts-rows{ width:100%; border-collapse:separate; border-spacing:0 8px; }
+.parts-rows td{ padding:0; }
+.parts-rows .cell{ display:flex; align-items:center; gap:10px; }
+.parts-rows input.input{ width:100%; }
+.parts-label{ font-weight:700; }
+

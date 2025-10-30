@@ -1,0 +1,22 @@
+.intent-grid{ display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-top:12px; }
+.intent-card{ position:relative; padding:14px; cursor:pointer; border-radius:16px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  border:1px solid var(--card-border); box-shadow: var(--shadow-1);
+  transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, border-color .25s ease, filter .25s ease;
+  transform-origin:center; overflow:hidden; text-align:left; }
+.intent-card:hover{ transform: translateY(-2px) scale(1.03); box-shadow: var(--shadow-2);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent); filter: saturate(1.02); }
+.intent-card.active{ transform: translateY(-1px) scale(1.01); box-shadow: var(--shadow-2);
+  border-color: color-mix(in srgb, var(--accent) 25%, transparent); }
+.intent-card.active::after{
+  content:""; position:absolute; inset:0; border-radius:16px; pointer-events:none; padding:1px;
+  background: linear-gradient(120deg, color-mix(in srgb, var(--accent) 0%, transparent) 0%, color-mix(in srgb, var(--accent) 65%, transparent) 12%, color-mix(in srgb, var(--accent) 0%, transparent) 30%) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude; animation: edgeGlide 3.6s linear infinite;
+}
+@keyframes edgeGlide{ 0%{ background-position:0% 0% } 100%{ background-position:200% 0% } }
+.intent-name{ font-weight:800; margin:0 0 6px; letter-spacing:.2px; }
+.intent-desc{ color:var(--muted); font-size:13px; }
+.stage{ margin-top:16px; overflow:hidden; transition: height .45s ease, opacity .45s ease, margin .45s ease; }
+.stage.hidden{ height:0; opacity:0; margin:0; }
+

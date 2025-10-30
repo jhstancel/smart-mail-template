@@ -1,0 +1,5 @@
+@media (max-width:520px){
+  .tpl-actions{ justify-content:flex-start; }
+  .evil-larry{ width:260px; height:260px; transform:translate(-50%,-260px) rotate(0deg); }
+}
+

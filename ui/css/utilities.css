@@ -1,0 +1,55 @@
+.row{ display:grid; gap:12px; grid-template-columns:1fr 1fr; }
+.kvs{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
+.kv{ display:flex; flex-direction:column; gap:6px; padding:12px; border-radius:14px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); border:1px solid var(--card-border); }
+.toggle{ display:flex; align-items:center; gap:8px; cursor:pointer; }
+
+#outSubject, #outBody{ min-height: 42px; }
+#outBody .line{ margin: 2px 0; }
+
+.splash-tip{
+  position:absolute; top:46px; right:0; background:var(--glass); border:1px solid var(--panel-border);
+  box-shadow: var(--shadow-2); border-radius:10px; padding:8px 10px; white-space:nowrap; font-weight:800; font-size:12px; color:var(--ink);
+  opacity:0; transform: translateY(-6px); pointer-events:none; transition: opacity .2s ease, transform .2s ease;
+}
+.splash-tip.show{ opacity:1; transform: translateY(0); }
+
+/* Visible Intents / My Templates drawers */
+#subIntents.settings-subpanel{ max-height:56vh; overflow-y:auto; padding-right:6px; }
+#subIntents .kvs .kv{ padding:6px 0; border-bottom:1px dashed rgba(0,0,0,.06); }
+#subIntents .kvs .kv:last-child{ border-bottom:0; }
+
+#subUserTpls.settings-subpanel{ max-height:56vh; overflow-y:auto; padding-right:6px; }
+
+.tpl-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+.tpl-list{ display:flex; flex-direction:column; gap:8px; }
+.tpl-card{
+  display:flex; flex-direction:column; gap:10px; padding:12px; border-radius:12px;
+  background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); border:1px solid var(--card-border); box-shadow: var(--shadow-1);
+  min-height:84px;
+}
+.tpl-main{ display:flex; align-items:center; gap:10px; min-width:0; }
+.tpl-title{ font-weight:800; letter-spacing:.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tpl-desc{ color:var(--muted); font-size:12px; margin-top:2px; }
+.tpl-badge{ font-size:11px; padding:3px 8px; border-radius:999px; border:1px solid var(--panel-border); color:var(--muted);
+  background:color-mix(in srgb, var(--bg) 85%, white 15%); }
+.tpl-actions{
+  display:flex; align-items:center; justify-content:flex-end; gap:8px; padding-top:10px; margin-top:2px; border-top:1px solid var(--card-border);
+}
+.tpl-actions .btn{ padding:6px 10px; border-radius:9px; font-weight:800; border:1px solid var(--card-border); background:transparent; }
+.tpl-actions .btn.ghost{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); }
+.tpl-actions .btn.danger{
+  background: linear-gradient(180deg, var(--bad), color-mix(in srgb, var(--bad) 80%, black 20%));
+  color:#fff; border-color: color-mix(in srgb, var(--bad) 55%, black 45%);
+}
+
+.vi-section-title{
+  font-weight:600; font-size:1.1em; margin-top:1em; margin-bottom:.3em;
+  border-bottom:1px solid var(--border-color); padding-bottom:.2em;
+}
+
+/* Misc */
+#fieldsHint{ display:none !important; }
+.chev{ width:14px; height:14px; transition: transform .25s ease; }
+.rot90{ transform: rotate(90deg); }
+

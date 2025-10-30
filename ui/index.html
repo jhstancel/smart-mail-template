@@ -12,7 +12,24 @@
   <link rel="apple-touch-icon" href="img/favicon-180.png">
   -->
 
-<link href="styles.css" rel="stylesheet"/></head>
+<link rel="stylesheet" href="css/00-vars.css">
+<link rel="stylesheet" href="css/01-base.css">
+<link rel="stylesheet" href="css/02-layout.css">
+<link rel="stylesheet" href="css/03-forms.css">
+<link rel="stylesheet" href="css/04-components.css">
+<link rel="stylesheet" href="css/05-intents.css">
+<link rel="stylesheet" href="css/06-settings.css">
+<link rel="stylesheet" href="css/07-parts.css">
+<link rel="stylesheet" href="css/08-effects.css">
+<link rel="stylesheet" href="css/09-easter.css">
+<link rel="stylesheet" href="css/10-pets.css">
+<link rel="stylesheet" href="css/11-utilities.css">
+<link rel="stylesheet" href="css/12-responsive.css">
+
+
+
+
+</head>
 <body>
 <!-- Settings Gear (upper-right) -->
 <div class="settings" id="settings">
@@ -121,9 +138,11 @@
 
 
 <!-- Pastell pets layer (background) -->
-<div id="petFlakes" aria-hidden="true"
-     style="position:fixed; inset:0; z-index:-1; overflow:hidden; display:none; pointer-events:none;"></div>
-
+<div id="petFlakes" aria-hidden="true"></div>
+<script src="js/bg/pastell-pets.js"></script>
+<script>
+  addEventListener('DOMContentLoaded', () => window.PastellPets?.enable());
+</script>
 <!-- Cosmic visuals -->
 <canvas id="stars"></canvas>
 <div class="glow-veil"></div>
