@@ -78,7 +78,7 @@
   function spawnOnce(){
     if (spawned) return;
     spawned = true;
-    const count = Math.max(14, Math.min(28, Math.round(innerWidth / 80)));
+    const count = Math.max(80, Math.min(200, Math.round(innerWidth / 40)));
     const xs = Array.from({length:count}, (_,i)=> Math.round((i+0.5)*(innerWidth/count)));
     xs.forEach(x=>{
       const img = document.createElement('img');
