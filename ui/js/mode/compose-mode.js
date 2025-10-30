@@ -69,5 +69,6 @@ export function wireComposeModeToggles(){
 })();
 export function applyComposeMode(mode){ return window.applyComposeMode?.(mode); }
 export function initComposeModeUI(){ return window.initComposeModeUI?.(); }
+window.wireComposeModeToggles = window.wireComposeModeToggles || wireComposeModeToggles;
 
 

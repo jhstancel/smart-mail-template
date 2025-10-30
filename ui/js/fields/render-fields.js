@@ -1,6 +1,10 @@
 // ui/js/fields/render-fields.js
 // Exact extraction from app.js; exposes functions on window for back-compat.
 
+// Resolve DOM refs locally (don’t depend on external globals)
+const fieldsWrap = document.getElementById('fields');
+const fieldsHint = document.getElementById('fieldsHint');
+
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
 
@@ -271,8 +275,8 @@ function collectFields(intent){
   return fields;
 }
 
-// back-compat exports
-window.renderFields = renderFields;
-window.highlightMissing = highlightMissing;
-window.collectFields = collectFields;
+// back-compat exports (don’t clobber if a guard/stub already attached)
+window.renderFields       = window.renderFields       || renderFields;
+window.highlightMissing   = window.highlightMissing   || highlightMissing;
+window.collectFields      = window.collectFields      || collectFields;
 

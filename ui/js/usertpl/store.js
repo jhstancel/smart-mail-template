@@ -107,16 +107,18 @@ export function upsertTemplate(def){
 
   const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
   const merged = [...coreIntents, ...userTemplatesAsIntents()];
+
   if (typeof window.setINTENTSFromHydrator === 'function') {
     window.setINTENTSFromHydrator(merged);
   } else {
     window.INTENTS = merged; // fallback if guard hasn’t loaded yet
   }
 
-  window.renderIntentGridFromData?.(window.INTENTS);
+  window.renderIntentGridFromData?.(merged);
   window.buildIntentsChecklist?.();
-  buildUserTemplatesUI();
+  window.buildUserTemplatesUI?.();
 }
+
 export function deleteTemplate(id){
   if(!id) return;
   const next = loadUserTemplates().filter(t => t.id !== id);
@@ -127,14 +129,16 @@ export function deleteTemplate(id){
 
   const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
   const merged = [...coreIntents, ...userTemplatesAsIntents()];
-if (typeof window.setINTENTSFromHydrator === 'function') {
-  window.setINTENTSFromHydrator(merged);
-} else {
-  window.INTENTS = merged; // fallback if guard hasn’t loaded yet
-}
 
-  window.renderIntentGridFromData?.(window.INTENTS);
+  if (typeof window.setINTENTSFromHydrator === 'function') {
+    window.setINTENTSFromHydrator(merged);
+  } else {
+    window.INTENTS = merged; // fallback if guard hasn’t loaded yet
+  }
+
+  window.renderIntentGridFromData?.(merged);
   window.buildIntentsChecklist?.();
-  buildUserTemplatesUI();
+  window.buildUserTemplatesUI?.();
 }
+window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesUI;
 

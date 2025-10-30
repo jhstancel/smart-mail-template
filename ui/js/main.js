@@ -1,42 +1,40 @@
-// Entry point for the modular UI. Loaded by ui/app.js (legacy shim) or directly via index.html (type=module).
-
 import './guards/intents-guard.js';
+import './state/visible-intents.js';
+import './utils/dom.js';
+import './utils/text.js';
 
-// Utils
-import { $, on } from './utils/dom.js';
+// make sure globals exist before anything reads them
+import './defaults/global-defaults.js';
 
-// State
-import { loadVisibleIntents } from './state/visible-intents.js';
-
-// Defaults
-import { loadGlobalDefaults } from './defaults/global-defaults.js';
-
-// Intent grid + settings checklist
-import { renderIntentGridFromData, buildIntentsChecklist } from './intents/grid.js';
-
-// Fields + Generate
-import { renderFields } from './fields/render-fields.js';
-import { scheduleLiveGenerate } from './generate/generate.js';
-
-// Mode
-import { wireComposeModeToggles } from './mode/compose-mode.js';
-
-// Settings panel
-import { wireSettingsUI } from './settings/wire-ui.js';
-
-// Parts editor
-import { initOrderPartsEditor } from './parts/order-parts-editor.js';
-
-// User templates
+import './bg/starfield.js';
+import './bg/pastell-pets.js';
+import './mode/compose-mode.js';
+import './intents/grid.js';
+import './fields/render-fields.js';
+import './parts/order-parts-editor.js';
+import './settings/wire-ui.js';
 import './usertpl/store.js';
 import './usertpl/editor-dialog.js';
+import './usertpl/list-delegation.js';
+import './generate/generate.js';
+import './autodetect/predict.js';
+import './easter/corruption.js';
+import './easter/evil-larry.js';
+import './easter/nyan.js';
 
-// Background effects (safe to import; they no-op if not used)
-import '../../js/bg/starfield.js';
-import '../../js/bg/pastell-pets.js';
 
-// Autodetect chips (no-op if stage not present)
-import './autodetect/suggest.js';
+const scheduleLiveGenerate      = window.scheduleLiveGenerate;
+const renderFields              = window.renderFields;
+const wireComposeModeToggles    = window.wireComposeModeToggles;
+const wireSettingsUI            = window.wireSettingsUI;
+const initOrderPartsEditor      = window.initOrderPartsEditor;
+const renderIntentGridFromData  = window.renderIntentGridFromData;
+const buildIntentsChecklist     = window.buildIntentsChecklist;
+const buildUserTemplatesUI      = window.buildUserTemplatesUI;
+const loadVisibleIntents        = window.loadVisibleIntents;
+const loadGlobalDefaults        = window.loadGlobalDefaults;
+const GLOBAL_DEFAULTS           = window.GLOBAL_DEFAULTS;
+
 
 // --- Boot ---
 on(document, 'DOMContentLoaded', () => {

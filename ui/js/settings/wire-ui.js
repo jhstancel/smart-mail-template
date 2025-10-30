@@ -1,12 +1,21 @@
 import { initComposeModeUI } from '../mode/compose-mode.js';
-import { scheduleLiveGenerate } from '../generate/generate.js';
 import { Starfield } from '../bg/starfield.js';
-import { PastellPets } from '../bg/pastell-pets.js';
-import { loadGlobalDefaults, saveGlobalDefaults, clearGlobalDefaults, GLOBAL_DEFAULTS } from '../defaults/global-defaults.js';
-import { buildIntentsChecklist } from '../intents/grid.js';
+// Provided globally by grid.js
+const buildIntentsChecklist = window.buildIntentsChecklist;
 import { buildUserTemplatesUI } from '../usertpl/store.js';
 
-(function wireUI(){
+// don’t capture; read from window when needed
+const scheduleLiveGenerate = (...args) => window.scheduleLiveGenerate?.(...args);
+
+const PastellPets = window.PastellPets;
+const {
+  loadGlobalDefaults,
+  saveGlobalDefaults,
+  clearGlobalDefaults,
+  GLOBAL_DEFAULTS
+} = window;
+
+function wireSettingsUI() {
   const btnGenerate  = document.getElementById('btnGenerate');
 
   initComposeModeUI();
@@ -19,9 +28,20 @@ import { buildUserTemplatesUI } from '../usertpl/store.js';
   const settingsBtn   = document.querySelector('.settings-btn');
   const settingsMenu  = document.querySelector('.settings-menu');
 
-  if (settingsMenu && !settingsMenu._stopper){
-    settingsMenu._stopper = true;
-    settingsMenu.addEventListener('click', (e)=> e.stopPropagation());
+  // CLICK DELEGATION: open the corresponding subpanel when a row is clicked
+  if (settingsMenu && !settingsMenu._wired){
+    settingsMenu._wired = true;
+    settingsMenu.addEventListener('click', (e)=>{
+      const row = e.target.closest('.settings-item');
+      if (row && row.dataset.item){
+        e.preventDefault();
+        e.stopPropagation();
+        openOnly(row.dataset.item);
+        return;
+      }
+      // Otherwise, keep clicks inside from closing the menu
+      e.stopPropagation();
+    });
   }
 
   const subIntents    = document.getElementById('subIntents'); 
@@ -50,34 +70,37 @@ import { buildUserTemplatesUI } from '../usertpl/store.js';
     [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
     document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
   }
+
   let currentlyOpen = null;
+
   function openOnly(which){
     if(currentlyOpen === which){
-      closeAllSubs(); currentlyOpen = null;
-      document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+      closeAllSubs(); 
+      currentlyOpen = null;
       return;
     }
     closeAllSubs();
+
     if(which==='theme'     && subTheme)     subTheme.classList.add('open');
     if(which==='typing'    && subTyping)    subTyping.classList.add('open');
-    if(which==='intents'   && subIntents)  { subIntents.classList.add('open');  buildIntentsChecklist?.(); }
-    if(which==='usertpls'  && subUserTpls) { subUserTpls.classList.add('open'); buildUserTemplatesUI?.(); }
+    if(which==='intents'   && subIntents) { 
+      subIntents.classList.add('open');  
+      buildIntentsChecklist?.(); 
+    }
+    if(which==='usertpls'  && subUserTpls){ 
+      subUserTpls.classList.add('open'); 
+      buildUserTemplatesUI?.(); 
+    }
     if(which==='defaults'  && subDefaults)  subDefaults.classList.add('open');
 
-    const opened = (
-      which==='theme'    ? subTheme   :
-      which==='typing'   ? subTyping  :
-      which==='intents'  ? subIntents :
-      which==='usertpls' ? subUserTpls:
-      which==='defaults' ? subDefaults: null
-    );
-    const menu = opened?.closest('.settings-menu');
-    if (menu) {
+    const menu = (document.querySelector('.settings-menu') || null);
+    if (menu){
       const header = menu.querySelector(`.settings-item[data-item="${which}"]`);
-      requestAnimationFrame(()=>{ if (header) menu.scrollTo({ top: header.offsetTop - 6, behavior: 'smooth' }); });
+      if (header) requestAnimationFrame(()=> menu.scrollTo({ top: header.offsetTop - 6, behavior: 'smooth' }));
     }
 
     currentlyOpen = which;
+
     document.querySelectorAll('.settings-item').forEach(row=>{
       const chev = row.querySelector('.chev');
       if(!chev) return;
@@ -171,4 +194,11 @@ import { buildUserTemplatesUI } from '../usertpl/store.js';
     clearGlobalDefaults(persist);
     if(window.SELECTED_INTENT){ window.renderFields?.(window.SELECTED_INTENT); }
   });
-})();
+} // ← close function wireSettingsUI
+
+// ensure public API for settings panel
+if (!window.scheduleLiveGenerate) window.scheduleLiveGenerate = scheduleLiveGenerate;
+window.wireSettingsUI = wireSettingsUI;
+
+// do NOT auto-run here; main.js calls wireSettingsUI() on DOMContentLoaded
+

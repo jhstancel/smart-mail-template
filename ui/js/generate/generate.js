@@ -1,4 +1,8 @@
-import { renderFields } from '../fields/render-fields.js';
+const renderFields = window.renderFields;
+
+if (typeof renderFields !== 'function') {
+  console.error('[generate] renderFields not found on window. Check script load order.');
+}
 
 const autoStage    = document.getElementById('autoStage');
 const btnGenerate  = document.getElementById('btnGenerate');
@@ -79,7 +83,7 @@ async function typeInto(el, text){
   el.textContent = text;
 }
 const liveState = (window.liveState = window.liveState || { compose:false, preview:true, tId:null });
-export function scheduleLiveGenerate(delayMs=200){
+function scheduleLiveGenerate(delayMs=200){
   if(!liveState.preview) return;
   clearTimeout(liveState.tId);
   liveState.tId = setTimeout(()=> doGenerate(), delayMs);
@@ -112,8 +116,6 @@ export async function doGenerate(){
     if (usingAuto){
       if (typeof window.showToast === 'function') {
         window.showToast('Pick an intent from the suggestions or grid, then press Generate.');
-      } else {
-        console.info('Auto-Detect: choose a suggested intent (chip) or a card, then press Generate.');
       }
       return;
     }

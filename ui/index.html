@@ -250,228 +250,44 @@ quantity:string" rows="4"></textarea>
 </form>
 </dialog>
 
-
 <script>
 (() => {
-  const THEME = 'pastell';
   const ROOT  = document.documentElement;
   const stars = document.getElementById('stars');
-  const layer = document.getElementById('petFlakes');
 
-  // -- restore last theme on load so Pastell survives refresh (same key as app.js)
-  const savedTheme = localStorage.getItem('sm_theme');
-  if (savedTheme) ROOT.setAttribute('data-theme', savedTheme);
+  // keep theme persisted (same key as app.js)
+  const saved = localStorage.getItem('sm_theme');
+  if (saved) ROOT.setAttribute('data-theme', saved);
 
-  const exts  = ['png','jpg','jpeg','webp'];
-  const names = [
-    ...Array.from({length:10}, (_,i)=>`cat${i?i:''}`),
-    ...Array.from({length:10}, (_,i)=>`dog${i?i:''}`),
-    ...Array.from({length:10}, (_,i)=>`cat${i?(' '+i):''}`),
-    ...Array.from({length:10}, (_,i)=>`dog${i?(' '+i):''}`)
-  ];
-  const prefix = location.pathname.startsWith('/ui/') ? '/ui/' : '/';
-  const candidates = [];
-  for (const n of names) for (const ext of exts) candidates.push(`${prefix}pets/${n}.${ext}`);
+  const isPastell = () => ROOT.getAttribute('data-theme') === 'pastell';
 
-  let enabled = false;
-  let flakes  = [];
-  let liveImages = [];
-  let gen = 0;
-  const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Maintain --vh for transform-based fall end position
-  function setVHVar(){
-    const vh = (window.visualViewport?.height ?? window.innerHeight);
-    document.documentElement.style.setProperty('--vh', vh + 'px');
-  }
-  setVHVar();
-  addEventListener('resize', setVHVar);
-
-  const pick = arr => arr[(Math.random()*arr.length)|0];
-  const inches2 = () => (innerWidth/96)*(innerHeight/96);
-  const decideCount = () => Math.max(40, Math.min(Math.round(inches2()*4), 350));
-
-  async function loadImages(){
-    const loads = await Promise.allSettled(
-      candidates.map(src => new Promise((res,rej)=>{
-        const im = new Image();
-        im.onload = () => res(src);
-        im.onerror = () => rej(src);
-        im.src = src;
-      }))
-    );
-    const ok = loads.filter(x=>x.status==='fulfilled').map(x=>x.value);
-    if (!ok.length) console.warn('[Pastell] No pet images found under', prefix+'pets/');
-    return ok;
-  }
-
-  function clearFlakes(){ flakes.forEach(f=>f.remove()); flakes=[]; }
-
-  function spawnFlakes(){
-    clearFlakes();
-    const count = decideCount();
-    const xs = [];
-    const minGap = 28;
-    for (let i=0;i<count;i++){
-      let x, tries=0;
-      do{ x=Math.random()*innerWidth; tries++; }
-      while(tries<40 && xs.some(p=>Math.abs(p-x)<minGap));
-      xs.push(x);
+  function applyThemePets(){
+    if (isPastell()){
+      if (stars) stars.style.display = 'none';
+      window.PastellPets?.enable();
+    } else {
+      window.PastellPets?.disable();
+      if (stars) stars.style.display = '';
     }
-    const sizeMin=18, sizeMax=26;
-    xs.forEach(x=>{
-      const img=document.createElement('img');
-      img.className='pet-flake';
-      img.src=pick(liveImages);
-      img.style.width=(sizeMin+Math.random()*(sizeMax-sizeMin)).toFixed(0)+'px';
-
-      // Column = CSS var (no absolute left during animation)
-      img.style.setProperty('--x', x + 'px');
-
-      // Hide until we know real height, then spawn just above via --startY
-      img.style.visibility = 'hidden';
-      const setJustAbove = () => {
-        const h = img.naturalHeight || img.getBoundingClientRect().height || 40;
-        const pad = 10 + Math.floor(Math.random()*6); // 10..15
-        img.style.setProperty('--startY', -(h + pad) + 'px');
-        img.style.visibility = 'visible';
-        // restart CSS animation cleanly after setting vars
-        img.style.animation='none'; void img.offsetWidth; img.style.animation='';
-      };
-      if (img.complete) { setJustAbove(); }
-      else { img.addEventListener('load', setJustAbove, { once:true }); }
-
-      const dur=55+Math.random()*10;
-      img.style.setProperty('--rot',(Math.random()*24-12).toFixed(1)+'deg');
-      img.style.setProperty('--drift',((Math.random()<0.5?-1:1)*(6+Math.random()*8)).toFixed(1)+'px');
-      img.style.setProperty('--fall-dur',dur.toFixed(1)+'s');
-      img.style.setProperty('--delay',(-Math.random()*dur).toFixed(2)+'s');
-
-      img.addEventListener('click',e=>{
-        e.stopPropagation();
-        img.classList.add('pop');
-        img.addEventListener('animationend',ev=>{
-          if(ev.animationName==='petPop') recycle(img);
-        },{once:true});
-      });
-
-      img.addEventListener('animationend',ev=>{
-        if(ev.animationName==='petFallTop') recycle(img);
-      });
-
-      layer.appendChild(img);
-      flakes.push(img);
-    });
-
   }
 
-  async function enable(myGen){
-    if (enabled || prefersReduced) return;
-    enabled=true;
-    if (stars) stars.style.display='none';
-    layer.style.display='block';
+  // react to theme changes
+  const mo = new MutationObserver(applyThemePets);
+  mo.observe(ROOT, { attributes:true, attributeFilter:['data-theme'] });
 
-    if(!liveImages.length){
-      const imgs=await loadImages();
-      if(myGen!==gen) return;
-      liveImages=imgs;
-      if(!liveImages.length){ disable(myGen); return; }
-    }
-   if (myGen !== gen) return;
-
-// only spawn once, never stack duplicates
-if (!flakes.length) spawnFlakes();
- 
-  }
-
-  function disable(myGen){
-    if(myGen!==undefined && myGen!==gen) return;
-    if(!enabled) return;
-    enabled=false;
-    clearFlakes();
-    if(stars) stars.style.display='';
-    layer.style.display='none';
-  }
-
-function update(){
-  const isPastell = themeIsPastell();
-  if (isPastell && !enabled) {
-    gen++;
-    enable(gen);
-  } else if (!isPastell && enabled) {
-    gen++;
-    disable(gen);
-  }
-}
-
-  function themeIsPastell(){
-    return ROOT.getAttribute('data-theme')===THEME;
-  }
-
-  const mo=new MutationObserver(()=>{
-    cancelAnimationFrame(update.raf);
-    update.raf=requestAnimationFrame(update);
+  // user changes via select
+  document.getElementById('themeSelect')?.addEventListener('change', e => {
+    const val = e.target.value;
+    ROOT.setAttribute('data-theme', val);
+    localStorage.setItem('sm_theme', val);
   });
-  mo.observe(ROOT,{attributes:true,attributeFilter:['data-theme']});
 
-document.getElementById('themeSelect')?.addEventListener('change', e => {
-  const val = e.target.value;
-  ROOT.setAttribute('data-theme', val);
-  localStorage.setItem('sm_theme', val);     // persist selection (matches app.js)
-});
-
-// On resize, keep columns; only clamp if off-screen
-// On resize, keep columns; only clamp if off-screen (using --x)
-addEventListener('resize', () => {
-  if (!enabled) return;
-  for (const img of flakes) {
-    const w = img.getBoundingClientRect().width || 0;
-    const cs = getComputedStyle(img);
-    const x = parseFloat(cs.getPropertyValue('--x')) || 0;
-    const maxX = Math.max(0, innerWidth - w);
-    if (x > maxX) img.style.setProperty('--x', maxX + 'px');
-  }
-});
-
-  update();
-  
-  function recycle(img){
-    img.classList.remove('pop');
-    // keep same column; only move startY just above top (transform var)
-    const pad = 10 + Math.floor(Math.random()*6); // 10..15
-    const h = img.naturalHeight || img.getBoundingClientRect().height || 40;
-    img.style.setProperty('--startY', -(h + pad) + 'px');
-
-    // optional: tiny source shuffle, but do NOT change width/duration/--x
-    if (Math.random() < 0.15) img.src = pick(liveImages);
-
-    // restart animation cleanly
-    img.style.animation='none'; void img.offsetWidth; img.style.animation='';
-  }
-
+  // initial
+  applyThemePets();
 })();
 </script>
 
-<script src="js/guards/intents-guard.js"></script>
-<script src="js/state/visible-intents.js"></script>
-<script src="js/utils/dom.js"></script>
-<script src="js/utils/text.js"></script>
-<script src="js/bg/starfield.js"></script>
-<script src="js/bg/pastell-pets.js"></script>
-<script src="js/mode/compose-mode.js"></script>
-<script src="js/intents/grid.js"></script>
-<script src="js/fields/render-fields.js"></script>
-<script src="js/parts/order-parts-editor.js"></script>
-<script src="js/settings/wire-ui.js"></script>
-<script src="js/usertpl/store.js"></script>
-<script src="js/usertpl/editor-dialog.js"></script>
-<script src="js/usertpl/list-delegation.js"></script>
-<script src="js/generate/generate.js"></script>
-<script src="js/autodetect/predict.js"></script>
-<script src="js/easter/corruption.js"></script>
-<script src="js/easter/evil-larry.js"></script>
-<script src="js/easter/nyan.js"></script>
-<script src="js/main.js"></script>
-
+<script type="module" src="js/main.js"></script>
 
 </body>
 </html>

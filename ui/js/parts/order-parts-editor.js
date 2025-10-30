@@ -147,17 +147,22 @@ function enhanceOrderRequestCard() {
   if (card) initOrderRequestPartsEditor(card);
 }
 
-// If you already have a function that runs when the intent changes, call enhanceOrderRequestCard() there.
-// Otherwise, run once on load (no-op for other intents).
+// Optional auto-run on the old page flow (safe no-op if parts aren’t present)
 document.addEventListener('DOMContentLoaded', () => {
-  try { 
+  try {
     if (typeof activeIntent !== 'undefined' && activeIntent === 'order_request') {
       enhanceOrderRequestCard();
     }
   } catch(_) {}
 });
 
-// back-compat exports
+// back-compat + API for main.js
 window.initOrderRequestPartsEditor = initOrderRequestPartsEditor;
-window.enhanceOrderRequestCard = enhanceOrderRequestCard;
+window.enhanceOrderRequestCard    = enhanceOrderRequestCard;
+
+// Alias expected by main.js
+// (Calls the enhancer that finds the card and wires the editor.)
+window.initOrderPartsEditor = window.initOrderPartsEditor || function initOrderPartsEditor(){
+  enhanceOrderRequestCard();
+};
 
