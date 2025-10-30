@@ -1,12 +1,12 @@
 // ui/js/bg/pastell-pets.js (global IIFE, no exports)
 (function(){
   const LAYER_ID = 'petFlakes';
-  // Use only files that actually exist in /ui/pets (from your tree)
+  // Use only files that actually exist in /ui/img/pets (from your tree)
   const IMG_LIST = [
-    'pets/cat.png','pets/cat1.png','pets/cat2.png','pets/cat3.png',
-    'pets/cat4.png','pets/cat5.png','pets/cat6.png','pets/cat7.png',
-    'pets/dog.png','pets/dog1.png','pets/dog3.png','pets/dog4.png',
-    'pets/dog6.png','pets/dog7.png','pets/dog8.png','pets/dog9.png'
+  'img/pets/cat.png',  'img/pets/cat1.png',  'img/pets/cat2.png',  'img/pets/cat3.png',
+  'img/pets/cat4.png', 'img/pets/cat5.png',  'img/pets/cat6.png',  'img/pets/cat7.png',
+  'img/pets/dog.png',  'img/pets/dog1.png',  'img/pets/dog3.png',  'img/pets/dog4.png',
+  'img/pets/dog6.png', 'img/pets/dog7.png',  'img/pets/dog8.png',  'img/pets/dog9.png'
   ];
 
   let enabled = false, layer = null, flakes = [], spawned = false;

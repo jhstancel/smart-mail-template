@@ -287,7 +287,21 @@ quantity:string" rows="4"></textarea>
 })();
 </script>
 
+<!-- Load pets BEFORE we try to enable them (non-module so it attaches to window) -->
+<script src="js/bg/pastell-pets.js"></script>
+
+<!-- Auto-enable on refresh. Remove the localStorage gate for now. -->
+<script>
+  addEventListener('DOMContentLoaded', () => {
+    window.PastellPets?.enable();
+    // If you prefer the toggle later, re-add the gate:
+    // if (localStorage.getItem('pastellPets') === 'on') window.PastellPets?.enable();
+  });
+</script>
+
+<!-- Your app (ES module) -->
 <script type="module" src="js/main.js"></script>
 
 </body>
 </html>
+
