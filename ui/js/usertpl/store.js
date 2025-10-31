@@ -12,15 +12,35 @@ export function loadUserTemplates(){
 export function saveUserTemplates(list){
   try{ localStorage.setItem(USER_TPLS_KEY, JSON.stringify(list||[])); }catch(_e){}
 }
-export function parseFieldLines(text){
+
+export function parseFieldLines(text) {
   const out = [];
-  (text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean).forEach(line=>{
-    const [name, type='string', req=''] = line.split(':').map(x=>x.trim());
-    if(!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return;
-    out.push({name, type: (type||'string'), required: (req.toLowerCase()==='required')});
-  });
+  (text || '')
+    .split(/\r?\n/)
+    .map(s => s.trim())
+    .filter(Boolean)
+    .forEach(line => {
+      const parts = line.split(':').map(x => x.trim()).filter(Boolean);
+      const name = parts[0];
+      if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) return;
+
+      // Defaults
+      let type = 'string';
+      let required = false;
+
+      // Allow flexible order and omission
+      for (let i = 1; i < parts.length; i++) {
+        const p = parts[i].toLowerCase();
+        if (p === 'required') required = true;
+        else if (['string', 'number', 'email', 'date'].includes(p)) type = p;
+      }
+
+      out.push({ name, type, required });
+    });
   return out;
 }
+
+
 export function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 export function renderLocalTemplate(def, data){
   const re = /\{\{\s*([A-Za-z_][A-Za-z0-9_]*)\s*\}\}/g;
@@ -141,4 +161,8 @@ export function deleteTemplate(id){
   window.buildUserTemplatesUI?.();
 }
 window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesUI;
+/* expose selected APIs for non-module listeners (list-delegation, etc.) */
+window.loadUserTemplates  = window.loadUserTemplates  || loadUserTemplates;
+window.deleteTemplate     = window.deleteTemplate     || deleteTemplate;
+window.upsertTemplate     = window.upsertTemplate     || upsertTemplate;
 

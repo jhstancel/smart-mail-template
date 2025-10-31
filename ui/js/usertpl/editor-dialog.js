@@ -28,12 +28,54 @@ import { parseFieldLines, upsertTemplate } from './store.js';
       '#ute_subject': existing.subject || '',
       '#ute_body': existing.body || ''
     };
-    Object.entries(map).forEach(([sel,val])=>{ const el = form.querySelector(sel); if(el) el.value = val; });
+  Object.entries(map).forEach(([sel,val])=>{ const el = form.querySelector(sel); if(el) el.value = val; });
+}
+
+  // --- viewport + centering helpers (add) ---
+  function viewportSize(){
+    const vv = window.visualViewport;
+    if (vv && typeof vv.width === 'number' && typeof vv.height === 'number') {
+      return { w: Math.floor(vv.width), h: Math.floor(vv.height) };
+    }
+    const de = document.documentElement;
+    return { w: de.clientWidth, h: de.clientHeight };
   }
-  function closeEditorInternal(){
-    if(typeof dlg.close === 'function'){ try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); } }
-    else dlg.removeAttribute('open');
+
+  function centerForm(pad = 12){
+    if (!dlg || !form) return;
+
+    // Ensure dialog is under <body> so fixed coords are truly viewport-relative
+    if (dlg.parentElement !== document.body) document.body.appendChild(dlg);
+
+    // Force predictable measurements
+    form.style.position = 'fixed';
+    form.style.left = '0';
+    form.style.top = '0';
+    form.style.transform = 'none';
+    form.style.maxWidth = 'min(680px, 90vw)';
+    form.style.maxHeight = '85vh';
+    form.style.overflow = 'auto';
+
+    const { w, h } = viewportSize();
+    // Reset to measure natural size
+    const r = form.getBoundingClientRect();
+    const left = Math.max(pad, Math.min(w - r.width  - pad, (w - r.width) / 2));
+    const top  = Math.max(pad, Math.min(h - r.height - pad, (h - r.height) / 2));
+    form.style.left = left + 'px';
+    form.style.top  = top  + 'px';
+    dlg.classList.add('open'); // some UAs need a class flag for styling
   }
+function closeEditorInternal(){
+  // remove the manual visibility flag we added
+  dlg.classList.remove('open');
+
+  if (typeof dlg.close === 'function') {
+    try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); }
+  } else {
+    dlg.removeAttribute('open');
+  }
+}
+
   function reopenSettingsAfterEditor(){
     const menu = document.getElementById('settingsMenu') || document.querySelector('.settings-menu');
     const btn  = document.getElementById('settingsBtn')  || document.querySelector('.settings-btn');
@@ -42,17 +84,20 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     row?.click();
   }
   function closeAndReopen(){ reopenAfterClose = true; closeEditorInternal(); }
+function openEditor(mode='new', existing=null){
+  resetForm();
+  if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
+  if(existing) seedForm(existing);
+  openModalSafe(dlg);
+  centerForm(); // <-- ensure on-screen and centered
+  const first = form?.querySelector('input,textarea,select,button'); first?.focus({ preventScroll:true });
+}
 
-  function openEditor(mode='new', existing=null){
-    resetForm();
-    if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
-    if(existing) seedForm(existing);
-    openModalSafe(dlg);
-    const first = form?.querySelector('input,textarea,select,button'); first?.focus({ preventScroll:true });
-  }
   window.openEditor = openEditor;
+const btnNew = document.getElementById('tplNew') 
+  || document.getElementById('ut_new') 
+  || document.querySelector('[data-action="ut-new"]');
 
-  const btnNew = document.getElementById('ut_new') || document.querySelector('[data-action="ut-new"]');
   btnNew?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openEditor('new', null); });
 
   function collectEditor(){
@@ -114,15 +159,37 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     } catch(e) {}
   }
 
-  function onCancel(e){ e.preventDefault(); e.stopPropagation(); closeAndReopen(); }
+function onCancel(e){
+  e.preventDefault();
+  e.stopPropagation();
+  closeEditorInternal();          // closes dialog + removes .open
+}
 
-  dlg.addEventListener('click', (e)=>{ if(e.target === dlg){ e.stopPropagation(); closeAndReopen(); } }, { capture:true });
-  dlg.addEventListener('cancel', ()=>{ reopenAfterClose = true; });
-  dlg.addEventListener('close', ()=>{ if(reopenAfterClose){ reopenAfterClose = false; Promise.resolve().then(reopenSettingsAfterEditor); } });
+// Close on backdrop click
+dlg.addEventListener('click', (e) => {
+  if (e.target === dlg) {
+    e.stopPropagation();
+    closeEditorInternal();
+  }
+}, { capture: true });
 
-  btnSave?.addEventListener('click', onSave);
-  btnCancel?.addEventListener('click', onCancel);
+// Close on Esc (dialog "cancel")
+dlg.addEventListener('cancel', (e) => {
+  e.preventDefault();             // prevent UA default weirdness
+  closeEditorInternal();
+});
+
+// No auto-reopen behavior on 'close'
+dlg.addEventListener('close', () => { /* no-op */ });
+
+// Wire buttons
+btnSave?.addEventListener('click', onSave);
+btnCancel?.addEventListener('click', onCancel);
 
   document.addEventListener('userTpl:edit', (e) => openEditor('edit', e.detail?.template || null));
   document.addEventListener('userTpl:dup',  (e) => openEditor('dup',  e.detail?.template || null));
+  // Recenter while dialog is open on resize/zoom/OSK changes
+  addEventListener('resize', () => { if (dlg?.hasAttribute('open')) centerForm(); });
+  window.visualViewport?.addEventListener?.('resize', () => { if (dlg?.hasAttribute('open')) centerForm(); });
+
 })();

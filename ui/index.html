@@ -136,7 +136,6 @@
 
 <!-- Pastell pets layer (background) -->
 <div id="petFlakes" aria-hidden="true"></div>
-<script src="js/bg/pastell-pets.js"></script>
 <script>
   addEventListener('DOMContentLoaded', () => window.PastellPets?.enable());
 </script>
@@ -150,7 +149,8 @@
 <div aria-hidden="true" class="flash" id="flash"></div>
 <div aria-label="Buffering" aria-modal="true" class="buffer" id="buffer" role="dialog">
 <div class="buffer-card">
-<div style="font-weight:800; margin-bottom:8px">Reinitializing displayâ€¦</div>
+<div style="font-weight:800; margin-bottom:8px">Reinitializing display&hellip;</div>
+
 <div aria-hidden="true" class="bar"><i id="barFill"></i></div>
 <div class="muted" id="barPct" style="margin-top:8px">0%</div>
 </div>
@@ -227,40 +227,58 @@
 </div>
 </div>
 </div>
+
 <!-- Simple Editor Dialog for My Templates -->
 <dialog id="ut_editor">
-<form id="ut_form" novalidate="" style="min-width: min(680px, 90vw)">
-<h3 style="margin:0 0 10px">Edit Template</h3>
-<div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
-<label>Internal ID (letters, numbers, underscores; will be prefixed with u:)
-        <input id="ute_id" pattern="[A-Za-z0-9_]{2,64}" placeholder="my_quote" required="" type="text"/>
-</label>
-<label>Label (shown in grid)
-        <input id="ute_label" placeholder="My Quote" required="" type="text"/>
-</label>
-</div>
-<label>Description
-      <input id="ute_desc" placeholder="Local-only quote request" type="text"/>
-</label>
-<label>Fields (one per line as <name>:<type>[:required]) 
-      <textarea id="ute_fields" placeholder="companyName:string:required
-item:string:required
-quantity:string" rows="4"></textarea>
-</type></name></label>
-<div class="grid" style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:6px">
-<label>Subject (use {{field}} placeholders)
-        <input id="ute_subject" placeholder="Quote Request — {{ companyName }}: {{ item }}" type="text"/>
-</label>
-<label>Body (plain text; {{field}} placeholders allowed)
-        <textarea id="ute_body" placeholder="Hello,
+  <form id="ut_form" novalidate style="min-width: min(680px, 90vw)">
+    <h3 style="margin:0 0 10px">Edit Template</h3>
 
-&gt;We’d like a quote for {{ item }} (qty {{ quantity }}).
+    <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+      <label>Backend ID
+        <input id="ute_id" type="text" required
+               pattern="[A-Za-z0-9_]{2,64}" placeholder="my_quote" />
+      </label>
 
-&gt;Thanks," rows="8"></textarea>
+      <label>Label
+        <input id="ute_label" type="text" required placeholder="My Quote" />
+      </label>
+    </div>
+
+    <label>Description
+      <input id="ute_desc" type="text" placeholder="Local-only quote request" />
+    </label>
+
+<label>Custom Fields (one per line)
+  <textarea id="ute_fields" rows="4" placeholder="Examples:
+companyName
+quantity:number
+item:required
+partNumber:number:required"></textarea>
 </label>
-</div>
-<div class="inline" style="justify-content:flex-end; gap:8px; margin-top:10px">
-<button class="btn" formnovalidate="" id="ute_cancel" type="button">Cancel</button>
+
+    <div class="grid" style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:6px">
+      <label>Subject (use {{field}} placeholders)
+        <input id="ute_subject" type="text"
+               placeholder="Quote Request — {{ companyName }}: {{ item }}" />
+      </label>
+
+      <label>Body (plain text; {{field}} placeholders allowed)
+        <textarea id="ute_body" rows="8" placeholder="Hello,
+
+We’d like a quote for {{ item }} (qty {{ quantity }}).
+
+Thanks,"></textarea>
+      </label>
+    </div>
+
+    <div class="inline" style="justify-content:flex-end; gap:8px; margin-top:10px">
+      <button class="btn" id="ute_cancel" type="button" formnovalidate>Cancel</button>
+      <button class="btn" id="ute_save"   type="button">Save</button>
+    </div>
+  </form>
+</dialog>
+
+
 <button class="btn" id="ute_save" type="button">Save</button>
 </div>
 </form>
@@ -277,23 +295,15 @@ quantity:string" rows="4"></textarea>
 
   const isPastell = () => ROOT.getAttribute('data-theme') === 'pastell';
 
-  function applyThemePets(){
-    if (isPastell()){
-      if (stars) stars.style.display = 'none';
-addEventListener('DOMContentLoaded', () => {
-  if (document.body.getAttribute('data-theme') === 'pastell') {
-    window.PastellPets?.enable();
+function applyThemePets(){
+  if (isPastell()){
+    if (stars) stars.style.display = 'none';
+    window.PastellPets?.enable?.();
+  } else {
+    if (stars) stars.style.display = '';
+    window.PastellPets?.disable?.();
   }
-});
-    } else {
-addEventListener('DOMContentLoaded', () => {
-  if (document.body.getAttribute('data-theme') === 'pastell') {
-    window.PastellPets?.enable();
-  }
-});
-      if (stars) stars.style.display = '';
-    }
-  }
+}
 
   // react to theme changes
   const mo = new MutationObserver(applyThemePets);
@@ -315,16 +325,15 @@ addEventListener('DOMContentLoaded', () => {
 <script src="js/bg/pastell-pets.js"></script>
 
 <!-- Auto-enable on refresh. Remove the localStorage gate for now. -->
-<script>
-  addEventListener('DOMContentLoaded', () => {
-    window.PastellPets?.enable();
-    // If you prefer the toggle later, re-add the gate:
-    // if (localStorage.getItem('pastellPets') === 'on') window.PastellPets?.enable();
-  });
-</script>
+
+<!-- User Templates modules -->
+<script type="module" src="js/usertpl/store.js"></script>
+<script type="module" src="js/usertpl/editor-dialog.js"></script>
+<script src="js/usertpl/list-delegation.js"></script>
 
 <!-- Your app (ES module) -->
 <script type="module" src="js/main.js"></script>
+
 
 </body>
 </html>

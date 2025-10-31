@@ -40,4 +40,53 @@
 .btn.small{ padding:8px 12px; border-radius:10px; font-weight:800; }
 .btn.ghost{ background:linear-gradient(180deg, var(--card-bg1), var(--card-bg2)); color:var(--ink); border:1px solid var(--card-border); box-shadow:none; }
 .inline{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+/* Edit Template dialog polish (centered via JS; keep UA backdrop) */
+#ut_editor::backdrop {
+  background: color-mix(in srgb, #000 20%, transparent);
+}
+
+/* When JS toggles .open, ensure visible */
+#ut_editor.open { display: block; }
+
+/* Normalizing the form box inside the dialog */
+#ut_editor form {
+  /* width/height are clamped in JS; keep visuals here */
+  border-radius: 12px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  box-shadow: var(--shadow-2);
+  padding: 14px;
+}
+/* Backdrop stays translucent; the form itself is opaque */
+#ut_editor::backdrop {
+  background: color-mix(in srgb, #000 30%, transparent);
+}
+
+/* When JS toggles .open, ensure visible */
+#ut_editor.open { display: block; }
+
+/* Solid card for the editor form (no see-through) */
+#ut_editor form {
+  position: fixed;              /* JS centers it; keep fixed here too */
+  background: #fff;             /* force opaque; override see-through tokens */
+  color: var(--ink, #111);
+  border: 1px solid var(--panel-border, #e6e6e6);
+  border-radius: 12px;
+  box-shadow: var(--shadow-2, 0 10px 30px rgba(0,0,0,.25));
+  padding: 14px;
+  z-index: 10010;               /* above panels and effects */
+  max-width: min(680px, 90vw);
+  max-height: 85vh;
+  overflow: auto;
+}
+
+/* Make sure fields aren’t transparent in some themes */
+#ut_editor input,
+#ut_editor textarea,
+#ut_editor select {
+  background: #fff;
+}
+
+/* Prevent body margins from nudging the dialog */
+html, body { margin: 0; }
 

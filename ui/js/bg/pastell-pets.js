@@ -1,5 +1,8 @@
-// ui/js/bg/pastell-pets.js (global IIFE, no exports)
+// ui/js/bg/pastell-pets.js
 (function () {
+  // Prevent double-define if script is included twice
+  if (window.PastellPets && window.PastellPets.__ready) return;
+
   const LAYER_ID = 'petFlakes';
   const IMG_LIST = [
     'img/pets/cat.png','img/pets/cat1.png','img/pets/cat2.png','img/pets/cat3.png',
@@ -8,9 +11,19 @@
     'img/pets/dog6.png','img/pets/dog7.png','img/pets/dog8.png','img/pets/dog9.png'
   ];
 
-  let enabled = false, layer = null, flakes = [], spawned = false;
+  // ---- Local state (must be in the same closure as enable/disable) ----
+  let enabled = false;
+  let spawned = false;
+  let layer = null;
+  const flakes = [];
 
-  function ensureLayer(){
+  function isPastell() {
+    // theme attribute is on <html>, not <body>
+    return document.documentElement.getAttribute('data-theme') === 'pastell';
+  }
+
+  function ensureLayer() {
+    if (layer && document.body.contains(layer)) return layer;
     layer = document.getElementById(LAYER_ID);
     if (!layer) {
       layer = document.createElement('div');
@@ -22,25 +35,29 @@
     s.inset = '0';
     s.pointerEvents = 'none';
     s.overflow = 'hidden';
-    s.zIndex = '0'; // normalize away from -1
+    s.zIndex = '0';
     return layer;
   }
 
-  function pick(arr){ return arr[(Math.random()*arr.length)|0]; }
+  function pick(arr) { return arr[(Math.random() * arr.length) | 0]; }
 
-  function offscreenY(img){
+  function offscreenY(img) {
     const h = img.naturalHeight || img.getBoundingClientRect().height || 40;
-    const pad = 10 + Math.floor(Math.random()*6);
+    const pad = 10 + Math.floor(Math.random() * 6);
     return -(h + pad);
   }
 
-  function recycle(img){
-    img.classList.remove('pop');
+  function restartAnimation(img) {
+    img.style.animation = 'none';
+    void img.offsetWidth;
+    img.style.animation = '';
+  }
 
+  function recycle(img) {
+    // jitter timing so field doesn’t sync
     const dur = 55 + Math.random() * 10;
     img.style.setProperty('--fall-dur', dur.toFixed(1) + 's');
     img.style.setProperty('--delay', (-Math.random() * dur).toFixed(2) + 's');
-
     if (Math.random() < 0.30) {
       const drift = ((Math.random() < 0.5 ? -1 : 1) * (6 + Math.random() * 8)).toFixed(1) + 'px';
       img.style.setProperty('--drift', drift);
@@ -48,24 +65,24 @@
     if (Math.random() < 0.20) {
       img.style.setProperty('--rot', (Math.random() * 24 - 12).toFixed(1) + 'deg');
     }
-
-    // Do NOT touch style.animation/style.transform/style.top here.
   }
 
-  function placeInitial(img, x){
+  function placeInitial(img, x) {
     img.style.left = x + 'px';
     img.style.visibility = 'hidden';
-    const setOnce = ()=>{
+    const setOnce = () => {
       if (img.dataset._placed) return;
       img.dataset._placed = '1';
       img.style.top = offscreenY(img) + 'px';
       img.style.visibility = 'visible';
+      // kick CSS anim the first time
+      restartAnimation(img);
     };
     if (img.complete && (img.naturalHeight || img.getBoundingClientRect().height)) setOnce();
-    else img.addEventListener('load', setOnce, { once:true });
+    else img.addEventListener('load', setOnce, { once: true });
   }
 
-  function spawnOnce(){
+  function spawnOnce() {
     if (spawned) return;
     spawned = true;
 
@@ -77,6 +94,9 @@
       const x = Math.round(base + jitter);
       return Math.max(0, Math.min(innerWidth - 20, x));
     });
+
+    const host = ensureLayer();
+    host.style.display = 'block';
 
     xs.forEach(x => {
       const img = document.createElement('img');
@@ -94,81 +114,60 @@
       placeInitial(img, x);
       img.addEventListener('animationiteration', () => recycle(img));
 
-      ensureLayer().appendChild(img);
+      host.appendChild(img);
       flakes.push(img);
     });
   }
 
-  function clampColumnsOnResize(){
-    if(!enabled || !flakes.length) return;
+  function clampColumnsOnResize() {
+    if (!enabled || !flakes.length) return;
     const W = innerWidth;
     const N = flakes.length;
-
-    flakes.forEach((img, idx)=>{
+    flakes.forEach((img, idx) => {
       const rectW = img.getBoundingClientRect().width || 0;
       let x = parseFloat(img.style.left) || 0;
       const maxX = Math.max(0, W - rectW);
-
       if (x > maxX) x = maxX;
-
       if (Math.random() < 0.15) {
         const slotW = W / N;
         const base = (idx + 0.5) * slotW;
         const jitter = (Math.random() - 0.5) * slotW * 0.4;
         x = Math.max(0, Math.min(maxX, base + jitter));
-
         const dur = parseFloat(getComputedStyle(img).getPropertyValue('--fall-dur')) || 60;
         img.style.setProperty('--delay', (-Math.random() * dur).toFixed(2) + 's');
       }
-
       img.style.left = x + 'px';
     });
   }
   addEventListener('resize', clampColumnsOnResize, { passive: true });
 
-  function enable(){
+  // ---- Public controls (must share closure with state above) ----
+  function enable() {
     if (enabled) return;
+    if (!isPastell()) return;          // theme gate
     enabled = true;
     ensureLayer().style.display = 'block';
     if (!flakes.length) spawnOnce();
   }
 
-  function disable(){
+  function disable() {
+    if (!enabled) return;
     enabled = false;
-    spawned = false;
+    // Keep flakes but hide layer (cheaper than tearing down)
     if (layer) layer.style.display = 'none';
   }
 
-  window.PastellPets = { enable, disable, isEnabled(){ return enabled; } };
+  // React to theme changes on <html data-theme="...">
+  const mo = new MutationObserver(() => { if (isPastell()) enable(); else disable(); });
+  mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // Auto-enable if page already in pastell
+  addEventListener('DOMContentLoaded', () => { if (isPastell()) enable(); });
+
+  window.PastellPets = {
+    enable, disable,
+    isEnabled: () => enabled,
+    __ready: true
+  };
 })();
-function isPastell(){
-  return document.body.getAttribute('data-theme') === 'pastell';
-}
-
-function enable(){
-  if (enabled) return;
-  if (!isPastell()) return;               // gate by theme
-  enabled = true;
-  ensureLayer().style.display = 'block';
-  if (!flakes.length) spawnOnce();
-}
-
-function disable(){
-  if (!enabled) return;
-  enabled = false;
-  spawned = false;
-  if (layer) layer.style.display = 'none';
-}
-
-// optional: respond to theme changes if your app toggles data-theme dynamically
-const mo = new MutationObserver(() => {
-  if (isPastell()) enable(); else disable();
-});
-mo.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
-
-// remove any unconditional auto-enable you had on DOMContentLoaded
-// and replace with:
-addEventListener('DOMContentLoaded', () => {
-  if (isPastell()) enable();
-});
 
