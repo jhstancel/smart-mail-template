@@ -90,3 +90,7 @@
 /* Prevent body margins from nudging the dialog */
 html, body { margin: 0; }
 
+
+/* Hide intent descriptions when user chooses Simple */
+:root.no-desc .intent-card p { display: none !important; }
+

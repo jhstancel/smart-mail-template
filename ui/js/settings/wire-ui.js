@@ -207,4 +207,20 @@ addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(gear);
   }
 });
+// ---- descriptions setting ----
+const DESC_KEY = 'ui.descriptions'; // 'on' | 'off'
+function applyDescriptions(on) {
+  document.documentElement.classList.toggle('no-desc', !on);
+  localStorage.setItem(DESC_KEY, on ? 'on' : 'off');
+  const cb = document.getElementById('opt_desc');
+  if (cb) cb.checked = on;
+}
+(function initDescriptions(){
+  const saved = localStorage.getItem(DESC_KEY);
+  const on = (saved == null) ? true : (saved === 'on');
+  applyDescriptions(on);
+  document.getElementById('opt_desc')?.addEventListener('change', e => {
+    applyDescriptions(!!e.target.checked);
+  });
+})();
 
