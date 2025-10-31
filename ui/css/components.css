@@ -92,5 +92,5 @@ html, body { margin: 0; }
 
 
 /* Hide intent descriptions when user chooses Simple */
-:root.no-desc .intent-card p { display: none !important; }
+:root.no-desc .intent-desc { display: none !important; }
 
