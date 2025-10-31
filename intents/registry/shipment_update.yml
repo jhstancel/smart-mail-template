@@ -30,7 +30,7 @@ hints:
 
 template:
   subject: "Tracking – PO {{ poNumber }} (Shipped {{ shipDate }})"
-  bodyPath: "templates/shipment_update.txt"
+  bodyPath: "templates/shipment_update.j2"
 
 autodetect:
   keywords: ["tracking", "shipped", "in transit", "carrier", "tracking number", "1Z", "FedEx", "UPS", "Maersk", "MSC", "CMA CGM", "Hapag-Lloyd"]

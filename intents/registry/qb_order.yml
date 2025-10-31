@@ -21,7 +21,7 @@ hints:
 
 template:
   subject: "QB Order – {{ orderNumber or recipientName }}"
-  bodyPath: "templates/qb_order.txt"
+  bodyPath: "templates/qb_order.j2"
 
 autodetect:
   keywords: ["qb order", "quickbooks", "order entry", "accounting"]

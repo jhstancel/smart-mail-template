@@ -19,7 +19,7 @@ hints:
 
 template:
   subject: "Order Confirmation – PO {{ poNumber }}"
-  bodyPath: "templates/order_confirmation.txt"
+  bodyPath: "templates/order_confirmation.j2"
 
 autodetect:
   keywords: ["order confirmation", "confirmed", "scheduled", "delivery date", "acknowledgement"]

@@ -389,7 +389,7 @@ SCHEMA_GENERATED = {
       "context"
     ],
     "template": {
-      "bodyPath": "templates/followup.txt",
+      "bodyPath": "templates/followup.j2",
       "subject": "Follow-up \u2013 {{ context }}"
     }
   },
@@ -716,7 +716,7 @@ SCHEMA_GENERATED = {
       "dueDate"
     ],
     "template": {
-      "bodyPath": "templates/invoice_po_followup.txt",
+      "bodyPath": "templates/invoice_po_followup.j2",
       "subject": "Follow-Up on Invoice {{ invoiceNumber }} / PO {{ poNumber }} \u2014 Due {{ dueDate }}"
     }
   },
@@ -1268,7 +1268,7 @@ SCHEMA_GENERATED = {
       "promisedShip"
     ],
     "template": {
-      "bodyPath": "templates/order_confirmation.txt",
+      "bodyPath": "templates/order_confirmation.j2",
       "subject": "Order Confirmation \u2013 PO {{ poNumber }}"
     }
   },
@@ -1411,7 +1411,7 @@ SCHEMA_GENERATED = {
       "docsList"
     ],
     "template": {
-      "bodyPath": "templates/packing_slip_docs.txt",
+      "bodyPath": "templates/packing_slip_docs.j2",
       "subject": "Documents for PO {{ poNumber }}"
     }
   },
@@ -1457,7 +1457,7 @@ SCHEMA_GENERATED = {
       "recipientName"
     ],
     "template": {
-      "bodyPath": "templates/qb_order.txt",
+      "bodyPath": "templates/qb_order.j2",
       "subject": "QB Order \u2013 {{ orderNumber or recipientName }}"
     }
   },
@@ -1507,7 +1507,7 @@ SCHEMA_GENERATED = {
       "quantity"
     ],
     "template": {
-      "bodyPath": "templates/quote_request.txt",
+      "bodyPath": "templates/quote_request.j2",
       "subject": "Pricing & Lead Time Request \u2013 {{ partNumber }} (Qty {{ quantity }})"
     }
   },
@@ -1604,7 +1604,7 @@ SCHEMA_GENERATED = {
       "shipDate"
     ],
     "template": {
-      "bodyPath": "templates/shipment_update.txt",
+      "bodyPath": "templates/shipment_update.j2",
       "subject": "Tracking \u2013 PO {{ poNumber }} (Shipped {{ shipDate }})"
     }
   },

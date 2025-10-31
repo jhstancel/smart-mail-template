@@ -15,7 +15,7 @@ hints:
 
 template:
   subject: "Follow-up – {{ context }}"
-  bodyPath: "templates/followup.txt"
+  bodyPath: "templates/followup.j2"
 
 autodetect:
   keywords: ["follow up", "follow-up", "checking in", "status update", "touching base"]

@@ -19,7 +19,7 @@ hints:
 
 template:
   subject: "Documents for PO {{ poNumber }}"
-  bodyPath: "templates/packing_slip_docs.txt"
+  bodyPath: "templates/packing_slip_docs.j2"
 
 autodetect:
   keywords: ["packing slip", "invoice copy", "certificate", "document", "attachment", "CoC", "CoA", "SDS"]

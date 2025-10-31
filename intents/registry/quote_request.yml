@@ -21,7 +21,7 @@ hints:
 
 template:
   subject: "Pricing & Lead Time Request – {{ partNumber }} (Qty {{ quantity }})"
-  bodyPath: "templates/quote_request.txt"
+  bodyPath: "templates/quote_request.j2"
 
 autodetect:
   keywords: ["quote", "pricing", "lead time", "rfq", "price check", "availability"]

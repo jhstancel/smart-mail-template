@@ -19,7 +19,7 @@ hints:
 
 template:
   subject: "Follow-Up on Invoice {{ invoiceNumber }} / PO {{ poNumber }} — Due {{ dueDate }}"
-  bodyPath: "templates/invoice_po_followup.txt"
+  bodyPath: "templates/invoice_po_followup.j2"
 
 autodetect:
   keywords: ["invoice follow up", "po follow up", "invoice status", "payment status", "due date"]
