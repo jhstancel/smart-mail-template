@@ -141,4 +141,34 @@
 
   window.PastellPets = { enable, disable, isEnabled(){ return enabled; } };
 })();
+function isPastell(){
+  return document.body.getAttribute('data-theme') === 'pastell';
+}
+
+function enable(){
+  if (enabled) return;
+  if (!isPastell()) return;               // gate by theme
+  enabled = true;
+  ensureLayer().style.display = 'block';
+  if (!flakes.length) spawnOnce();
+}
+
+function disable(){
+  if (!enabled) return;
+  enabled = false;
+  spawned = false;
+  if (layer) layer.style.display = 'none';
+}
+
+// optional: respond to theme changes if your app toggles data-theme dynamically
+const mo = new MutationObserver(() => {
+  if (isPastell()) enable(); else disable();
+});
+mo.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
+
+// remove any unconditional auto-enable you had on DOMContentLoaded
+// and replace with:
+addEventListener('DOMContentLoaded', () => {
+  if (isPastell()) enable();
+});
 

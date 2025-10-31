@@ -1,3 +1,30 @@
+/* Output fields: rounded cards that fit to text */
+#outSubject,
+#outBody{
+  display: inline-block;          /* shrink-wrap to content */
+  max-width: 100%;                /* don’t overflow the column */
+  padding: 12px 14px;
+  margin-top: 6px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  background: linear-gradient(180deg, var(--card-bg1), var(--card-bg2));
+  box-shadow: var(--shadow-1);
+  color: var(--ink);
+  white-space: pre-wrap;          /* keep line breaks, wrap long lines */
+  word-break: break-word;
+}
+/* Hide empty output boxes entirely */
+#outSubject:empty,
+#outBody:empty {
+  display: none;
+}
+
+/* If you ever want them full-width instead of shrink-wrapped, toggle this class */
+.output-fullwidth #outSubject,
+.output-fullwidth #outBody{
+  display: block;                 /* take the column width */
+  width: 100%;
+}
 .muted{ color:var(--muted); font-size:12px; }
 .pill{ padding:4px 10px; border-radius:999px; border:1px solid var(--panel-border); background:color-mix(in srgb, var(--bg) 85%, white 15%); }
 .btn{

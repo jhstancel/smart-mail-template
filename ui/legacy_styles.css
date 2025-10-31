@@ -1,5 +1,3 @@
-
-
 .splash-tip.show{ opacity:1; transform: translateY(0); }
 /* Parts card: remove any phantom bar under the title */
 .kv:has(#partsCardBody) .parts-header {

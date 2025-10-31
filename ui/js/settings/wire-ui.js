@@ -200,5 +200,11 @@ function wireSettingsUI() {
 if (!window.scheduleLiveGenerate) window.scheduleLiveGenerate = scheduleLiveGenerate;
 window.wireSettingsUI = wireSettingsUI;
 
-// do NOT auto-run here; main.js calls wireSettingsUI() on DOMContentLoaded
+// Ensure settings lives at <body> level so fixed positioning is truly viewport-relative
+addEventListener('DOMContentLoaded', () => {
+  const gear = document.querySelector('.settings');
+  if (gear && gear.parentElement !== document.body) {
+    document.body.appendChild(gear);
+  }
+});
 

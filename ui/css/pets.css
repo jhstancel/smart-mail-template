@@ -25,4 +25,8 @@
 @media (prefers-reduced-motion: reduce){
   #petFlakes, .pet-flake{ animation: none !important; }
 }
+/* Only show pets when the Pastell theme is selected */
+body:not([data-theme="pastell"]) #petFlakes{
+  display: none !important;
+}
 

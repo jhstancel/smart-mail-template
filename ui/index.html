@@ -12,22 +12,19 @@
   <link rel="apple-touch-icon" href="img/favicon-180.png">
   -->
 
-<link rel="stylesheet" href="css/00-vars.css">
-<link rel="stylesheet" href="css/01-base.css">
-<link rel="stylesheet" href="css/02-layout.css">
-<link rel="stylesheet" href="css/03-forms.css">
-<link rel="stylesheet" href="css/04-components.css">
-<link rel="stylesheet" href="css/05-intents.css">
-<link rel="stylesheet" href="css/06-settings.css">
-<link rel="stylesheet" href="css/07-parts.css">
-<link rel="stylesheet" href="css/08-effects.css">
-<link rel="stylesheet" href="css/09-easter.css">
-<link rel="stylesheet" href="css/10-pets.css">
-<link rel="stylesheet" href="css/11-utilities.css">
-<link rel="stylesheet" href="css/12-responsive.css">
-
-
-
+<link rel="stylesheet" href="css/vars.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/forms.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/intents.css">
+<link rel="stylesheet" href="css/settings.css">
+<link rel="stylesheet" href="css/parts.css">
+<link rel="stylesheet" href="css/effects.css">
+<link rel="stylesheet" href="css/easter.css">
+<link rel="stylesheet" href="css/pets.css">
+<link rel="stylesheet" href="css/utilities.css">
+<link rel="stylesheet" href="css/responsive.css">
 
 </head>
 <body>
@@ -283,9 +280,17 @@ quantity:string" rows="4"></textarea>
   function applyThemePets(){
     if (isPastell()){
       if (stars) stars.style.display = 'none';
-      window.PastellPets?.enable();
+addEventListener('DOMContentLoaded', () => {
+  if (document.body.getAttribute('data-theme') === 'pastell') {
+    window.PastellPets?.enable();
+  }
+});
     } else {
-      window.PastellPets?.disable();
+addEventListener('DOMContentLoaded', () => {
+  if (document.body.getAttribute('data-theme') === 'pastell') {
+    window.PastellPets?.enable();
+  }
+});
       if (stars) stars.style.display = '';
     }
   }
