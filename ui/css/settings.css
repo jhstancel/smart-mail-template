@@ -1,4 +1,4 @@
-.settings{ position:fixed; top:12px; right:90px; z-index:20; }
+.settings{ position:fixed; top:12px; right:12px; z-index:20; }
 
 .settings-btn{
   display:flex; align-items:center; justify-content:center; gap:8px;
@@ -44,7 +44,7 @@ body[data-theme="cosmic"] .seg .opt[aria-selected="true"]{ background:color-mix(
 .settings{
   position: fixed !important;
   top: 12px !important;
-  right: 90px !important;
+  right: 12px !important;
   left: auto !important;      /* cancel any left anchoring */
   margin: 0 !important;
   max-width: none !important;
