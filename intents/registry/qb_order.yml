@@ -2,25 +2,19 @@ id: qb_order
 label: QB Order
 description: QuickBooks order request or confirmation message.
 
-required: [recipientName]
+required: [recipientName, poNumber]
 optional: []
 
 fieldTypes:
   recipientName: string
-  senderName: string
-  orderNumber: string
-  orderDate: date
-  shipDate: date
+  poNumber: string
 
 hints:
   recipientName: e.g., "UP Aviation Accounting"
-  senderName: e.g., "Kennedy Harper"
-  orderNumber: e.g., PO-10941
-  orderDate: mm/dd/yyyy
-  shipDate: mm/dd/yyyy
+  poNumber: e.g., PO-10941
 
 template:
-  subject: "QB Order – {{ orderNumber or recipientName }}"
+  subject: "New Order // {{ poNumber }}"
   bodyPath: "templates/qb_order.j2"
 
 autodetect:
