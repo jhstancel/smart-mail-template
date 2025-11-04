@@ -118,29 +118,56 @@ function wireSettingsUI() {
   }
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
 
-  document.addEventListener('click', (e)=>{
-    if(!settingsMenu.classList.contains('open')) return;
-    const inSettings = settingsMenu.contains(e.target);
-    const onBtn      = settingsBtn?.contains(e.target);
-    const inDialog   = !!e.target.closest('#ut_editor');
-    if(!inSettings && !onBtn && !inDialog){
-      settingsMenu.classList.remove('open');
-      closeAllSubs();
-    }
-  });
+document.addEventListener('click', (e)=>{
+  if(!settingsMenu.classList.contains('open')) return;
+  const inSettings = settingsMenu.contains(e.target);
+  const onBtn      = settingsBtn?.contains(e.target);
+  const inDialog   = !!(e.target.closest('#ut_editor') || e.target.closest('#tplEditor')); // + allow new editor
+  if(!inSettings && !onBtn && !inDialog){
+    settingsMenu.classList.remove('open');
+    closeAllSubs();
+  }
+});
 
   const THEME_KEY = 'sm_theme';
   const saved = localStorage.getItem(THEME_KEY);
   if(saved){ document.body.dataset.theme = saved; }
   if(themeSelect){ themeSelect.value = document.body.dataset.theme || 'light-minimal'; }
 
-  themeSelect?.addEventListener('change', ()=>{
-    const val = themeSelect.value || 'light-minimal';
-    document.body.dataset.theme = val;
-    localStorage.setItem(THEME_KEY, val);
-    if(val==='cosmic') Starfield.start(); else Starfield.stop();
-    if(val==='pastell') PastellPets.enable(); else PastellPets.disable();
-  });
+themeSelect?.addEventListener('change', ()=>{
+  const val = themeSelect.value || 'light-minimal';
+  document.body.dataset.theme = val;
+  localStorage.setItem(THEME_KEY, val);
+  if(val==='cosmic') Starfield.start(); else Starfield.stop();
+  if(val==='pastell') PastellPets.enable(); else PastellPets.disable();
+});
+
+/* ---- Local Template Editor + Override badge (non-invasive) ---- */
+const editBtn = document.getElementById('btnEditTemplate');
+function updateOverrideBadge(intentId){
+  const has = !!window.LocalTemplates?.get?.(intentId);
+  const badge = document.getElementById('templateOverrideBadge');
+  if (badge) badge.style.display = has ? '' : 'none';
+}
+editBtn?.addEventListener('click', ()=>{
+  const id = window.SELECTED_INTENT;
+  if (!id) return alert('Select an intent first.');
+  if (window.TplEditor?.open) {
+    window.TplEditor.open(id, { onSaved: () => updateOverrideBadge(id) });
+  } else if (window.LocalTemplates?.quickEdit) {
+    // fallback to prompt()-based editor if modal isn’t loaded
+    window.LocalTemplates.quickEdit(id);
+    updateOverrideBadge(id);
+  } else {
+    alert('Template editor not available.');
+  }
+});
+if (window.SELECTED_INTENT) updateOverrideBadge(window.SELECTED_INTENT);
+window.addEventListener('intent:changed', (e)=>{
+  const id = e?.detail?.intentId || window.SELECTED_INTENT;
+  if (id) updateOverrideBadge(id);
+});
+/* ---- end local templates block ---- */
 
   const copySubjectBtn = document.getElementById('copySubject');
   const copyBodyBtn    = document.getElementById('copyBody');
