@@ -109,46 +109,40 @@ function wireSettingsUI() {
   }
   window.openOnly = openOnly;
 
-  function toggleMenu(){
-    const willOpen = !settingsMenu.classList.contains('open');
-    settingsMenu.classList.toggle('open', willOpen);
-    if(!willOpen) closeAllSubs();
-    const btn = document.getElementById('settingsBtn');
-    if(btn) btn.setAttribute('aria-expanded', String(willOpen));
+function toggleMenu(){
+  if (!settingsMenu) return; // guard
+  const willOpen = !settingsMenu.classList.contains('open');
+  settingsMenu.classList.toggle('open', willOpen);
+  if(!willOpen) closeAllSubs();
+  const btn = document.getElementById('settingsBtn');
+  if(btn) btn.setAttribute('aria-expanded', String(willOpen));
+}
+settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
+
+document.addEventListener('click', (e)=>{
+  if (!settingsMenu) return; // guard
+  if (!settingsMenu.classList.contains('open')) return;
+  const inSettings = settingsMenu.contains(e.target);
+  const onBtn      = settingsBtn?.contains(e.target);
+  const inDialog   = !!e.target.closest('#ut_editor');
+  if(!inSettings && !onBtn && !inDialog){
+    settingsMenu.classList.remove('open');
+    closeAllSubs();
   }
-  settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
+});
 
-  document.addEventListener('click', (e)=>{
-    if(!settingsMenu.classList.contains('open')) return;
-    const inSettings = settingsMenu.contains(e.target);
-    const onBtn      = settingsBtn?.contains(e.target);
-    const inDialog   = !!e.target.closest('#ut_editor');
-    if(!inSettings && !onBtn && !inDialog){
-      settingsMenu.classList.remove('open');
-      closeAllSubs();
-    }
-  });
-
-  const THEME_KEY = 'sm_theme';
-  const saved = localStorage.getItem(THEME_KEY);
-  if(saved){ document.body.dataset.theme = saved; }
-  if(themeSelect){ themeSelect.value = document.body.dataset.theme || 'light-minimal'; }
-
-  themeSelect?.addEventListener('change', ()=>{
-    const val = themeSelect.value || 'light-minimal';
-    document.body.dataset.theme = val;
-    localStorage.setItem(THEME_KEY, val);
-    if(val==='cosmic') Starfield.start(); else Starfield.stop();
-    if(val==='pastell') PastellPets.enable(); else PastellPets.disable();
-  });
 
   const copySubjectBtn = document.getElementById('copySubject');
   const copyBodyBtn    = document.getElementById('copyBody');
   const clearBtn       = document.getElementById('btnClear');
 
-  async function copyText(txt){
-    try{ await navigator.clipboard.writeText(txt); }catch(e){ console.warn('Clipboard error', e); }
+async function copyText(txt){
+  try {
+    await navigator.clipboard.writeText(txt);
+  } catch (e) {
+    console.warn('Clipboard error', e);
   }
+}
   function flashBtn(btn, msg){
     if(!btn) return;
     const old = btn.textContent;
@@ -157,16 +151,17 @@ function wireSettingsUI() {
     setTimeout(()=>{ btn.classList.remove('toast'); btn.textContent = old; }, 900);
   }
 
-  copySubjectBtn?.addEventListener('click', ()=>{
-    const txt = (document.getElementById('outSubject')?.textContent || '').trim();
-    if(!txt){ flashBtn(copySubjectBtn, 'Copied'); return; }
-    copyText(txt); flashBtn(copySubjectBtn, 'Copied');
-  });
-  copyBodyBtn?.addEventListener('click', ()=>{
-    const txt = (document.getElementById('outBody')?.textContent || '').trim();
-    if(!txt){ flashBtn(copyBodyBtn, 'Copied'); return; }
-    copyText(txt); flashBtn(copyBodyBtn, 'Copied');
-  });
+copySubjectBtn?.addEventListener('click', ()=>{
+  const txt = (document.getElementById('outSubject')?.textContent || '').trim();
+  if(!txt){ flashBtn(copySubjectBtn, 'Empty'); return; }
+  copyText(txt); flashBtn(copySubjectBtn, 'Copied');
+});
+copyBodyBtn?.addEventListener('click', ()=>{
+  const txt = (document.getElementById('outBody')?.textContent || '').trim();
+  if(!txt){ flashBtn(copyBodyBtn, 'Empty'); return; }
+  copyText(txt); flashBtn(copyBodyBtn, 'Copied');
+});
+
   clearBtn?.addEventListener('click', ()=>{
     const outSubject = document.getElementById('outSubject');
     const outBody = document.getElementById('outBody');
@@ -206,7 +201,32 @@ addEventListener('DOMContentLoaded', () => {
   if (gear && gear.parentElement !== document.body) {
     document.body.appendChild(gear);
   }
+
+  // NEW: wire local template editor affordance in header
+  const editBtn = document.getElementById('btnEditTemplate');
+  editBtn?.addEventListener('click', () => {
+    const id = window.SELECTED_INTENT;
+    if (!id) return alert('Select an intent first.');
+    window.LocalTemplates?.quickEdit?.(id);
+    // refresh badge state immediately after edit
+    showOverrideBadge(id);
+  });
+
+  // NEW: show/hide override badge based on current selection
+  function showOverrideBadge(intentId){
+    const has = !!window.LocalTemplates?.get?.(intentId);
+    const badge = document.getElementById('templateOverrideBadge');
+    if (badge) badge.style.display = has ? '' : 'none';
+  }
+  // try initial paint in case SELECTED_INTENT already set
+  if (window.SELECTED_INTENT) showOverrideBadge(window.SELECTED_INTENT);
+  // respond to selection changes from elsewhere in the app
+  window.addEventListener('intent:changed', (e) => {
+    const id = e?.detail?.intentId || window.SELECTED_INTENT;
+    if (id) showOverrideBadge(id);
+  });
 });
+
 // ---- descriptions setting ----
 const DESC_KEY = 'ui.descriptions'; // 'on' | 'off'
 function applyDescriptions(on) {
