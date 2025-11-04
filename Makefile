@@ -150,7 +150,8 @@ push:
 	@echo "✅ Push complete."
 time:
 	python3 time_spent.py
-
+lines:
+	cloc . --exclude-dir=venv,.venv,node_modules,__pycache__,model_artifacts,.git,site-packages,dist,build,data
 # ============================================================
 # Cleanup
 # ============================================================
