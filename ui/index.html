@@ -186,11 +186,11 @@
 <div>
 <label for="to">To (Recipient)</label>
 <input id="to" placeholder="buyer@vendor.com" type="email">
-</input></div>
+</div>
 <div>
 <label for="subject">Subject (Draft)</label>
 <input id="subject" placeholder="RFQ PN-4812" type="text">
-</input></div>
+</div>
 </div>
 <div>
 <label for="hint">Body Hint (One or Two Lines)</label>
@@ -220,8 +220,10 @@
 </div>
 <!-- Output -->
 <div class="panel reveal" style="margin-top:16px">
-<div class="inline">
+<div class="inline" style="align-items:center; gap:8px">
 <h2 class="title" style="font-size:18px; margin:0">Output</h2>
+<button class="btn secondary" id="btnEditTemplate" type="button" title="Edit local subject/body template for current intent">✎ Edit Template</button>
+<span id="templateOverrideBadge" class="pill" style="display:none" title="Local override active">Override</span>
 </div>
 <div class="row">
 <div>
@@ -293,11 +295,6 @@ Thanks,"></textarea>
   </form>
 </dialog>
 
-<dialog>
-<button class="btn" id="ute_save" type="button">Save</button>
-</div>
-</form>
-</dialog>
 
 <script>
 (() => {
@@ -335,11 +332,39 @@ function applyThemePets(){
   applyThemePets();
 })();
 </script>
-
 <!-- Load pets BEFORE we try to enable them (non-module so it attaches to window) -->
 <script src="js/bg/pastell-pets.js"></script>
 
-<!-- Auto-enable on refresh. Remove the localStorage gate for now. -->
+<!-- Local Template Overrides (non-module; attaches LocalTemplates to window) -->
+<script src="js/templates/local-templates.js"></script>
+
+<script>
+(function(){
+  if (window.__smtFetchWrapped) return;
+  window.__smtFetchWrapped = true;
+
+  const origFetch = window.fetch;
+  window.fetch = function(input, init){
+    try{
+      if (typeof input === 'string' &&
+          /\/generate\/?$/.test(input) &&
+          init && init.method === 'POST' &&
+          init.headers && /application\/json/i.test((init.headers['Content-Type'] ?? init.headers.get?.('Content-Type') ?? '')) &&
+          init.body) {
+        const payload = JSON.parse(init.body);
+        const ov = window.LocalTemplates?.get?.(payload.intent);
+        if (ov && (ov.subject || ov.body)) {
+          payload.templateOverride = { ...(payload.templateOverride || {}) };
+          if (ov.subject) payload.templateOverride.subject = ov.subject;
+          if (ov.body)    payload.templateOverride.body    = ov.body;
+          init.body = JSON.stringify(payload);
+        }
+      }
+    } catch(_) { /* noop */ }
+    return origFetch.call(this, input, init);
+  };
+})();
+</script>
 
 <!-- User Templates modules -->
 <script type="module" src="js/usertpl/store.js"></script>
@@ -348,6 +373,23 @@ function applyThemePets(){
 
 <!-- Your app (ES module) -->
 <script type="module" src="js/main.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 </body>
