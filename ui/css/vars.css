@@ -69,4 +69,35 @@ body[data-theme="pastell"], html[data-theme="pastell"]{
 }
 html[data-theme="pastell"]{ background: transparent !important; }
 body[data-theme="pastell"]{ background-color: transparent; position: relative; z-index: 0; }
+/* === Claude Warm Theme Tokens ========================================== */
+:root[data-theme="claude"] {
+  /* Core palette */
+  --bg:            #F4EFE6; /* warm cream paper */
+  --surface:       #EDE3D3; /* secondary background for cards/sections */
+  --panel-bg:      #F2E8DA; /* panels */
+  --text:          #2D2D2D; /* deep charcoal */
+  --muted:         #5A5147; /* warm muted text */
+  --border:        #D9CDBD; /* soft warm border */
+  --accent:        #CC785C; /* burnt orange highlights */
+  --accent-ink:    #281914; /* readable on orange */
+  --link:          #B05E45; /* link tone (warmer than default) */
+
+  /* Radii & depth – Claude vibes: rounded + subtle shadows */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  --shadow-sm: 0 1px 2px rgba(40, 25, 20, 0.05);
+  --shadow-md: 0 6px 14px rgba(40, 25, 20, 0.08);
+  --shadow-lg: 0 14px 28px rgba(40, 25, 20, 0.10);
+
+  /* Common aliases (helps existing rules pick up new tones) */
+  --app-bg: var(--bg);
+  --card-bg: var(--panel-bg);
+  --card-border: var(--border);
+  --text-color: var(--text);
+  --muted-color: var(--muted);
+  --primary: var(--accent);
+  --primary-text: var(--accent-ink);
+}
 

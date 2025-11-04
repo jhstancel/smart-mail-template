@@ -93,4 +93,64 @@ html, body { margin: 0; }
 
 /* Hide intent descriptions when user chooses Simple */
 :root.no-desc .intent-desc { display: none !important; }
+/* Panels & cards */
+:root[data-theme="claude"] .panel {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Titles & subtitles */
+:root[data-theme="claude"] .title { color: var(--text); }
+:root[data-theme="claude"] .subtitle { color: var(--muted); }
+
+/* Buttons */
+:root[data-theme="claude"] .btn {
+  background: var(--primary);
+  color: var(--primary-text);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform .06s ease, box-shadow .12s ease, opacity .12s ease;
+}
+:root[data-theme="claude"] .btn:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+:root[data-theme="claude"] .btn:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+
+/* Secondary buttons */
+:root[data-theme="claude"] .btn.secondary {
+  background: linear-gradient(#ffffff, #f7f0e6);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+/* Inputs / KVS fields / textareas */
+:root[data-theme="claude"] input,
+:root[data-theme="claude"] textarea,
+:root[data-theme="claude"] select {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm) inset;
+}
+
+/* Output boxes */
+:root[data-theme="claude"] .out {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm) inset;
+}
+
+/* Settings menu & subpanels */
+:root[data-theme="claude"] .settings-menu.panel,
+:root[data-theme="claude"] .settings-subpanel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Links */
+:root[data-theme="claude"] a { color: var(--link); }
 
