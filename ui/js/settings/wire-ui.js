@@ -202,15 +202,17 @@ addEventListener('DOMContentLoaded', () => {
     document.body.appendChild(gear);
   }
 
-  // NEW: wire local template editor affordance in header
-  const editBtn = document.getElementById('btnEditTemplate');
-  editBtn?.addEventListener('click', () => {
-    const id = window.SELECTED_INTENT;
-    if (!id) return alert('Select an intent first.');
-    window.LocalTemplates?.quickEdit?.(id);
-    // refresh badge state immediately after edit
-    showOverrideBadge(id);
-  });
+// Local Template editor
+const editBtn = document.getElementById('btnEditTemplate');
+editBtn?.addEventListener('click', () => {
+  const id = window.SELECTED_INTENT;
+  if (!id) return alert('Select an intent first.');
+  if (window.TplEditor?.open) {
+    window.TplEditor.open(id, { onSaved: () => updateOverrideBadge(id) });
+  } else {
+    alert('Template editor not loaded.');
+  }
+});
 
   // NEW: show/hide override badge based on current selection
   function showOverrideBadge(intentId){
