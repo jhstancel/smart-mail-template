@@ -1,31 +1,12 @@
 {
   "auto_detect": {
     "description": "Auto-detect intent from text.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
-    "fieldTypes": {
-      "tone": "enum"
-    },
+    "enums": {},
+    "fieldTypes": {},
     "hints": {},
     "industry": "Registry",
     "label": "Auto Detect",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [],
     "template": {
       "bodyPath": "",
@@ -34,30 +15,14 @@
   },
   "delay_notice": {
     "description": "Notify a customer that a purchase order\u2019s shipping schedule has changed.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "customerName": "string",
       "newShip": "date",
       "partNumber": "string",
       "poNumber": "string",
       "previousShip": "date",
-      "reason": "longtext",
-      "tone": "enum"
+      "reason": "longtext"
     },
     "hints": {
       "customerName": "e.g., John Smith",
@@ -69,9 +34,7 @@
     },
     "industry": "Registry",
     "label": "Delay Notice",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "poNumber",
       "partNumber",
@@ -87,26 +50,10 @@
   },
   "followup": {
     "description": "Send a short follow-up or status-check message on a prior topic.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "context": "longtext",
-      "customerName": "string",
-      "tone": "enum"
+      "customerName": "string"
     },
     "hints": {
       "context": "e.g., \"the quote for PO-10927\" or \"yesterday\u2019s delivery timing\"",
@@ -114,9 +61,7 @@
     },
     "industry": "Registry",
     "label": "Follow-up",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "customerName",
       "context"
@@ -128,29 +73,13 @@
   },
   "invoice_payment": {
     "description": "Notify or confirm payment for an invoice.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "amount": "string",
       "invoiceNumber": "string",
       "paymentDate": "date",
       "paymentMethod": "string",
-      "recipientName": "string",
-      "tone": "enum"
+      "recipientName": "string"
     },
     "hints": {
       "amount": "e.g., 420.00 USD",
@@ -161,9 +90,7 @@
     },
     "industry": "Registry",
     "label": "Invoice Payment",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "recipientName",
       "invoiceNumber",
@@ -178,28 +105,12 @@
   },
   "invoice_po_followup": {
     "description": "Follow up on an invoice or purchase order previously sent or discussed.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "dueDate": "date",
       "invoiceNumber": "string",
       "poNumber": "string",
-      "recipientName": "string",
-      "tone": "enum"
+      "recipientName": "string"
     },
     "hints": {
       "dueDate": "mm/dd/yyyy",
@@ -209,9 +120,7 @@
     },
     "industry": "Registry",
     "label": "Invoice / PO Follow-Up",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "recipientName",
       "invoiceNumber",
@@ -225,28 +134,12 @@
   },
   "order_confirmation": {
     "description": "Confirm that an order has been received and provide delivery details.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "itemsSummary": "longtext",
       "poNumber": "string",
       "promisedShip": "date",
-      "recipientName": "string",
-      "tone": "enum"
+      "recipientName": "string"
     },
     "hints": {
       "itemsSummary": "e.g., 10 \u00d7 Part A, 5 \u00d7 Part B",
@@ -256,9 +149,7 @@
     },
     "industry": "Registry",
     "label": "Order Confirmation",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "recipientName",
       "poNumber",
@@ -318,20 +209,6 @@
           "label": "GILL CORP",
           "value": "091536978"
         }
-      ],
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
       ]
     },
     "fieldTypes": {
@@ -339,8 +216,7 @@
       "notes": "longtext",
       "parts": "longtext",
       "recipientName": "string",
-      "shipAddress": "longtext",
-      "tone": "enum"
+      "shipAddress": "longtext"
     },
     "hints": {
       "fedexAccount": "Select shipper account number",
@@ -353,8 +229,7 @@
     "industry": "Registry",
     "label": "Order Request",
     "optional": [
-      "notes",
-      "tone"
+      "notes"
     ],
     "required": [
       "recipientName",
@@ -369,28 +244,12 @@
   },
   "packing_slip_docs": {
     "description": "Send or request documentation such as a packing slip, invoice, or certificate.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "customerName": "string",
       "docsList": "longtext",
       "notes": "longtext",
-      "poNumber": "string",
-      "tone": "enum"
+      "poNumber": "string"
     },
     "hints": {
       "customerName": "e.g., John Smith",
@@ -400,9 +259,7 @@
     },
     "industry": "Registry",
     "label": "Packing Slip / Documents",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "customerName",
       "poNumber",
@@ -415,26 +272,10 @@
   },
   "qb_order": {
     "description": "QuickBooks order request or confirmation message.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "poNumber": "string",
-      "recipientName": "string",
-      "tone": "enum"
+      "recipientName": "string"
     },
     "hints": {
       "poNumber": "e.g., PO-10941",
@@ -442,9 +283,7 @@
     },
     "industry": "Registry",
     "label": "QB Order",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "recipientName",
       "poNumber"
@@ -456,29 +295,13 @@
   },
   "quote_request": {
     "description": "Request pricing and lead time for a specific part and quantity.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
       "customerName": "string",
       "needByDate": "date",
       "notes": "longtext",
       "partNumber": "string",
-      "quantity": "string",
-      "tone": "enum"
+      "quantity": "string"
     },
     "hints": {
       "customerName": "e.g., \"John Smith\"",
@@ -491,8 +314,7 @@
     "label": "Quote Request",
     "optional": [
       "needByDate",
-      "notes",
-      "tone"
+      "notes"
     ],
     "required": [
       "customerName",
@@ -544,20 +366,6 @@
           "label": "Other (Specify)",
           "value": "Other (Specify)"
         }
-      ],
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
       ]
     },
     "fieldTypes": {
@@ -568,7 +376,6 @@
       "notes": "longtext",
       "poNumber": "string",
       "shipDate": "date",
-      "tone": "enum",
       "trackingNumber": "string"
     },
     "hints": {
@@ -585,8 +392,7 @@
     "label": "Shipment Update",
     "optional": [
       "carrierOther",
-      "notes",
-      "tone"
+      "notes"
     ],
     "required": [
       "customerName",
@@ -603,34 +409,16 @@
   },
   "tax_exemption": {
     "description": "Notify a customer about tax-exempt status or send a tax-exempt certificate.",
-    "enums": {
-      "tone": [
-        {
-          "label": "neutral",
-          "value": "neutral"
-        },
-        {
-          "label": "polite",
-          "value": "polite"
-        },
-        {
-          "label": "formal",
-          "value": "formal"
-        }
-      ]
-    },
+    "enums": {},
     "fieldTypes": {
-      "recipientName": "string",
-      "tone": "enum"
+      "recipientName": "string"
     },
     "hints": {
       "recipientName": "e.g., \"Accounts Payable\""
     },
     "industry": "Registry",
     "label": "Tax Exemption",
-    "optional": [
-      "tone"
-    ],
+    "optional": [],
     "required": [
       "recipientName"
     ],

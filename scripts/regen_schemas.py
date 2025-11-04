@@ -88,24 +88,16 @@ def build_backend_schema(intents: List[IntentSpec]) -> Dict[str, Dict]:
         # Raw enums (list[str] per pydantic)
         enums_raw = getattr(spec, "enums", {}) or {}
 
-        # --- Inject global 'tone' enum into working copies (neutral|polite|formal) ---
-        # Build working copies so we don't rely on mutating the pydantic model
-        optional_final = list(spec.optional or [])
-        if "tone" not in optional_final and "tone" not in (spec.required or []):
-            optional_final.append("tone")
-
-        fieldTypes_final = dict(spec.fieldTypes or {})
-        fieldTypes_final.setdefault("tone", "enum")
-
-        if "tone" not in enums_raw:
-            enums_raw = dict(enums_raw)
-            enums_raw["tone"] = ["neutral", "polite", "formal"]
-        # ---------------------------------------------------------------------------
 
         hints = spec.hints or {}
+        # Ensure these exist even without any “tone” injection
+        optional_final = list(spec.optional or [])
+        fieldTypes_final = dict(spec.fieldTypes or {})
+
         enums_final: Dict[str, list] = {}
 
         for key, values in enums_raw.items():
+
             # labels map may be a JSON string in hints (e.g., hints.fedexAccountLabels)
             labels_map_key = f"{key}Labels"
             labels_map = {}

@@ -11,12 +11,6 @@ client = TestClient(app)
 # Helper assertions
 # --------------------------
 def _assert_polite(body: str) -> None:
-    """
-    Heuristic 'polite tone' check that doesn't overfit exact wording.
-    Requirements:
-      - Has a greeting (hello/hi/dear/good morning/afternoon/evening)
-      - Has a gratitude/closing (thank you/thanks/appreciate)
-    """
     t = (body or "").lower()
 
     has_greeting = any(

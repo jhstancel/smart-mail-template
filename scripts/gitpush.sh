@@ -22,7 +22,7 @@ fi
 echo "▶ Formatting (black)…"
 $PY -m black app model scripts tests
 
-echo "▶ Validating repo (configs ↔ templates ↔ tone)…"
+echo "▶ Validating repo (configs ↔ templates)…"
 $PY scripts/validate_repo.py
 
 echo "▶ Running tests (pytest)…"
