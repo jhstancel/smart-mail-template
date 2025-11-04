@@ -2,15 +2,13 @@ id: qb_order
 label: QB Order
 description: QuickBooks order request or confirmation message.
 
-required: [recipientName, poNumber]
+required: [poNumber]
 optional: []
 
 fieldTypes:
-  recipientName: string
   poNumber: string
 
 hints:
-  recipientName: e.g., "UP Aviation Accounting"
   poNumber: e.g., PO-10941
 
 template:
@@ -26,7 +24,6 @@ autodetect:
 tests:
   samples:
     - fields:
-        recipientName: "UP Aviation Accounting"
       expectSubjectContains: ["QB Order"]
       expectBodyContains: ["UP Aviation"]
 

@@ -275,18 +275,15 @@ SCHEMA_GENERATED = {
     "description": "QuickBooks order request or confirmation message.",
     "enums": {},
     "fieldTypes": {
-      "poNumber": "string",
-      "recipientName": "string"
+      "poNumber": "string"
     },
     "hints": {
-      "poNumber": "e.g., PO-10941",
-      "recipientName": "e.g., \"UP Aviation Accounting\""
+      "poNumber": "e.g., PO-10941"
     },
     "industry": "Registry",
     "label": "QB Order",
     "optional": [],
     "required": [
-      "recipientName",
       "poNumber"
     ],
     "template": {
