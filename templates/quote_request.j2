@@ -1,7 +1,4 @@
-{% import "_tone_macros.j2" as tonefx %}
-{# tone optional; defaults to 'neutral' #}
 Subject: Pricing & Lead Time Request – {{ partNumber }} (Qty {{ quantity }})
-{{ tonefx.greeting(tone, customerName) }}
 I hope you’re doing well. Could you please provide pricing and lead time for {{ partNumber }} (quantity {{ quantity }})? 
 If helpful, we’re targeting {{ needByDate or 'an upcoming date' }}.
 
