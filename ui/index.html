@@ -366,6 +366,41 @@ function applyThemePets(){
 })();
 </script>
 
+<!-- ✨ NEW: Template Editor Modal (slick, in-app) -->
+<dialog id="tplEditor" style="padding:0;border:none;border-radius:16px;max-width:min(980px,92vw);width:100%;">
+  <form id="tplForm" method="dialog" style="display:flex;flex-direction:column;gap:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line,#ddd);">
+      <div style="display:flex;align-items:baseline;gap:10px;">
+        <h3 id="tplTitle" style="margin:0;font-size:18px;">Edit Template</h3>
+        <span id="tplIntent" class="pill" style="font-size:12px;">intent</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn secondary" id="tplReset" type="button" title="Reload defaults">Reset to Default</button>
+        <button class="btn" id="tplSave" type="submit" value="save">Save</button>
+        <button class="btn" id="tplClose" type="button">Close</button>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:52vh;">
+      <div style="padding:14px 16px;border-right:1px solid var(--line,#eee);display:flex;flex-direction:column;gap:10px;">
+        <label style="font-weight:600;">Subject</label>
+        <input id="tplSubj" type="text" placeholder="Subject template (Jinja allowed)" style="width:100%;padding:10px;border:1px solid var(--line,#ccc);border-radius:10px;font:inherit;">
+        <label style="font-weight:600;margin-top:10px;">Body (Jinja)</label>
+        <textarea id="tplBody" placeholder="Email body template" style="flex:1;min-height:280px;width:100%;resize:vertical;padding:10px;border:1px solid var(--line,#ccc);border-radius:10px;font:inherit;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;"></textarea>
+      </div>
+
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+        <label style="font-weight:600;">Preview (raw template text)</label>
+        <pre id="tplPreview" style="flex:1;min-height:280px;white-space:pre-wrap;overflow:auto;border:1px solid var(--line,#ccc);border-radius:10px;padding:10px;margin:0;font-family:ui-monospace, SFMono-Regular, Menlo, monospace;"></pre>
+        <small style="opacity:.7;">Tip: Preview shows your current edits as plain text. Click <em>Generate</em> to render with fields.</small>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- NEW: editor logic (module) -->
+<script type="module" src="js/templates/editor-ui.js"></script>
+
 <!-- User Templates modules -->
 <script type="module" src="js/usertpl/store.js"></script>
 <script type="module" src="js/usertpl/editor-dialog.js"></script>
@@ -373,24 +408,6 @@ function applyThemePets(){
 
 <!-- Your app (ES module) -->
 <script type="module" src="js/main.js"></script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 </body>
 </html>
