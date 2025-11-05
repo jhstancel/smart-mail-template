@@ -316,8 +316,8 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
       const file = input.files?.[0];
       if (!file) return;
       const text = await file.text();
-      // Overwrite existing IDs by default to avoid duplicates
-      await window.importUserTemplatesFromJSON?.(text, { onConflict: 'overwrite' });
+      // Always duplicate on conflict (default behavior in importer)
+      await window.importUserTemplatesFromJSON?.(text);
     }, { once: true });
     input.click();
   } catch (e) {
