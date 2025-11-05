@@ -165,4 +165,5 @@ window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesU
 window.loadUserTemplates  = window.loadUserTemplates  || loadUserTemplates;
 window.deleteTemplate     = window.deleteTemplate     || deleteTemplate;
 window.upsertTemplate     = window.upsertTemplate     || upsertTemplate;
+window.renderLocalTemplate = window.renderLocalTemplate || renderLocalTemplate;
 

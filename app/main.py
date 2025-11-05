@@ -216,7 +216,17 @@ def generate(req: GenerateReq):
     intent = (req.intent or "").strip()
     if not intent:
         raise HTTPException(status_code=400, detail="Missing 'intent'.")
-    if intent not in SCHEMA:
+
+    # NEW: accept unknown intents if a local override is provided (e.g., user templates u:*)
+    ov = getattr(req, "templateOverride", None)
+    has_override = bool(
+        ov and (
+            (isinstance(ov.subject, str) and ov.subject.strip()) or
+            (isinstance(ov.body, str) and ov.body.strip())
+        )
+    )
+
+    if intent not in SCHEMA and not has_override:
         # allow auto_detect to return a safe stub
         if intent == "auto_detect":
             return GenerateResp(
@@ -265,23 +275,27 @@ def generate(req: GenerateReq):
     body_path = tpl_info.get("bodyPath")
     template_name = _normalize_body_path(body_path) if body_path else f"{intent}.j2"
 
-    try:
-        tpl = env.get_template(template_name)
-    except TemplateNotFound:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Missing template: templates/{template_name}",
-        )
-
     # === Local override support ===
     ov = getattr(req, "templateOverride", None)  # Optional[TemplateOverride]
+    has_ov_body = bool(ov and isinstance(ov.body, str) and ov.body.strip())
 
-    # Render body (override first; else file)
+    # Only load the file template if we don't have an override body
+    tpl = None
+    if not has_ov_body:
+        try:
+            tpl = env.get_template(template_name)
+        except TemplateNotFound:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Missing template: templates/{template_name}",
+            )
+
+    # Render body: override first; else file
     try:
-        if ov and isinstance(ov.body, str) and ov.body.strip():
+        if has_ov_body:
             body = env.from_string(ov.body).render(**fields)
         else:
-            body = tpl.render(**fields)
+            body = tpl.render(**fields)  # type: ignore[union-attr]
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -291,7 +305,7 @@ def generate(req: GenerateReq):
     # Render subject:
     # 1) Local override.subject (if present)
     # 2) YAML template.subject (rendered as Jinja with fields)
-    # 3) First "Subject:" line in Jinja source
+    # 3) First "Subject:" line in Jinja source (only if we loaded it)
     # 4) Fallback to schema label or intent
     subject_value = None
 
@@ -309,7 +323,7 @@ def generate(req: GenerateReq):
             except Exception:
                 subject_value = yaml_subject
 
-    if not subject_value:
+    if not subject_value and tpl is not None:
         try:
             src, _, _ = env.loader.get_source(env, template_name)
             for line in src.splitlines():

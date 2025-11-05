@@ -27,14 +27,18 @@
     el.preview.textContent = `Subject: ${subj}\n\n${body}`;
   }
 
-  async function loadDefaults(intentId){
-    try{
-      return await window.LocalTemplates.fetchDefaultSource(intentId);
-    }catch(e){
-      console.warn('Failed to fetch defaults', e);
-      return { intentId, subject: '', body: '' };
-    }
+async function loadDefaults(intentId){
+  // User templates (u:*) have no backend defaults -> return blanks
+  if (String(intentId).startsWith('u:')){
+    return { intentId, subject: '', body: '' };
   }
+  try{
+    return await window.LocalTemplates.fetchDefaultSource(intentId);
+  }catch(e){
+    console.warn('Failed to fetch defaults', e);
+    return { intentId, subject: '', body: '' };
+  }
+}
 
   // mark editor open/closed so Settings won't auto-close
   function markEditorOpen(on){ window.__tplEditorOpen = !!on; }

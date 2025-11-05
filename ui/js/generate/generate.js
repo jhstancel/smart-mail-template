@@ -100,7 +100,7 @@ export async function doGenerate(){
       const defs = window.loadUserTemplates?.() || [];
       const def  = defs.find(t=>t.id===window.SELECTED_INTENT);
       if(def){
-        const out = window.renderLocalTemplate?.(def, collectFields(window.SELECTED_INTENT));
+        const out = window.renderLocalTemplate?.(def, collectFields(window.SELECTED_INTENT)) || {subject:'', body:''};
         if(liveState.compose){
           await typeInto(outSubject, out.subject || '');
           await typeInto(outBody,    out.body || '');
@@ -120,10 +120,21 @@ export async function doGenerate(){
       return;
     }
 
-    const intent = window.SELECTED_INTENT;
-    const fields = collectFields();
-    const payload = { intent, fields };
-    const missing = listMissing(intent, fields);
+  const intent = window.SELECTED_INTENT;
+  const fields = collectFields();
+  const payload = { intent, fields };
+
+  // Attach override for local templates (or any intent with a saved override)
+  const ov = window.LocalTemplates?.get?.(intent) || null;
+  if (ov && (ov.subject || ov.body)) {
+    payload.templateOverride = {
+      subject: ov.subject || '',
+      body:    ov.body    || ''
+    };
+  }
+
+  const missing = listMissing(intent, fields);
+
     if(missing.length){ console.warn('[Missing required fields]', missing); highlightMissing(missing); }
 
     const res = await fetch('/generate', {

@@ -11,10 +11,16 @@
     localStorage.setItem(NS, JSON.stringify(db));
   }
 
-  function get(intentId) {
-    const db = read();
-    return db[intentId] || null; // { subject?, body?, updatedAt, version }
+function get(intentId) {
+  const id = String(intentId || '');
+  if (id.startsWith('u:')) {
+    const ut = (window.UserTemplates?.getById?.(id)) || null;
+    if (ut) return { subject: ut.subject || '', body: ut.body || '' };
+    return null;
   }
+  const db = read();
+  return db[id] || null; // { subject?, body?, updatedAt, version }
+}
 
   function set(intentId, data) {
     const db = read();
@@ -39,22 +45,30 @@
     return Object.keys(db).map(k => ({ intentId: k, ...db[k] }));
   }
 
-  // Optionally pull defaults from backend for bootstrap (subject + raw Jinja body)
-  async function fetchDefaultSource(intentId) {
-    const res = await fetch(`/template_source/${encodeURIComponent(intentId)}`);
-    if (!res.ok) throw new Error(`Failed to load template source: ${res.status}`);
-    return res.json(); // { intentId, subject, body }
+async function fetchDefaultSource(intentId) {
+  const id = String(intentId || '');
+  if (id.startsWith('u:')) {
+    return { intentId: id, subject: '', body: '' }; // no backend defaults for user templates
   }
+  const res = await fetch(`/template_source/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error('Failed to load template source: ' + res.status);
+  return await res.json();
+}
 
-  async function quickEdit(intentId) {
-    const current = get(intentId) || (await fetchDefaultSource(intentId));
-    const subj = prompt(`Edit SUBJECT template for ${intentId}`, current?.subject || '');
-    if (subj === null) return;
-    const body = prompt(`Edit BODY (Jinja) for ${intentId}`, current?.body || '');
-    if (body === null) return;
-    set(intentId, { subject: subj, body });
-    alert('Saved to local templates. Generate again to preview.');
+async function quickEdit(intentId) {
+  const id = String(intentId || '');
+  if (id.startsWith('u:')) {
+    window.openEditor?.('edit', window.UserTemplates?.getById?.(id) || null);
+    return;
   }
+  const current = get(id) || (await fetchDefaultSource(id));
+  const subj = prompt(`Edit SUBJECT template for ${id}`, current?.subject || '');
+  if (subj === null) return;
+  const body = prompt(`Edit BODY (Jinja) for ${id}`, current?.body || '');
+  if (body === null) return;
+  set(id, { subject: subj, body });
+  alert('Saved to local templates. Generate again to preview.');
+}
 
   window.LocalTemplates = { get, set, remove, list, fetchDefaultSource, quickEdit };
 })();

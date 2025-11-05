@@ -405,6 +405,30 @@ function applyThemePets(){
 <script type="module" src="js/usertpl/editor-dialog.js"></script>
 <script src="js/usertpl/list-delegation.js"></script>
 
+
+
+<script>
+/* Shim: define a naive renderLocalTemplate if usertpl didn’t provide one */
+(function(){
+  if (typeof window.renderLocalTemplate === 'function') return;
+
+  function simpleRender(tpl, fields){
+    const safe = (tpl||'') + '';
+    // Replace {{ field }} with fields[field] (stringified)
+    return safe.replace(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g, (_, k) => {
+      const v = fields && (fields[k] ?? fields[k?.trim()]);
+      return (v === undefined || v === null) ? '' : String(v);
+    });
+  }
+
+  window.renderLocalTemplate = function renderLocalTemplate(def, fields){
+    const subj = simpleRender(def?.subject || '', fields || {});
+    const body = simpleRender(def?.body    || '', fields || {});
+    return { subject: subj, body };
+  };
+})();
+</script>
+
 <!-- Your app (ES module) -->
 <script type="module" src="js/main.js"></script>
 
