@@ -22,7 +22,6 @@
 <link rel="stylesheet" href="css/base.css">
 
 <link rel="stylesheet" href="css/layout.css">
-<link rel="stylesheet" href="css/forms.css">
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/intents.css">
 <link rel="stylesheet" href="css/settings.css">
@@ -32,7 +31,7 @@
 <link rel="stylesheet" href="css/pets.css">
 <link rel="stylesheet" href="css/utilities.css">
 <link rel="stylesheet" href="css/responsive.css">
-
+<link rel="stylesheet" href="css/forms.css">
 </head>
 <body>
 <!-- Settings Gear (upper-right) -->
@@ -368,7 +367,7 @@ function applyThemePets(){
 
 <!-- ✨ NEW: Template Editor Modal (slick, in-app) -->
 <dialog id="tplEditor" style="padding:0;border:none;border-radius:16px;max-width:min(980px,92vw);width:100%;">
-  <form id="tplForm" method="dialog" style="display:flex;flex-direction:column;gap:0;">
+  <form id="tplForm" novalidate style="display:flex;flex-direction:column;gap:0;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line,#ddd);">
       <div style="display:flex;align-items:baseline;gap:10px;">
         <h3 id="tplTitle" style="margin:0;font-size:18px;">Edit Template</h3>
@@ -376,7 +375,7 @@ function applyThemePets(){
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn secondary" id="tplReset" type="button" title="Reload defaults">Reset to Default</button>
-        <button class="btn" id="tplSave" type="submit" value="save">Save</button>
+<button class="btn" id="tplSave" type="button">Save</button>
         <button class="btn" id="tplClose" type="button">Close</button>
       </div>
     </div>

@@ -118,15 +118,18 @@ function wireSettingsUI() {
   }
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
 
+
 document.addEventListener('click', (e)=>{
   if(!settingsMenu.classList.contains('open')) return;
   const inSettings = settingsMenu.contains(e.target);
   const onBtn      = settingsBtn?.contains(e.target);
-  const inDialog   = !!(e.target.closest('#ut_editor') || e.target.closest('#tplEditor')); // + allow new editor
-  if(!inSettings && !onBtn && !inDialog){
-    settingsMenu.classList.remove('open');
-    closeAllSubs();
-  }
+const inDialog   = !!(e.target.closest('#ut_editor') || e.target.closest('#tplEditor'));
+const anyEditorOpen = !!(window.__tplEditorOpen || window.__utEditorOpen);
+if(!inSettings && !onBtn && !inDialog && !anyEditorOpen){
+  settingsMenu.classList.remove('open');
+  closeAllSubs();
+}
+
 });
 
   const THEME_KEY = 'sm_theme';

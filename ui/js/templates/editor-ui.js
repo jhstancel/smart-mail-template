@@ -36,13 +36,35 @@
     }
   }
 
+  // mark editor open/closed so Settings won't auto-close
+  function markEditorOpen(on){ window.__tplEditorOpen = !!on; }
+
+  function clearInvalid(){
+    [el.subj, el.body].forEach(i=>{
+      i.classList.remove('invalid');
+      i.removeAttribute('aria-invalid');
+    });
+  }
+
+  function markInvalid(input){
+    input.classList.add('invalid');
+    input.setAttribute('aria-invalid', 'true');
+  }
+
+  function validate(){
+    clearInvalid();
+    let ok = true;
+    if (!(el.subj.value || '').trim()){ markInvalid(el.subj); ok = false; }
+    if (!(el.body.value || '').trim()){ markInvalid(el.body); ok = false; }
+    return ok;
+  }
+
   async function open(intentId, opts={}){
     onSavedCb = opts.onSaved || null;
     currentIntent = intentId;
     el.intent.textContent = intentId;
     el.title.textContent = 'Edit Template';
 
-    // Load current override or defaults
     let cur = window.LocalTemplates.get(intentId);
     if (!cur) cur = await loadDefaults(intentId);
 
@@ -50,23 +72,45 @@
     el.body.value = cur.body || '';
     fillPreview();
 
-    try{ dlg.showModal(); } catch{ dlg.show(); }
+    clearInvalid();
+    try{ dlg.showModal(); }catch{ dlg.show(); }
+    markEditorOpen(true);
   }
 
   function close(){
     if (typeof dlg.close === 'function') dlg.close();
     else dlg.open = false;
+    markEditorOpen(false);
   }
 
-  // Save handler
-  el.form.addEventListener('submit', (e)=>{
+  // explicit save handler (form no longer uses method="dialog")
+  el.save?.addEventListener('click', (e)=>{
     e.preventDefault();
     if (!currentIntent) return;
+
+    if (!validate()){
+      alert('Cannot save: please fill in the required fields.');
+      const firstBad = [el.subj, el.body].find(i => i.classList.contains('invalid'));
+      firstBad?.focus();
+      return; // keep both dialogs open
+    }
+
     const subject = (el.subj.value || '').trim();
     const body = (el.body.value || '').trim();
     window.LocalTemplates.set(currentIntent, { subject, body });
     if (typeof onSavedCb === 'function') onSavedCb();
     close();
+  });
+
+  // Live cleanup: typing removes the invalid state
+  [el.subj, el.body].forEach(ctrl=>{
+    ctrl?.addEventListener('input', ()=>{
+      if ((ctrl.value || '').trim()){
+        ctrl.classList.remove('invalid');
+        ctrl.removeAttribute('aria-invalid');
+      }
+      fillPreview();
+    });
   });
 
   // Close button
@@ -80,11 +124,8 @@
     el.subj.value = def.subject || '';
     el.body.value = def.body || '';
     fillPreview();
+    clearInvalid();
   });
-
-  // Live preview update (lightweight)
-  el.subj.addEventListener('input', fillPreview);
-  el.body.addEventListener('input', fillPreview);
 
   // expose
   window.TplEditor = { open, close };

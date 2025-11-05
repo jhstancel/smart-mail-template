@@ -6,14 +6,30 @@ input[type=text], input[type=email], textarea, select{
   box-shadow: 0 0 0 0 transparent;
   transition: box-shadow .25s ease, border-color .25s ease, background .25s ease, transform .25s ease;
 }
-input:focus, textarea:focus, select:focus{
+/* Focus style only when NOT invalid */
+input:focus:not(.invalid),
+textarea:focus:not(.invalid),
+select:focus:not(.invalid){
   border-color: var(--focus-border); box-shadow: 0 0 0 6px var(--focus-ring);
   background: color-mix(in srgb, var(--bg) 70%, white 30%); transform: translateZ(0) scale(1.01);
 }
+
 textarea{ min-height:90px; resize:vertical; }
 input[type="date"]{ width:100%; color:var(--ink); background:color-mix(in srgb, var(--bg) 90%, black 10%); border:1px solid var(--panel-border);
   border-radius:12px; padding:12px 14px; outline:none; box-shadow:none; transition: box-shadow .25s, border-color .25s, background .25s, transform .25s; font:inherit; }
 input[type="date"]:focus{ border-color: var(--focus-border); box-shadow: 0 0 0 6px var(--focus-ring); background: color-mix(in srgb, var(--bg) 70%, white 30%); transform: translateZ(0) scale(1.01); }
 input[type="date"]::-webkit-calendar-picker-indicator{ cursor:pointer; opacity:.9; filter: none; }
 @-moz-document url-prefix(){ input[type="date"]{ padding-right: 12px; } }
+
+/* Same invalid visuals for the User Template editor */
+#ut_editor input.invalid,
+#ut_editor textarea.invalid,
+#ut_editor select.invalid {
+  outline: 2px solid var(--error, #d33) !important;
+  outline-offset: 2px;
+  border-color: var(--error, #d33) !important;
+  box-shadow: 0 0 0 3px rgba(211, 51, 51, .15) !important;
+  /* optional tint; comment out if you don’t want it */
+  background: color-mix(in srgb, var(--bg) 88%, red 12%);
+}
 

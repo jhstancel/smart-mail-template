@@ -11,13 +11,23 @@ import { parseFieldLines, upsertTemplate } from './store.js';
   if(btnCancel) btnCancel.type = 'button';
   if(form)      form.setAttribute('novalidate', 'novalidate');
 
-  let reopenAfterClose = false;
+  // ------- helper: mark editor open so Settings won't auto-close
+  function setEditorOpen(on){ window.__utEditorOpen = !!on; }
 
   function openModalSafe(el){
     try { el.showModal(); }
     catch(_){ el.setAttribute('open', ''); }
   }
-  function resetForm(){ if(form){ form.reset(); form.querySelectorAll('input,textarea,select').forEach(el=>{ el.style.borderColor = ''; el.style.boxShadow = ''; }); } }
+  function resetForm(){
+    if(!form) return;
+    form.reset();
+    form.querySelectorAll('input,textarea,select').forEach(el=>{
+      el.classList.remove('invalid');
+      el.removeAttribute('aria-invalid');
+      el.style.borderColor = '';
+      el.style.boxShadow = '';
+    });
+  }
   function seedForm(existing){
     if(!form || !existing) return;
     const map = {
@@ -28,10 +38,13 @@ import { parseFieldLines, upsertTemplate } from './store.js';
       '#ute_subject': existing.subject || '',
       '#ute_body': existing.body || ''
     };
-  Object.entries(map).forEach(([sel,val])=>{ const el = form.querySelector(sel); if(el) el.value = val; });
-}
+    Object.entries(map).forEach(([sel,val])=>{
+      const el = form.querySelector(sel);
+      if(el) el.value = val;
+    });
+  }
 
-  // --- viewport + centering helpers (add) ---
+  // --- viewport + centering helpers (unchanged) ---
   function viewportSize(){
     const vv = window.visualViewport;
     if (vv && typeof vv.width === 'number' && typeof vv.height === 'number') {
@@ -40,14 +53,9 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     const de = document.documentElement;
     return { w: de.clientWidth, h: de.clientHeight };
   }
-
   function centerForm(pad = 12){
     if (!dlg || !form) return;
-
-    // Ensure dialog is under <body> so fixed coords are truly viewport-relative
     if (dlg.parentElement !== document.body) document.body.appendChild(dlg);
-
-    // Force predictable measurements
     form.style.position = 'fixed';
     form.style.left = '0';
     form.style.top = '0';
@@ -55,50 +63,63 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     form.style.maxWidth = 'min(680px, 90vw)';
     form.style.maxHeight = '85vh';
     form.style.overflow = 'auto';
-
     const { w, h } = viewportSize();
-    // Reset to measure natural size
     const r = form.getBoundingClientRect();
     const left = Math.max(pad, Math.min(w - r.width  - pad, (w - r.width) / 2));
     const top  = Math.max(pad, Math.min(h - r.height - pad, (h - r.height) / 2));
     form.style.left = left + 'px';
     form.style.top  = top  + 'px';
-    dlg.classList.add('open'); // some UAs need a class flag for styling
+    dlg.classList.add('open');
   }
-function closeEditorInternal(){
-  // remove the manual visibility flag we added
-  dlg.classList.remove('open');
-
-  if (typeof dlg.close === 'function') {
-    try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); }
-  } else {
-    dlg.removeAttribute('open');
+  function closeEditorInternal(){
+    dlg.classList.remove('open');
+    setEditorOpen(false);
+    if (typeof dlg.close === 'function') {
+      try { dlg.close(); } catch(_){ dlg.removeAttribute('open'); }
+    } else {
+      dlg.removeAttribute('open');
+    }
   }
-}
 
-  function reopenSettingsAfterEditor(){
-    const menu = document.getElementById('settingsMenu') || document.querySelector('.settings-menu');
-    const btn  = document.getElementById('settingsBtn')  || document.querySelector('.settings-btn');
-    if(menu){ menu.classList.add('open'); if(btn) btn.setAttribute('aria-expanded','true'); }
-    const row = Array.from(document.querySelectorAll('.settings-item')).find(r=>(r.getAttribute('data-item')||'')==='usertpls');
-    row?.click();
+  function openEditor(mode='new', existing=null){
+    resetForm();
+    if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
+    if(existing) seedForm(existing);
+    openModalSafe(dlg);
+    centerForm();
+    setEditorOpen(true);
+    const first = form?.querySelector('input,textarea,select,button'); first?.focus({ preventScroll:true });
   }
-  function closeAndReopen(){ reopenAfterClose = true; closeEditorInternal(); }
-function openEditor(mode='new', existing=null){
-  resetForm();
-  if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
-  if(existing) seedForm(existing);
-  openModalSafe(dlg);
-  centerForm(); // <-- ensure on-screen and centered
-  const first = form?.querySelector('input,textarea,select,button'); first?.focus({ preventScroll:true });
-}
-
   window.openEditor = openEditor;
-const btnNew = document.getElementById('tplNew') 
-  || document.getElementById('ut_new') 
-  || document.querySelector('[data-action="ut-new"]');
 
+  const btnNew = document.getElementById('tplNew')
+    || document.getElementById('ut_new')
+    || document.querySelector('[data-action="ut-new"]');
   btnNew?.addEventListener('click', (e)=>{ e.preventDefault(); e.stopPropagation(); openEditor('new', null); });
+
+  // ------- validation (use CSS class .invalid)
+  function clearInvalid(){
+    form?.querySelectorAll('.invalid').forEach(i=>{
+      i.classList.remove('invalid');
+      i.removeAttribute('aria-invalid');
+    });
+  }
+  function markInvalid(el){
+    el.classList.add('invalid');
+    el.setAttribute('aria-invalid','true');
+  }
+  function validate(){
+    clearInvalid();
+    const need = ['#ute_id','#ute_label','#ute_subject','#ute_body']
+      .map(sel => form?.querySelector(sel)).filter(Boolean);
+    const bad = need.filter(el => !String(el.value || '').trim());
+    bad.forEach(markInvalid);
+    if (bad.length){
+      bad[0].focus();
+      return false;
+    }
+    return true;
+  }
 
   function collectEditor(){
     if(!form) return null;
@@ -131,13 +152,16 @@ const btnNew = document.getElementById('tplNew')
 
   function onSave(e){
     e.preventDefault(); e.stopPropagation();
+
+    // run validation first (keeps dialog & settings open on failure)
+    if(!validate()){
+      alert('Please fill required fields.');
+      return;
+    }
+
     const def = collectEditor();
     if(!def){
-      alert('Please fill out required fields (ID and Label).');
-      ['ute_id','ute_label'].forEach(id=>{
-        const el = form.querySelector('#' + id);
-        if(el){ el.style.boxShadow = '0 0 0 6px rgba(255,100,100,.12)'; el.style.borderColor = 'rgba(255,100,100,.55)'; setTimeout(()=>{ el.style.boxShadow=''; el.style.borderColor=''; }, 1200); }
-      });
+      alert('Invalid ID/Label format.');
       return;
     }
     try{
@@ -149,47 +173,45 @@ const btnNew = document.getElementById('tplNew')
       alert('Could not save template. See console for details.');
       return;
     }
+
     try {
       window.selectIntentById?.(def.id);
-      dlg.close?.();
-      const settingsMenu = document.getElementById('settingsMenu');
-      settingsMenu?.classList.remove('open');
-      document.getElementById('settingsBtn')?.setAttribute('aria-expanded','false');
+      // DO NOT close Settings; just close the editor
+      closeEditorInternal();
       document.getElementById('fieldsTitle')?.scrollIntoView({behavior:'smooth', block:'start'});
     } catch(e) {}
   }
 
-function onCancel(e){
-  e.preventDefault();
-  e.stopPropagation();
-  closeEditorInternal();          // closes dialog + removes .open
-}
-
-// Close on backdrop click
-dlg.addEventListener('click', (e) => {
-  if (e.target === dlg) {
+  function onCancel(e){
+    e.preventDefault();
     e.stopPropagation();
     closeEditorInternal();
   }
-}, { capture: true });
 
-// Close on Esc (dialog "cancel")
-dlg.addEventListener('cancel', (e) => {
-  e.preventDefault();             // prevent UA default weirdness
-  closeEditorInternal();
-});
+  // Backdrop & Esc
+  dlg.addEventListener('click', (e) => {
+    if (e.target === dlg) {
+      e.stopPropagation();
+      closeEditorInternal();
+    }
+  }, { capture: true });
+  dlg.addEventListener('cancel', (e) => {
+    e.preventDefault();
+    closeEditorInternal();
+  });
+  dlg.addEventListener('close', () => { /* no-op */ });
 
-// No auto-reopen behavior on 'close'
-dlg.addEventListener('close', () => { /* no-op */ });
+  // Wire buttons
+  btnSave?.addEventListener('click', onSave);
+  btnCancel?.addEventListener('click', onCancel);
 
-// Wire buttons
-btnSave?.addEventListener('click', onSave);
-btnCancel?.addEventListener('click', onCancel);
-
-  document.addEventListener('userTpl:edit', (e) => openEditor('edit', e.detail?.template || null));
-  document.addEventListener('userTpl:dup',  (e) => openEditor('dup',  e.detail?.template || null));
-  // Recenter while dialog is open on resize/zoom/OSK changes
+  // Keep centered
   addEventListener('resize', () => { if (dlg?.hasAttribute('open')) centerForm(); });
   window.visualViewport?.addEventListener?.('resize', () => { if (dlg?.hasAttribute('open')) centerForm(); });
 
+  // Expose edit/dup events
+  document.addEventListener('userTpl:edit', (e) => openEditor('edit', e.detail?.template || null));
+  document.addEventListener('userTpl:dup',  (e) => openEditor('dup',  e.detail?.template || null));
+
 })();
+
