@@ -169,6 +169,8 @@ window.upsertTemplate     = window.upsertTemplate     || upsertTemplate;
 /* NEW: global helpers used by generator & quickEdit handoff */
 window.renderLocalTemplate = window.renderLocalTemplate || renderLocalTemplate;
 
+window.userTemplatesAsIntents = window.userTemplatesAsIntents || userTemplatesAsIntents;
+
 window.UserTemplates = window.UserTemplates || {};
 window.UserTemplates.getById = function(id){
   try{
@@ -178,5 +180,4 @@ window.UserTemplates.getById = function(id){
     return (arr || []).find(t => t && (t.id === id || t.name === id)) || null;
   }catch(_){ return null; }
 };
-
 
