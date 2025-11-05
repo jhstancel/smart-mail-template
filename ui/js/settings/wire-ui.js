@@ -331,24 +331,51 @@ document.getElementById('btnExportUserTemplates')?.addEventListener('click', asy
     window.showToast?.(`Exported ${items.length} template(s)`);
   }catch(e){ alert('Export failed: '+e.message); }
 });
-
-// Import multiple .json files
-document.getElementById('btnImportUserTemplates')?.addEventListener('click', async ()=>{
-  try{
+document.getElementById('btnImportUserTemplates')?.addEventListener('click', async () => {
+  try {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'application/json';
+    input.accept = '.json,application/json,.zip,application/zip';
     input.multiple = true;
-    input.addEventListener('change', async ()=>{
-      const files = Array.from(input.files||[]);
-      if(!files.length) return;
-      for(const f of files){
-        const txt = await f.text();
-        await window.importUserTemplatesFromJSON?.(txt);
+    input.addEventListener('change', async () => {
+      const files = Array.from(input.files || []);
+      if (!files.length) return;
+
+      let importedCount = 0;
+
+      for (const f of files) {
+        const name = (f.name || '').toLowerCase();
+
+        // ZIP: unpack and import each .json entry
+        if (name.endsWith('.zip')) {
+          if (typeof JSZip === 'undefined') {
+            alert('JSZip not loaded; cannot import .zip');
+            continue;
+          }
+          const zip = await JSZip.loadAsync(f);
+          const entries = Object.values(zip.files).filter(zf => !zf.dir && zf.name.toLowerCase().endsWith('.json'));
+          for (const zf of entries) {
+            const txt = await zf.async('string');
+            // pass filename as hint for id derivation if needed
+            await window.importUserTemplatesFromJSON?.(txt, { filenameHint: zf.name });
+            importedCount++;
+          }
+          continue;
+        }
+
+        // Plain .json file
+        if (name.endsWith('.json')) {
+          const txt = await f.text();
+          await window.importUserTemplatesFromJSON?.(txt, { filenameHint: f.name });
+          importedCount++;
+        }
       }
-      window.showToast?.(`Imported ${files.length} file(s)`);
-    },{once:true});
+
+      window.showToast?.(`Imported ${importedCount} file(s)`);
+    }, { once: true });
     input.click();
-  }catch(e){ alert('Import failed: '+e.message); }
+  } catch (e) {
+    alert('Import failed: ' + e.message);
+  }
 });
 

@@ -273,11 +273,11 @@ window.exportUserTemplates = function () {
 window.importUserTemplatesFromJSON = async function (
   text,
   {
-    // if set to 'copy', import every item as a new copy regardless of conflicts
-    mode = undefined // 'copy' | undefined
+    mode = undefined,        // 'copy' | undefined
+    filenameHint = undefined // optional: help derive id if missing
   } = {}
 ) {
-  // 1) Parse and normalize supported shapes
+  // 1) Parse and normalize payload
   let payload;
   try {
     payload = JSON.parse(text || '[]');
@@ -285,6 +285,8 @@ window.importUserTemplatesFromJSON = async function (
     alert('Invalid JSON');
     return;
   }
+
+  // Normalize to an array of template-like objects
   let incoming = [];
   if (Array.isArray(payload)) {
     incoming = payload;
@@ -292,6 +294,9 @@ window.importUserTemplatesFromJSON = async function (
     incoming = payload['sm_user_templates_v1'];
   } else if (payload && Array.isArray(payload.templates)) {
     incoming = payload.templates;
+  } else if (payload && typeof payload === 'object') {
+    // New export: single-template JSON object
+    incoming = [payload];
   }
 
   // 2) Build map of current templates
@@ -300,37 +305,64 @@ window.importUserTemplatesFromJSON = async function (
 
   // Helpers
   const isObj = v => v && typeof v === 'object';
+  const coerceId = (raw) => {
+    // prefer explicit id
+    let id = (raw && typeof raw.id === 'string') ? raw.id : '';
+
+    // fallback to name/label
+    if (!id) id = (typeof raw?.name === 'string') ? raw.name : '';
+    if (!id) id = (typeof raw?.label === 'string') ? `u:${raw.label}` : '';
+
+    // fallback to filename hint (strip dirs/ext, ensure starts with u:)
+    if (!id && typeof filenameHint === 'string') {
+      const base = filenameHint.split('/').pop().split('\\').pop();
+      const stem = base.replace(/\.json$/i,'');
+      id = stem;
+    }
+
+    // sanitize & ensure u: prefix
+    if (id) {
+      id = id.trim();
+      if (!id.startsWith('u:')) id = `u:${id}`;
+      id = id.replace(/[^\w:.-]+/g, '_'); // keep safe chars
+    }
+
+    return id || null;
+  };
+
   const makeCopyId = base => {
     const clean = base.replace(/_copy\d*$/i, '');
     let newId = `${clean}_copy`;
     let i = 2;
     const existingIds = new Set(map.keys());
-    while (existingIds.has(newId)) {
-      newId = `${clean}_copy${i++}`;
-    }
+    while (existingIds.has(newId)) newId = `${clean}_copy${i++}`;
     return newId;
   };
 
   // 3) Merge with counters (no updates — conflicts always duplicate)
   let added = 0, skipped = 0;
   for (const raw of (incoming || [])) {
-    if (!isObj(raw) || typeof raw.id !== 'string' || !raw.id.startsWith('u:')) { skipped++; continue; }
+    if (!isObj(raw)) { skipped++; continue; }
 
-    // Import as copies? (force new id)
+    // Ensure an id (with u:), or skip
+    let id = coerceId(raw);
+    if (!id) { skipped++; continue; }
+
+    // Import everything as copies if requested
     if (mode === 'copy') {
-      const copyId = makeCopyId(raw.id);
+      const copyId = makeCopyId(id);
       map.set(copyId, { ...raw, id: copyId, name: copyId });
       added++;
       continue;
     }
 
-    // Default: if ID exists, create a copy; if not, add as-is
-    if (map.has(raw.id)) {
-      const copyId = makeCopyId(raw.id);
+    // Default: if exists, duplicate; else add as-is
+    if (map.has(id)) {
+      const copyId = makeCopyId(id);
       map.set(copyId, { ...raw, id: copyId, name: copyId });
       added++;
     } else {
-      map.set(raw.id, raw);
+      map.set(id, { ...raw, id, name: id });
       added++;
     }
   }
@@ -368,6 +400,11 @@ window.importUserTemplatesFromJSON = async function (
   const msg = `Import complete: ${added} added${mode ? ` (mode=${mode})` : ''}`;
   window.showToast?.(msg) || alert(msg);
 };
+
+
+
+
+
 window.getSelectedUserTemplateIds = function(){
   return Array.from(document.querySelectorAll('#userTplList .ut-select:checked'))
     .map(cb => cb.dataset.id)
