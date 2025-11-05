@@ -284,10 +284,17 @@ window.importUserTemplatesFromJSON = async function (
 
   // Helpers
   const isObj = v => v && typeof v === 'object';
-  const makeCopyId = base => {
-    const stamp = Date.now().toString(36);
-    return `${base}_${stamp}`;
-  };
+
+const makeCopyId = base => {
+  const clean = base.replace(/_copy\d*$/i, '');
+  let newId = `${clean}_copy`;
+  let i = 2;
+  const existingIds = new Set(map.keys());
+  while (existingIds.has(newId)) {
+    newId = `${clean}_copy${i++}`;
+  }
+  return newId;
+};
 
   // 3) Merge with counters and conflict policy
   let added = 0, updated = 0, skipped = 0;
