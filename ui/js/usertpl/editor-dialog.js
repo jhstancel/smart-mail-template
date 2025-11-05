@@ -18,16 +18,17 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     try { el.showModal(); }
     catch(_){ el.setAttribute('open', ''); }
   }
-  function resetForm(){
-    if(!form) return;
-    form.reset();
-    form.querySelectorAll('input,textarea,select').forEach(el=>{
-      el.classList.remove('invalid');
-      el.removeAttribute('aria-invalid');
-      el.style.borderColor = '';
-      el.style.boxShadow = '';
-    });
-  }
+function resetForm(){
+  if(!form) return;
+  form.reset();
+  form.querySelectorAll('input,textarea,select').forEach(el=>{
+    el.classList.remove('invalid');
+    el.removeAttribute('aria-invalid');
+    el.style.borderColor = '';
+    el.style.boxShadow = '';
+    if (el.id === 'ute_id') el.disabled = false; 
+  });
+}
   function seedForm(existing){
     if(!form || !existing) return;
     const map = {
@@ -81,15 +82,23 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     }
   }
 
-  function openEditor(mode='new', existing=null){
-    resetForm();
-    if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
-    if(existing) seedForm(existing);
-    openModalSafe(dlg);
-    centerForm();
-    setEditorOpen(true);
-    const first = form?.querySelector('input,textarea,select,button'); first?.focus({ preventScroll:true });
+function openEditor(mode='new', existing=null){
+  resetForm();
+  if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
+  if(existing) seedForm(existing);
+
+  //  Lock ID when editing/duplicating; unlock for new
+  const idEl = form?.querySelector('#ute_id');
+  if (idEl) {
+    idEl.disabled = (mode === 'edit' || mode === 'dup');
   }
+
+  openModalSafe(dlg);
+  centerForm();
+  setEditorOpen(true);
+  const first = form?.querySelector('input,textarea,select,button'); first?.focus({ preventScroll:true });
+}
+
   window.openEditor = openEditor;
 
   const btnNew = document.getElementById('tplNew')
@@ -121,34 +130,39 @@ import { parseFieldLines, upsertTemplate } from './store.js';
     return true;
   }
 
-  function collectEditor(){
-    if(!form) return null;
-    const fIdEl    = form.querySelector('#ute_id');
-    const fLabelEl = form.querySelector('#ute_label');
-    const fDescEl  = form.querySelector('#ute_desc');
-    const fFieldsEl= form.querySelector('#ute_fields');
-    const fSubjEl  = form.querySelector('#ute_subject');
-    const fBodyEl  = form.querySelector('#ute_body');
+function collectEditor(){
+  if(!form) return null;
+  const fIdEl    = form.querySelector('#ute_id');
+  const fLabelEl = form.querySelector('#ute_label');
+  const fDescEl  = form.querySelector('#ute_desc');
+  const fFieldsEl= form.querySelector('#ute_fields');
+  const fSubjEl  = form.querySelector('#ute_subject');
+  const fBodyEl  = form.querySelector('#ute_body');
 
-    const rawId   = (fIdEl?.value || '').trim();
-    const labelIn = (fLabelEl?.value || '').trim();
-    const slugify = s=> String(s||'').toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,64);
-    let idCore = rawId || slugify(labelIn);
-    if(!idCore) idCore = 'tpl_' + Date.now();
-    if(!/^[a-z0-9_]{2,64}$/.test(idCore)) return null;
+  const rawId   = (fIdEl?.value || '').trim();
+  const labelIn = (fLabelEl?.value || '').trim();
+  const slugify = s=> String(s||'').toLowerCase().replace(/[^a-z0-9_]+/g,'_').replace(/^_+|_+$/g,'').slice(0,64);
+  let idCore = rawId || slugify(labelIn);
+  if(!idCore) idCore = 'tpl_' + Date.now();
+  if(!/^[a-z0-9_]{2,64}$/.test(idCore)) return null;
 
-    const fields = parseFieldLines(fFieldsEl?.value || '');
-    const def = {
-      id: `u:${idCore}`, name:`u:${idCore}`,
-      label: labelIn || idCore,
-      description: (fDescEl?.value || '').trim(),
-      fields,
-      subject: fSubjEl?.value || '',
-      body:    fBodyEl?.value || ''
-    };
-    if(!def.id || !def.label) return null;
-    return def;
-  }
+  // Preserve original ID during edit/dup modes if available
+  const dsId = (form.dataset?.id || '').trim();
+  const isEditLike = (form.dataset?.mode === 'edit' || form.dataset?.mode === 'dup');
+  const finalId = (isEditLike && /^u:/.test(dsId)) ? dsId : `u:${idCore}`;
+
+  const fields = parseFieldLines(fFieldsEl?.value || '');
+  const def = {
+    id: finalId, name: finalId,
+    label: labelIn || idCore,
+    description: (fDescEl?.value || '').trim(),
+    fields,
+    subject: fSubjEl?.value || '',
+    body:    fBodyEl?.value || ''
+  };
+  if(!def.id || !def.label) return null;
+  return def;
+}
 
   function onSave(e){
     e.preventDefault(); e.stopPropagation();
@@ -164,22 +178,27 @@ import { parseFieldLines, upsertTemplate } from './store.js';
       alert('Invalid ID/Label format.');
       return;
     }
-    try{
-      upsertTemplate(def);
-      window.buildUserTemplatesUI?.();
-      window.renderIntentGridFromData?.(window.INTENTS || []);
-    }catch(err){
-      console.error('upsertTemplate failed:', err);
-      alert('Could not save template. See console for details.');
-      return;
-    }
+try{
+  upsertTemplate(def);
+  window.scheduleLiveGenerate?.(0);
+  window.buildUserTemplatesUI?.();
+  window.renderIntentGridFromData?.(window.INTENTS || []);
+}catch(err){
+  console.error('upsertTemplate failed:', err);
+  alert('Could not save template. See console for details.');
+  return;
+}
 
-    try {
-      window.selectIntentById?.(def.id);
-      // DO NOT close Settings; just close the editor
-      closeEditorInternal();
-      document.getElementById('fieldsTitle')?.scrollIntoView({behavior:'smooth', block:'start'});
-    } catch(e) {}
+try {
+  window.selectIntentById?.(def.id);
+  // Immediately show the new text in Output
+  window.scheduleLiveGenerate?.(0);
+
+  // DO NOT close Settings; just close the editor
+  closeEditorInternal();
+  document.getElementById('fieldsTitle')?.scrollIntoView({behavior:'smooth', block:'start'});
+} catch(e) {}
+
   }
 
   function onCancel(e){

@@ -96,21 +96,20 @@ export async function doGenerate(){
   try{
     if(btn){ btn.disabled = true; btn.setAttribute('aria-busy','true'); }
 
-    if(window.SELECTED_INTENT && String(window.SELECTED_INTENT).startsWith('u:')){
-      const defs = window.loadUserTemplates?.() || [];
-      const def  = defs.find(t=>t.id===window.SELECTED_INTENT);
-      if(def){
-        const out = window.renderLocalTemplate?.(def, collectFields(window.SELECTED_INTENT)) || {subject:'', body:''};
-        if(liveState.compose){
-          await typeInto(outSubject, out.subject || '');
-          await typeInto(outBody,    out.body || '');
-        }else{
-          if(outSubject) outSubject.textContent = out.subject || '';
-          if(outBody)    outBody.textContent    = out.body || '';
-        }
-        return;
-      }
+if(window.SELECTED_INTENT && String(window.SELECTED_INTENT).startsWith('u:')){
+  const def = window.UserTemplates?.getById?.(window.SELECTED_INTENT) || null;
+  if(def){
+    const out = window.renderLocalTemplate?.(def, collectFields(window.SELECTED_INTENT)) || {subject:'', body:''};
+    if(liveState.compose){
+      await typeInto(outSubject, out.subject || '');
+      await typeInto(outBody,    out.body || '');
+    } else {
+      if(outSubject) outSubject.textContent = out.subject || '';
+      if(outBody)    outBody.textContent    = out.body || '';
     }
+    return;
+  }
+}
 
     const usingAuto = !window.SELECTED_INTENT || window.SELECTED_INTENT === 'auto_detect';
     if (usingAuto){

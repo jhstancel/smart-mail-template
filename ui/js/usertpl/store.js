@@ -165,5 +165,18 @@ window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesU
 window.loadUserTemplates  = window.loadUserTemplates  || loadUserTemplates;
 window.deleteTemplate     = window.deleteTemplate     || deleteTemplate;
 window.upsertTemplate     = window.upsertTemplate     || upsertTemplate;
+
+/* NEW: global helpers used by generator & quickEdit handoff */
 window.renderLocalTemplate = window.renderLocalTemplate || renderLocalTemplate;
+
+window.UserTemplates = window.UserTemplates || {};
+window.UserTemplates.getById = function(id){
+  try{
+    // Always re-read from storage so Generate sees latest edits
+    const raw = localStorage.getItem(USER_TPLS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return (arr || []).find(t => t && (t.id === id || t.name === id)) || null;
+  }catch(_){ return null; }
+};
+
 

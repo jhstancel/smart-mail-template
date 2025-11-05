@@ -148,13 +148,27 @@ themeSelect?.addEventListener('change', ()=>{
 /* ---- Local Template Editor + Override badge (non-invasive) ---- */
 const editBtn = document.getElementById('btnEditTemplate');
 function updateOverrideBadge(intentId){
-  const has = !!window.LocalTemplates?.get?.(intentId);
+  // Hide badge for user templates; show only when a server intent has a local override
+  const has = !/^u:/.test(intentId) && !!window.LocalTemplates?.get?.(intentId);
   const badge = document.getElementById('templateOverrideBadge');
   if (badge) badge.style.display = has ? '' : 'none';
 }
 editBtn?.addEventListener('click', ()=>{
   const id = window.SELECTED_INTENT;
   if (!id) return alert('Select an intent first.');
+
+  // For custom user templates, open the dedicated User Template editor
+  if (id.startsWith('u:')) {
+    const def = window.UserTemplates?.getById?.(id);
+    if (!def) {
+      alert('This user template was not found.');
+      return;
+    }
+    window.openEditor?.('edit', def); // provided by editor-dialog.js
+    return;
+  }
+
+  // For normal/server intents, open the local-override editor
   if (window.TplEditor?.open) {
     window.TplEditor.open(id, { onSaved: () => updateOverrideBadge(id) });
   } else if (window.LocalTemplates?.quickEdit) {
