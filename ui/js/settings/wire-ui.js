@@ -306,6 +306,7 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
 document.getElementById('btnExportUserTemplates')?.addEventListener('click', () => {
   window.exportUserTemplates?.();
 });
+
 document.getElementById('btnImportUserTemplates')?.addEventListener('click', async () => {
   try {
     const input = document.createElement('input');
@@ -315,7 +316,8 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
       const file = input.files?.[0];
       if (!file) return;
       const text = await file.text();
-      await window.importUserTemplatesFromJSON?.(text, { merge: true });
+      // Overwrite existing IDs by default to avoid duplicates
+      await window.importUserTemplatesFromJSON?.(text, { onConflict: 'overwrite' });
     }, { once: true });
     input.click();
   } catch (e) {

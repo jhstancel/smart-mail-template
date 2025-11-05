@@ -200,7 +200,8 @@ window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: def.id }
 
 
   // Broadcast a small event for any listeners (optional, harmless)
-  window.dispatchEvent?.(new CustomEvent('usertpl:deleted', { detail: { id } }));
+window.dispatchEvent?.(new CustomEvent('usertpl:deleted', { detail: { id } }));
+
 }
 
 window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesUI;
