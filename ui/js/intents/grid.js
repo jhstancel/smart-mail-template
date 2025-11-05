@@ -36,21 +36,6 @@ function makeIntentCard(item){
   }
 
   div.addEventListener('click', ()=>{
-    // Export Mode: toggle selection on user templates only
-    if (window.__exportMode) {
-      const id = item.name;
-      const isUser = /^u:/.test(id);
-      if (!isUser) return; // ignore non-user intents while exporting
-
-      const set = window.__exportSelection || (window.__exportSelection = new Set());
-      const picked = div.classList.toggle('picked');
-      if (picked) set.add(id); else set.delete(id);
-
-      // update confirm button label
-      window.dispatchEvent?.(new CustomEvent('export:selection-changed', { detail: { count: set.size } }));
-      return; // don’t run normal select logic in export mode
-    }
-
     const isActive = div.classList.contains('active');
     document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
 
@@ -73,9 +58,6 @@ function makeIntentCard(item){
       if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(item.name);
     }
   });
-
-  return div;
-}
 
 function renderIntentGridFromData(list){
   intentGrid.innerHTML = '';

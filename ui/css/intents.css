@@ -20,20 +20,21 @@
 .stage{ margin-top:16px; overflow:hidden; transition: height .45s ease, opacity .45s ease, margin .45s ease; }
 .stage.hidden{ height:0; opacity:0; margin:0; }
 
-/* Export Mode visuals */
-body.export-mode .intent-card{
+/* My Templates export mode (inside Settings panel) */
+#subUserTpls.ut-export-mode .tpl-card{
   outline: 2px dashed color-mix(in srgb, var(--accent) 50%, transparent);
-  animation: exportPulse 1.6s ease-in-out infinite;
+  cursor: pointer;
+  animation: utExportPulse 1.6s ease-in-out infinite;
 }
-body.export-mode .intent-card:hover{
-  transform: translateY(-2px) scale(1.03);
+#subUserTpls.ut-export-mode .tpl-card:hover{
+  transform: translateY(-1px);
 }
-body.export-mode .intent-card.picked{
+#subUserTpls.ut-export-mode .tpl-card.ut-picked{
   outline: 2px solid var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow-2);
-  filter: saturate(1.1);
+  filter: saturate(1.05);
 }
-@keyframes exportPulse{
+@keyframes utExportPulse{
   0%{ box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent); }
   70%{ box-shadow: 0 0 0 6px transparent; }
   100%{ box-shadow: 0 0 0 0 transparent; }

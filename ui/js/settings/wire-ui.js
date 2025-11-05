@@ -310,55 +310,55 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
 
 
 
-// ---- Export Mode (glow + click-to-select on grid) ----
+// ---- My Templates Export Mode (inside Settings) ----
 (function(){
   const btn = document.getElementById('btnExportUserTemplates');
-  if (!btn) return;
+  const panel = document.getElementById('subUserTpls');
+  if (!btn || !panel) return;
 
   function setMode(on){
-    window.__exportMode = !!on;
-    if (on && !window.__exportSelection) window.__exportSelection = new Set();
-    document.body.classList.toggle('export-mode', !!on);
+    window.__utExportMode = !!on;
+    if (on && !window.__utExportSelection) window.__utExportSelection = new Set();
+    panel.classList.toggle('ut-export-mode', !!on);
     btn.classList.toggle('accent', !!on);
     updateLabel();
   }
 
   function updateLabel(count){
-    const n = (typeof count === 'number') ? count : (window.__exportSelection?.size || 0);
-    if (window.__exportMode) {
+    const n = (typeof count === 'number') ? count : (window.__utExportSelection?.size || 0);
+    if (window.__utExportMode) {
       btn.textContent = n > 0 ? `Confirm Export (${n})` : 'Confirm Export';
-      btn.title = n > 0 ? 'Export selected user templates' : 'Select one or more user templates on the grid';
+      btn.title = n > 0 ? 'Export selected local templates' : 'Select one or more local templates below';
     } else {
       btn.textContent = 'Export (.zip)';
-      btn.title = 'Enter export mode to pick templates on the grid';
+      btn.title = 'Click to select templates below for export';
     }
   }
 
-  // react to selection changes coming from grid.js
-  window.addEventListener('export:selection-changed', (e)=> updateLabel(e?.detail?.count));
+  // selection count comes from store.js card toggles
+  window.addEventListener('ut-export:selection-changed', (e)=> updateLabel(e?.detail?.count));
 
-  // ESC cancels export mode
+  // ESC cancels
   document.addEventListener('keydown', (e)=>{
-    if (e.key === 'Escape' && window.__exportMode) {
+    if (e.key === 'Escape' && window.__utExportMode) {
       setMode(false);
-      window.__exportSelection?.clear?.();
-      // clear picked styles
-      document.querySelectorAll('.intent-card.picked').forEach(el=> el.classList.remove('picked'));
+      window.__utExportSelection?.clear?.();
+      document.querySelectorAll('#subUserTpls .tpl-card.ut-picked').forEach(el=> el.classList.remove('ut-picked'));
       window.showToast?.('Export canceled');
     }
   });
 
   btn.addEventListener('click', async ()=>{
-    // If not in export mode, enter it
-    if (!window.__exportMode) {
+    // Enter mode if not already
+    if (!window.__utExportMode) {
       setMode(true);
-      window.showToast?.('Export mode: click any “local” intent to select (ESC to cancel)');
+      window.showToast?.('Export mode: click local templates to select (ESC to cancel)');
       return;
     }
 
-    // In export mode: confirm export of picked user templates
-    const ids = Array.from(window.__exportSelection || []);
-    if (!ids.length) { window.showToast?.('Pick at least 1 user template'); return; }
+    // Confirm export
+    const ids = Array.from(window.__utExportSelection || []);
+    if (!ids.length) { window.showToast?.('Pick at least 1 template'); return; }
 
     try{
       const all = window.loadUserTemplates?.() || [];
@@ -379,18 +379,27 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
 
       window.showToast?.(`Exported ${items.length} template(s)`);
 
-      // exit export mode and clear picks
+      // exit mode and clear
       setMode(false);
-      window.__exportSelection?.clear?.();
-      document.querySelectorAll('.intent-card.picked').forEach(el=> el.classList.remove('picked'));
+      window.__utExportSelection?.clear?.();
+      document.querySelectorAll('#subUserTpls .tpl-card.ut-picked').forEach(el=> el.classList.remove('ut-picked'));
     }catch(e){
       alert('Export failed: '+e.message);
     }
   });
 
-  // initialize label
+  // initialize
   updateLabel();
 })();
+
+
+
+
+
+
+
+
+
 
 // ---- Import (unchanged: supports .zip or multiple .json) ----
 document.getElementById('btnImportUserTemplates')?.addEventListener('click', async () => {

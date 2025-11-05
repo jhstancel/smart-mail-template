@@ -82,23 +82,35 @@ export function buildUserTemplatesUI(){
 
 // AFTER
 list.forEach(t=>{
-  const card = document.createElement('div');
-  card.className = 'tpl-card';
+const card = document.createElement('div');
+card.className = 'tpl-card';
 
-  card.innerHTML = `
-      <div class="tpl-main">
-        <span class="tpl-badge">local</span>
-        <div>
-          <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
-          ${t.description ? `<div class="tpl-desc">${t.description}</div>` : ''}
-        </div>
-      </div>
-      <div class="tpl-actions">
-        <button class="btn ghost" type="button">Edit</button>
-        <button class="btn ghost" type="button">Duplicate</button>
-        <button class="btn danger" type="button">Delete</button>
-      </div>
-    `;
+// When UT export mode is on, clicking the card toggles picked state
+card.addEventListener('click', (e)=>{
+  if (!window.__utExportMode) return;
+  // ignore clicks on buttons inside the card
+  if ((e.target instanceof HTMLElement) && e.target.closest('.tpl-actions')) return;
+
+  const set = window.__utExportSelection || (window.__utExportSelection = new Set());
+  const picked = card.classList.toggle('ut-picked');
+  if (picked) set.add(t.id); else set.delete(t.id);
+  window.dispatchEvent?.(new CustomEvent('ut-export:selection-changed', { detail: { count: set.size } }));
+});
+
+card.innerHTML = `
+  <div class="tpl-main">
+    <span class="tpl-badge">local</span>
+    <div>
+      <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
+      ${t.description ? `<div class="tpl-desc">${t.description}</div>` : ''}
+    </div>
+  </div>
+  <div class="tpl-actions">
+    <button class="btn ghost" type="button">Edit</button>
+    <button class="btn ghost" type="button">Duplicate</button>
+    <button class="btn danger" type="button">Delete</button>
+  </div>
+`;
 
     const [btnEdit, btnDup, btnDel] = card.querySelectorAll('.tpl-actions .btn');
 
