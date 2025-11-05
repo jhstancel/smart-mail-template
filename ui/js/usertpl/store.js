@@ -239,32 +239,77 @@ window.exportUserTemplates = function () {
     alert('Export failed: ' + e.message);
   }
 };
-
 window.importUserTemplatesFromJSON = async function (text, { merge = true } = {}) {
+  // 1) Parse and normalize supported shapes
+  let payload;
+  try {
+    payload = JSON.parse(text || '[]');
+  } catch (e) {
+    alert('Invalid JSON'); 
+    return;
+  }
   let incoming = [];
-  try { incoming = JSON.parse(text || '[]') || []; } catch (e) { alert('Invalid JSON'); return; }
+  if (Array.isArray(payload)) {
+    incoming = payload;
+  } else if (payload && Array.isArray(payload['sm_user_templates_v1'])) {
+    incoming = payload['sm_user_templates_v1']; // some exports might wrap
+  } else if (payload && Array.isArray(payload.templates)) {
+    incoming = payload.templates;               // fallback wrapper
+  } // else stays [], nothing valid
 
+  // 2) Build merge map of current templates
   const current = loadUserTemplates();
   const map = new Map(current.map(t => [t.id, t]));
-  for (const t of incoming) {
-    if (!t?.id?.startsWith('u:')) continue;
-    if (!merge && map.has(t.id)) continue;
-    map.set(t.id, t);
+
+  // 3) Merge with counters
+  let added = 0, updated = 0, skipped = 0;
+  const isObj = v => v && typeof v === 'object';
+  for (const raw of (incoming || [])) {
+    if (!isObj(raw) || typeof raw.id !== 'string' || !raw.id.startsWith('u:')) { skipped++; continue; }
+    const prev = map.get(raw.id);
+    if (!prev) {
+      map.set(raw.id, raw);
+      added++;
+    } else if (merge) {
+      map.set(raw.id, { ...prev, ...raw, id: prev.id }); // keep canonical id
+      updated++;
+    } else {
+      skipped++;
+    }
   }
+
+  // 4) Persist
   const next = Array.from(map.values());
   saveUserTemplates(next);
 
-  // Rebuild INTENTS and UI immediately
+  // 5) If we have a visible-intents Set, mark newly added as visible
+  try {
+    const vi = window.loadVisibleIntents?.();
+    if (vi && typeof vi.add === 'function' && added > 0) {
+      for (const t of next) {
+        // naive: if template wasn't in 'current', it was newly added
+        if (!current.find(c => c.id === t.id)) vi.add(t.id);
+      }
+      window.saveVisibleIntents?.(vi);
+    }
+  } catch (_) {}
+
+  // 6) Rebuild INTENTS and UI immediately
   const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
   const merged = [...coreIntents, ...userTemplatesAsIntents()];
-  if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged);
-  else window.INTENTS = merged;
-
+  if (typeof window.setINTENTSFromHydrator === 'function') {
+    window.setINTENTSFromHydrator(merged);
+  } else {
+    window.INTENTS = merged;
+  }
+  window.pruneVisibleIntentsAgainst?.(merged);
   window.renderIntentGridFromData?.(merged);
   window.buildIntentsChecklist?.();
   window.buildUserTemplatesUI?.();
 
-  window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: '[bulk-import]' } }));
-  window.showToast?.('Imported user templates');
+  // 7) Notify
+  window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: '[bulk-import]', added, updated, skipped } }));
+  const msg = `Import complete: ${added} added, ${updated} updated, ${skipped} skipped`;
+  window.showToast?.(msg) || alert(msg);
 };
 
