@@ -87,10 +87,14 @@ function openEditor(mode='new', existing=null){
   if(form){ form.dataset.mode = (mode || 'new'); form.dataset.id = existing?.id || ''; }
   if(existing) seedForm(existing);
 
-  //  Lock ID when editing/duplicating; unlock for new
-  const idEl = form?.querySelector('#ute_id');
-  if (idEl) {
-    idEl.disabled = (mode === 'edit' || mode === 'dup');
+  // If duplicating, clear the ID and hint a new label to avoid accidental overwrite
+  if (form?.dataset.mode === 'dup') {
+    const idEl    = form.querySelector('#ute_id');
+    const labelEl = form.querySelector('#ute_label');
+    if (idEl)    { idEl.value = ''; idEl.disabled = false; } // force a new ID
+    if (labelEl) { labelEl.value = (labelEl.value ? `${labelEl.value} Copy` : 'My Template Copy'); }
+    // Reset dataset.id so collect/save does not preserve the original u:* id
+    form.dataset.id = '';
   }
 
   openModalSafe(dlg);

@@ -185,7 +185,20 @@ window.addEventListener('intent:changed', (e)=>{
   if (id) updateOverrideBadge(id);
 });
 /* ---- end local templates block ---- */
-
+// Keep "Visible Intents" panel in sync when user templates change
+window.addEventListener('usertpl:saved', () => {
+  // Only rebuild if the panel is actually open (cheap no-op otherwise)
+  const panel = document.getElementById('subIntents');
+  if (panel?.classList.contains('open')) {
+    buildIntentsChecklist?.(); // re-render list + checkboxes
+  }
+});
+window.addEventListener('usertpl:deleted', () => {
+  const panel = document.getElementById('subIntents');
+  if (panel?.classList.contains('open')) {
+    buildIntentsChecklist?.();
+  }
+});
   const copySubjectBtn = document.getElementById('copySubject');
   const copyBodyBtn    = document.getElementById('copyBody');
   const clearBtn       = document.getElementById('btnClear');

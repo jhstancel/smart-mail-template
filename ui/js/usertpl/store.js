@@ -103,16 +103,23 @@ export function buildUserTemplatesUI(){
       e.stopPropagation();
       document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
     });
-    btnDup.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const copy = { ...t, id: `${t.id || 'u:tpl'}_${Date.now()}`, label: (t.label ? t.label+' (copy)' : 'Untitled (copy)') };
-      const next = loadUserTemplates(); next.unshift(copy); saveUserTemplates(next); buildUserTemplatesUI();
-    });
-    btnDel.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const next = loadUserTemplates().filter(x => x.id !== t.id);
-      saveUserTemplates(next); buildUserTemplatesUI();
-    });
+
+btnDup.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const copy = {
+    ...t,
+    id: `${t.id || 'u:tpl'}_${Date.now()}`,
+    label: t.label ? `${t.label} (copy)` : 'Untitled (copy)'
+  };
+  // This will rebuild INTENTS + grid + checklist and emit events as needed
+  upsertTemplate(copy);
+});
+
+btnDel.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  // This will rebuild INTENTS + grid + checklist and emit usertpl:deleted
+  deleteTemplate(t.id);
+});
 
     wrap.appendChild(card);
   });
@@ -138,28 +145,64 @@ export function upsertTemplate(def){
   window.buildIntentsChecklist?.();
   window.buildUserTemplatesUI?.();
 }
-
 export function deleteTemplate(id){
   if(!id) return;
   const next = loadUserTemplates().filter(t => t.id !== id);
   saveUserTemplates(next);
 
+  // Remove from Visible Intents (if that feature is loaded)
   const vi = window.loadVisibleIntents?.();
   if(vi && vi.has(id)){ vi.delete(id); window.saveVisibleIntents?.(vi); }
 
+  // Rebuild INTENTS without any u:* first, then re-append current user templates
   const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
   const merged = [...coreIntents, ...userTemplatesAsIntents()];
 
+  // Respect the guard
   if (typeof window.setINTENTSFromHydrator === 'function') {
     window.setINTENTSFromHydrator(merged);
   } else {
     window.INTENTS = merged; // fallback if guard hasn’t loaded yet
   }
 
-  window.renderIntentGridFromData?.(merged);
-  window.buildIntentsChecklist?.();
-  window.buildUserTemplatesUI?.();
+  // If we just deleted the currently selected intent, fall back to Auto Detect (or nothing)
+  if (window.SELECTED_INTENT === id) {
+    window.SELECTED_INTENT = '';
+    // Prefer to show auto_detect if present
+    const hasAuto = merged.some(x => x.name === 'auto_detect');
+    if (typeof window.selectIntentById === 'function') {
+      window.selectIntentById(hasAuto ? 'auto_detect' : '');
+    } else if (typeof window.setSelectedIntent === 'function') {
+      window.setSelectedIntent(hasAuto ? 'auto_detect' : '');
+    }
+    // Nudge preview so Output area clears
+    window.scheduleLiveGenerate?.(0);
+  }
+
+
+
+// If this is a newly created template and a visible-intents Set exists, mark it visible
+try {
+  const wasExisting = !!prev;            // from your earlier merge logic (prev is the found old template)
+  const vi = window.loadVisibleIntents?.();
+  if (!wasExisting && vi && typeof vi.add === 'function') {
+    vi.add(def.id);
+    window.saveVisibleIntents?.(vi);
+  }
+} catch (_) { /* ignore */ }
+
+window.renderIntentGridFromData?.(merged);
+window.buildIntentsChecklist?.();
+window.buildUserTemplatesUI?.();
+
+// Let listeners (e.g., settings panel) react if open
+window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: def.id } }));
+
+
+  // Broadcast a small event for any listeners (optional, harmless)
+  window.dispatchEvent?.(new CustomEvent('usertpl:deleted', { detail: { id } }));
 }
+
 window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesUI;
 /* expose selected APIs for non-module listeners (list-delegation, etc.) */
 window.loadUserTemplates  = window.loadUserTemplates  || loadUserTemplates;

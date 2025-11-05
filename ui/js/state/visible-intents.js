@@ -30,3 +30,29 @@ window.loadVisibleIntents = loadVisibleIntents;
 window.saveVisibleIntents = saveVisibleIntents;
 window.isIntentVisible = isIntentVisible;
 
+// Optional hygiene: prune stale IDs from the visible set when intents change
+function pruneVisibleIntentsAgainst(intents) {
+  try {
+    const set = loadVisibleIntents();
+    if (!set) return; // null ⇒ "all visible" by default; nothing to prune
+    const names = new Set((intents || []).map(x => x?.name).filter(Boolean));
+    let changed = false;
+    for (const id of Array.from(set)) {
+      if (!names.has(id)) {
+        set.delete(id);
+        changed = true;
+      }
+    }
+    if (changed) saveVisibleIntents(set);
+  } catch (_e) {}
+}
+
+window.pruneVisibleIntentsAgainst = pruneVisibleIntentsAgainst;
+
+// Auto-prune after user template delete (no refresh)
+window.addEventListener?.('usertpl:deleted', () => {
+  const intents = (window.INTENTS || []);
+  pruneVisibleIntentsAgainst(intents);
+});
+
+
