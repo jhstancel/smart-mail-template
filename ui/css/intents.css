@@ -34,6 +34,15 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow-2);
   filter: saturate(1.05);
 }
+/* Hide per-card actions while selecting */
+#subUserTpls.ut-export-mode .tpl-card .tpl-actions{
+  display: none;
+}
+/* Show Cancel button during export mode */
+#subUserTpls.ut-export-mode #btnCancelUserTplExport{
+  display: inline-block !important;
+}
+
 @keyframes utExportPulse{
   0%{ box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent); }
   70%{ box-shadow: 0 0 0 6px transparent; }

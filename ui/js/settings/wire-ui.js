@@ -308,19 +308,25 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
 
 
 
-
-
 // ---- My Templates Export Mode (inside Settings) ----
 (function(){
   const btn = document.getElementById('btnExportUserTemplates');
+  const btnCancel = document.getElementById('btnCancelUserTplExport');
   const panel = document.getElementById('subUserTpls');
+  const settingsRoot = document.getElementById('settings'); // outer settings container (gear)
   if (!btn || !panel) return;
+
+  function clearPicks(){
+    window.__utExportSelection?.clear?.();
+    document.querySelectorAll('#subUserTpls .tpl-card.ut-picked').forEach(el=> el.classList.remove('ut-picked'));
+  }
 
   function setMode(on){
     window.__utExportMode = !!on;
     if (on && !window.__utExportSelection) window.__utExportSelection = new Set();
     panel.classList.toggle('ut-export-mode', !!on);
     btn.classList.toggle('accent', !!on);
+    if (btnCancel) btnCancel.style.display = on ? 'inline-block' : 'none';
     updateLabel();
   }
 
@@ -335,28 +341,46 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
     }
   }
 
-  // selection count comes from store.js card toggles
+  // selection count from store.js
   window.addEventListener('ut-export:selection-changed', (e)=> updateLabel(e?.detail?.count));
 
   // ESC cancels
   document.addEventListener('keydown', (e)=>{
     if (e.key === 'Escape' && window.__utExportMode) {
       setMode(false);
-      window.__utExportSelection?.clear?.();
-      document.querySelectorAll('#subUserTpls .tpl-card.ut-picked').forEach(el=> el.classList.remove('ut-picked'));
+      clearPicks();
       window.showToast?.('Export canceled');
     }
   });
 
+  // Cancel button
+  btnCancel?.addEventListener('click', ()=>{
+    if (!window.__utExportMode) return;
+    setMode(false);
+    clearPicks();
+    window.showToast?.('Export canceled');
+  });
+
+  // Auto-exit if Settings closes or if My Templates panel is not visible
+  document.addEventListener('click', ()=>{
+    if (!window.__utExportMode) return;
+    // settingsRoot present and not expanded OR panel hidden → exit
+    const settingsOpen = !!document.getElementById('settingsMenu')?.offsetParent || !!settingsRoot?.classList?.contains?.('open') || !!settingsRoot?.getAttribute?.('data-open');
+    const panelVisible = !!panel?.offsetParent;
+    if (!settingsOpen || !panelVisible) {
+      setMode(false);
+      clearPicks();
+    }
+  }, true);
+
+  // Export / Confirm
   btn.addEventListener('click', async ()=>{
-    // Enter mode if not already
     if (!window.__utExportMode) {
       setMode(true);
-      window.showToast?.('Export mode: click local templates to select (ESC to cancel)');
+      window.showToast?.('Export mode: click local templates to select (ESC or Cancel to exit)');
       return;
     }
 
-    // Confirm export
     const ids = Array.from(window.__utExportSelection || []);
     if (!ids.length) { window.showToast?.('Pick at least 1 template'); return; }
 
@@ -378,17 +402,13 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
       document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
 
       window.showToast?.(`Exported ${items.length} template(s)`);
-
-      // exit mode and clear
       setMode(false);
-      window.__utExportSelection?.clear?.();
-      document.querySelectorAll('#subUserTpls .tpl-card.ut-picked').forEach(el=> el.classList.remove('ut-picked'));
+      clearPicks();
     }catch(e){
       alert('Export failed: '+e.message);
     }
   });
 
-  // initialize
   updateLabel();
 })();
 
