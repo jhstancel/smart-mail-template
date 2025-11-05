@@ -80,10 +80,20 @@ export function buildUserTemplatesUI(){
     return;
   }
 
-  list.forEach(t=>{
-    const card = document.createElement('div');
-    card.className = 'tpl-card';
-    card.innerHTML = `
+// AFTER
+list.forEach(t=>{
+  const card = document.createElement('div');
+  card.className = 'tpl-card';
+
+  // add selection checkbox before innerHTML
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.className = 'ut-select';
+  cb.dataset.id = t.id;
+  cb.style.marginRight = '8px';
+  card.appendChild(cb);
+
+  card.innerHTML += `
       <div class="tpl-main">
         <span class="tpl-badge">local</span>
         <div>
@@ -97,6 +107,7 @@ export function buildUserTemplatesUI(){
         <button class="btn danger" type="button">Delete</button>
       </div>
     `;
+
     const [btnEdit, btnDup, btnDel] = card.querySelectorAll('.tpl-actions .btn');
 
     btnEdit.addEventListener('click', (e)=>{
@@ -357,4 +368,8 @@ window.importUserTemplatesFromJSON = async function (
   const msg = `Import complete: ${added} added${mode ? ` (mode=${mode})` : ''}`;
   window.showToast?.(msg) || alert(msg);
 };
-
+window.getSelectedUserTemplateIds = function(){
+  return Array.from(document.querySelectorAll('#userTplList .ut-select:checked'))
+    .map(cb => cb.dataset.id)
+    .filter(Boolean);
+};

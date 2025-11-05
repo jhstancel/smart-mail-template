@@ -301,27 +301,54 @@ window.showToast = window.showToast || function (msg, ms = 1400) {
 // Show toast when user templates change
 window.addEventListener('usertpl:saved',   () => window.showToast?.('Saved!'));
 window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
+// ---- NEW: Select-All + multi Export / Import ----
 
-// Export / Import (buttons inside My Templates panel)
-document.getElementById('btnExportUserTemplates')?.addEventListener('click', () => {
-  window.exportUserTemplates?.();
+// Select-All checkbox
+document.getElementById('ut_select_all')?.addEventListener('change', e=>{
+  const on = e.currentTarget.checked;
+  document.querySelectorAll('#userTplList .ut-select').forEach(cb => cb.checked = on);
 });
 
-document.getElementById('btnImportUserTemplates')?.addEventListener('click', async () => {
-  try {
+// Export selected → ZIP (one JSON per template)
+document.getElementById('btnExportUserTemplates')?.addEventListener('click', async ()=>{
+  try{
+    const ids = window.getSelectedUserTemplateIds?.() || [];
+    const all = window.loadUserTemplates?.() || [];
+    const items = ids.length ? all.filter(t=>ids.includes(t.id)) : all;
+    if(!items.length) return alert('No templates selected.');
+
+    if(typeof JSZip==='undefined'){ alert('JSZip missing'); return; }
+    const zip = new JSZip();
+    for(const t of items){
+      const safe = (t.id||'template').replace(/[^\w.-]+/g,'_');
+      zip.file(`${safe}.json`, JSON.stringify(t,null,2));
+    }
+    const blob = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `user-templates-${new Date().toISOString().slice(0,10)}.zip`;
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    window.showToast?.(`Exported ${items.length} template(s)`);
+  }catch(e){ alert('Export failed: '+e.message); }
+});
+
+// Import multiple .json files
+document.getElementById('btnImportUserTemplates')?.addEventListener('click', async ()=>{
+  try{
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json';
-    input.addEventListener('change', async () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      const text = await file.text();
-      // Always duplicate on conflict (default behavior in importer)
-      await window.importUserTemplatesFromJSON?.(text);
-    }, { once: true });
+    input.multiple = true;
+    input.addEventListener('change', async ()=>{
+      const files = Array.from(input.files||[]);
+      if(!files.length) return;
+      for(const f of files){
+        const txt = await f.text();
+        await window.importUserTemplatesFromJSON?.(txt);
+      }
+      window.showToast?.(`Imported ${files.length} file(s)`);
+    },{once:true});
     input.click();
-  } catch (e) {
-    alert('Import failed: ' + e.message);
-  }
+  }catch(e){ alert('Import failed: '+e.message); }
 });
 
