@@ -239,42 +239,86 @@ window.exportUserTemplates = function () {
     alert('Export failed: ' + e.message);
   }
 };
-window.importUserTemplatesFromJSON = async function (text, { merge = true } = {}) {
+window.importUserTemplatesFromJSON = async function (
+  text,
+  {
+    // behavior on ID conflict:
+    // 'duplicate' (default) → create a new unique ID
+    // 'overwrite'           → replace existing content
+    // 'skip'                → ignore conflicting import
+    onConflict = 'duplicate',
+
+    // if true, every imported template is treated as a new copy with a fresh ID
+    mode = undefined, // 'copy' | undefined
+
+    // back-compat flag: if provided, acts like onConflict='overwrite' when true, else 'skip'
+    merge = undefined
+  } = {}
+) {
+  // Normalize legacy 'merge' into onConflict if caller passes it
+  if (typeof merge === 'boolean' && onConflict === 'duplicate') {
+    onConflict = merge ? 'overwrite' : 'skip';
+  }
+
   // 1) Parse and normalize supported shapes
   let payload;
   try {
     payload = JSON.parse(text || '[]');
   } catch (e) {
-    alert('Invalid JSON'); 
+    alert('Invalid JSON');
     return;
   }
   let incoming = [];
   if (Array.isArray(payload)) {
     incoming = payload;
   } else if (payload && Array.isArray(payload['sm_user_templates_v1'])) {
-    incoming = payload['sm_user_templates_v1']; // some exports might wrap
+    incoming = payload['sm_user_templates_v1'];
   } else if (payload && Array.isArray(payload.templates)) {
-    incoming = payload.templates;               // fallback wrapper
-  } // else stays [], nothing valid
+    incoming = payload.templates;
+  }
 
-  // 2) Build merge map of current templates
+  // 2) Build map of current templates
   const current = loadUserTemplates();
   const map = new Map(current.map(t => [t.id, t]));
 
-  // 3) Merge with counters
-  let added = 0, updated = 0, skipped = 0;
+  // Helpers
   const isObj = v => v && typeof v === 'object';
+  const makeCopyId = base => {
+    const stamp = Date.now().toString(36);
+    return `${base}_${stamp}`;
+  };
+
+  // 3) Merge with counters and conflict policy
+  let added = 0, updated = 0, skipped = 0;
   for (const raw of (incoming || [])) {
     if (!isObj(raw) || typeof raw.id !== 'string' || !raw.id.startsWith('u:')) { skipped++; continue; }
+
+    // If importing as copies, always generate a new ID
+    if (mode === 'copy') {
+      const newId = makeCopyId(raw.id);
+      map.set(newId, { ...raw, id: newId, name: newId });
+      added++;
+      continue;
+    }
+
     const prev = map.get(raw.id);
     if (!prev) {
+      // brand new
       map.set(raw.id, raw);
       added++;
-    } else if (merge) {
-      map.set(raw.id, { ...prev, ...raw, id: prev.id }); // keep canonical id
+      continue;
+    }
+
+    // conflict: existing prev and incoming raw share the same id
+    if (onConflict === 'overwrite') {
+      map.set(raw.id, { ...prev, ...raw, id: prev.id });
       updated++;
-    } else {
+    } else if (onConflict === 'skip') {
       skipped++;
+    } else { // 'duplicate' (default)
+      const newId = makeCopyId(raw.id);
+      map.set(newId, { ...raw, id: newId, name: newId });
+      added++;
     }
   }
 
@@ -282,12 +326,11 @@ window.importUserTemplatesFromJSON = async function (text, { merge = true } = {}
   const next = Array.from(map.values());
   saveUserTemplates(next);
 
-  // 5) If we have a visible-intents Set, mark newly added as visible
+  // 5) Auto-mark newly added templates as visible (when a Set is in use)
   try {
     const vi = window.loadVisibleIntents?.();
     if (vi && typeof vi.add === 'function' && added > 0) {
       for (const t of next) {
-        // naive: if template wasn't in 'current', it was newly added
         if (!current.find(c => c.id === t.id)) vi.add(t.id);
       }
       window.saveVisibleIntents?.(vi);
@@ -308,8 +351,8 @@ window.importUserTemplatesFromJSON = async function (text, { merge = true } = {}
   window.buildUserTemplatesUI?.();
 
   // 7) Notify
-  window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: '[bulk-import]', added, updated, skipped } }));
-  const msg = `Import complete: ${added} added, ${updated} updated, ${skipped} skipped`;
+  window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: '[bulk-import]', added, updated, skipped, onConflict, mode } }));
+  const msg = `Import complete: ${added} added, ${updated} updated, ${skipped} skipped (${onConflict}${mode ? ', mode='+mode : ''})`;
   window.showToast?.(msg) || alert(msg);
 };
 
