@@ -224,3 +224,47 @@ window.UserTemplates.getById = function(id){
   }catch(_){ return null; }
 };
 
+/* Export / Import helpers */
+window.exportUserTemplates = function () {
+  try {
+    const raw = localStorage.getItem(USER_TPLS_KEY) || '[]';
+    const blob = new Blob([raw], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `user-templates-${new Date().toISOString().slice(0,10)}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+    window.showToast?.('Exported user templates');
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  }
+};
+
+window.importUserTemplatesFromJSON = async function (text, { merge = true } = {}) {
+  let incoming = [];
+  try { incoming = JSON.parse(text || '[]') || []; } catch (e) { alert('Invalid JSON'); return; }
+
+  const current = loadUserTemplates();
+  const map = new Map(current.map(t => [t.id, t]));
+  for (const t of incoming) {
+    if (!t?.id?.startsWith('u:')) continue;
+    if (!merge && map.has(t.id)) continue;
+    map.set(t.id, t);
+  }
+  const next = Array.from(map.values());
+  saveUserTemplates(next);
+
+  // Rebuild INTENTS and UI immediately
+  const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
+  const merged = [...coreIntents, ...userTemplatesAsIntents()];
+  if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged);
+  else window.INTENTS = merged;
+
+  window.renderIntentGridFromData?.(merged);
+  window.buildIntentsChecklist?.();
+  window.buildUserTemplatesUI?.();
+
+  window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: '[bulk-import]' } }));
+  window.showToast?.('Imported user templates');
+};
+

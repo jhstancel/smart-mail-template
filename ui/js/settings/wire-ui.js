@@ -280,4 +280,46 @@ function applyDescriptions(on) {
     applyDescriptions(!!e.target.checked);
   });
 })();
+// Simple toast
+window.showToast = window.showToast || function (msg, ms = 1400) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `
+    position: fixed; right: 16px; bottom: 16px; z-index: 9999;
+    background: rgba(0,0,0,.8); color: #fff; padding: 8px 12px;
+    border-radius: 10px; font-size: 13px; opacity: 0; transform: translateY(6px);
+    transition: opacity .18s ease, transform .18s ease; pointer-events: none;
+  `;
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+  setTimeout(() => {
+    t.style.opacity = '0'; t.style.transform = 'translateY(6px)';
+    t.addEventListener('transitionend', () => t.remove(), { once: true });
+  }, ms);
+};
+
+// Show toast when user templates change
+window.addEventListener('usertpl:saved',   () => window.showToast?.('Saved!'));
+window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
+
+// Export / Import (buttons inside My Templates panel)
+document.getElementById('btnExportUserTemplates')?.addEventListener('click', () => {
+  window.exportUserTemplates?.();
+});
+document.getElementById('btnImportUserTemplates')?.addEventListener('click', async () => {
+  try {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const text = await file.text();
+      await window.importUserTemplatesFromJSON?.(text, { merge: true });
+    }, { once: true });
+    input.click();
+  } catch (e) {
+    alert('Import failed: ' + e.message);
+  }
+});
 

@@ -100,16 +100,21 @@
 </div>
 <svg class="chev" viewbox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="currentColor"></path></svg>
 </div>
+
 <div class="settings-subpanel" id="subIntents">
-<div class="kvs" id="intentChecks" style="margin:6px 0 10px"></div>
-<div class="inline" style="margin-top:6px">
-<button class="btn secondary" id="vi_save" type="button">Save</button>
-<button class="btn secondary" id="vi_all" type="button">Select All</button>
-<button class="btn secondary" id="vi_none" type="button">Select None</button>
-<button class="btn secondary" id="vi_reset" type="button">Reset</button>
+  <div style="display:flex; align-items:center; gap:8px; margin:0 0 6px">
+    <input id="intentSearch" type="search" placeholder="Filter intents…" style="width:100%; padding:6px 8px; border-radius:8px; border:1px solid #ccc">
+  </div>
+  <div class="kvs" id="intentChecks" style="margin:6px 0 10px"></div>
+  <div class="inline" style="margin-top:6px">
+    <button class="btn secondary" id="vi_save" type="button">Save</button>
+    <button class="btn secondary" id="vi_all" type="button">Select All</button>
+    <button class="btn secondary" id="vi_none" type="button">Select None</button>
+    <button class="btn secondary" id="vi_reset" type="button">Reset</button>
+  </div>
+  <p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
 </div>
-<p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
-</div>
+
 <div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
 <div>
 <div class="label">My Templates</div>
@@ -117,14 +122,26 @@
 </div>
 <svg class="chev" viewbox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="currentColor"></path></svg>
 </div>
+
+
+
 <div class="settings-subpanel" id="subUserTpls">
-<div class="tpl-head">
-<div class="label">Templates on this device</div>
-<button class="btn small" id="tplNew" type="button">+ New</button>
+  <div class="tpl-head">
+    <div class="label">Templates on this device</div>
+    <button class="btn small" id="tplNew" type="button">+ New</button>
+  </div>
+  <div class="tpl-list" id="userTplList"></div>
+  <div class="ut-actions" style="display:flex; gap:8px; margin-top:8px">
+    <button id="btnExportUserTemplates" type="button" class="btn secondary">Export Templates</button>
+    <button id="btnImportUserTemplates" type="button" class="btn secondary">Import Templates</button>
+  </div>
+  <p class="muted" style="margin-top:6px">Tip: These are local only and won’t sync across devices.</p>
 </div>
-<div class="tpl-list" id="userTplList"></div>
-<p class="muted" style="margin-top:6px">Tip: These are local only and won’t sync across devices.</p>
-</div>
+
+
+
+
+
 <!-- new Global Defaults section -->
 <div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
 <div>

@@ -95,9 +95,19 @@ function buildIntentsChecklist(){
   if(!box) return;
 
   box.innerHTML = '';
+
+  // wire the search input once
+  const search = document.getElementById('intentSearch');
+  if (search && !search._wired) {
+    search._wired = true;
+    search.addEventListener('input', () => buildIntentsChecklist());
+  }
+  const q = (search?.value || '').toLowerCase().trim();
+
   const current = loadVisibleIntents(); // Set or null
-  const items = (INTENTS || [])
-    .filter(x => x && x.name !== 'auto_detect')
+  const base = (INTENTS || []).filter(x => x && x.name !== 'auto_detect');
+  const filtered = q ? base.filter(it => ((it.label || it.name || '').toLowerCase().includes(q))) : base;
+  const items = filtered
     .slice()
     .sort((a,b) => (a.label||a.name).localeCompare(b.label||b.name));
 
