@@ -303,34 +303,96 @@ window.addEventListener('usertpl:saved',   () => window.showToast?.('Saved!'));
 window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
 // ---- NEW: Select-All + multi Export / Import ----
 
-// Select-All checkbox
-document.getElementById('ut_select_all')?.addEventListener('change', e=>{
-  const on = e.currentTarget.checked;
-  document.querySelectorAll('#userTplList .ut-select').forEach(cb => cb.checked = on);
-});
 
-// Export selected → ZIP (one JSON per template)
-document.getElementById('btnExportUserTemplates')?.addEventListener('click', async ()=>{
-  try{
-    const ids = window.getSelectedUserTemplateIds?.() || [];
-    const all = window.loadUserTemplates?.() || [];
-    const items = ids.length ? all.filter(t=>ids.includes(t.id)) : all;
-    if(!items.length) return alert('No templates selected.');
 
-    if(typeof JSZip==='undefined'){ alert('JSZip missing'); return; }
-    const zip = new JSZip();
-    for(const t of items){
-      const safe = (t.id||'template').replace(/[^\w.-]+/g,'_');
-      zip.file(`${safe}.json`, JSON.stringify(t,null,2));
+
+
+
+
+
+// ---- Export Mode (glow + click-to-select on grid) ----
+(function(){
+  const btn = document.getElementById('btnExportUserTemplates');
+  if (!btn) return;
+
+  function setMode(on){
+    window.__exportMode = !!on;
+    if (on && !window.__exportSelection) window.__exportSelection = new Set();
+    document.body.classList.toggle('export-mode', !!on);
+    btn.classList.toggle('accent', !!on);
+    updateLabel();
+  }
+
+  function updateLabel(count){
+    const n = (typeof count === 'number') ? count : (window.__exportSelection?.size || 0);
+    if (window.__exportMode) {
+      btn.textContent = n > 0 ? `Confirm Export (${n})` : 'Confirm Export';
+      btn.title = n > 0 ? 'Export selected user templates' : 'Select one or more user templates on the grid';
+    } else {
+      btn.textContent = 'Export (.zip)';
+      btn.title = 'Enter export mode to pick templates on the grid';
     }
-    const blob = await zip.generateAsync({type:'blob'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `user-templates-${new Date().toISOString().slice(0,10)}.zip`;
-    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
-    window.showToast?.(`Exported ${items.length} template(s)`);
-  }catch(e){ alert('Export failed: '+e.message); }
-});
+  }
+
+  // react to selection changes coming from grid.js
+  window.addEventListener('export:selection-changed', (e)=> updateLabel(e?.detail?.count));
+
+  // ESC cancels export mode
+  document.addEventListener('keydown', (e)=>{
+    if (e.key === 'Escape' && window.__exportMode) {
+      setMode(false);
+      window.__exportSelection?.clear?.();
+      // clear picked styles
+      document.querySelectorAll('.intent-card.picked').forEach(el=> el.classList.remove('picked'));
+      window.showToast?.('Export canceled');
+    }
+  });
+
+  btn.addEventListener('click', async ()=>{
+    // If not in export mode, enter it
+    if (!window.__exportMode) {
+      setMode(true);
+      window.showToast?.('Export mode: click any “local” intent to select (ESC to cancel)');
+      return;
+    }
+
+    // In export mode: confirm export of picked user templates
+    const ids = Array.from(window.__exportSelection || []);
+    if (!ids.length) { window.showToast?.('Pick at least 1 user template'); return; }
+
+    try{
+      const all = window.loadUserTemplates?.() || [];
+      const items = all.filter(t => ids.includes(t.id));
+      if (!items.length) { window.showToast?.('Nothing to export'); return; }
+
+      if(typeof JSZip==='undefined'){ alert('JSZip missing'); return; }
+      const zip = new JSZip();
+      for(const t of items){
+        const safe = (t.id||'template').replace(/[^\w.-]+/g,'_');
+        zip.file(`${safe}.json`, JSON.stringify(t, null, 2));
+      }
+      const blob = await zip.generateAsync({ type:'blob' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `user-templates-${new Date().toISOString().slice(0,10)}.zip`;
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+
+      window.showToast?.(`Exported ${items.length} template(s)`);
+
+      // exit export mode and clear picks
+      setMode(false);
+      window.__exportSelection?.clear?.();
+      document.querySelectorAll('.intent-card.picked').forEach(el=> el.classList.remove('picked'));
+    }catch(e){
+      alert('Export failed: '+e.message);
+    }
+  });
+
+  // initialize label
+  updateLabel();
+})();
+
+// ---- Import (unchanged: supports .zip or multiple .json) ----
 document.getElementById('btnImportUserTemplates')?.addEventListener('click', async () => {
   try {
     const input = document.createElement('input');
@@ -346,7 +408,6 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
       for (const f of files) {
         const name = (f.name || '').toLowerCase();
 
-        // ZIP: unpack and import each .json entry
         if (name.endsWith('.zip')) {
           if (typeof JSZip === 'undefined') {
             alert('JSZip not loaded; cannot import .zip');
@@ -356,14 +417,12 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
           const entries = Object.values(zip.files).filter(zf => !zf.dir && zf.name.toLowerCase().endsWith('.json'));
           for (const zf of entries) {
             const txt = await zf.async('string');
-            // pass filename as hint for id derivation if needed
             await window.importUserTemplatesFromJSON?.(txt, { filenameHint: zf.name });
             importedCount++;
           }
           continue;
         }
 
-        // Plain .json file
         if (name.endsWith('.json')) {
           const txt = await f.text();
           await window.importUserTemplatesFromJSON?.(txt, { filenameHint: f.name });

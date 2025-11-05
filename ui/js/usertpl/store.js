@@ -85,15 +85,7 @@ list.forEach(t=>{
   const card = document.createElement('div');
   card.className = 'tpl-card';
 
-  // add selection checkbox before innerHTML
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.className = 'ut-select';
-  cb.dataset.id = t.id;
-  cb.style.marginRight = '8px';
-  card.appendChild(cb);
-
-  card.innerHTML += `
+  card.innerHTML = `
       <div class="tpl-main">
         <span class="tpl-badge">local</span>
         <div>
@@ -404,9 +396,3 @@ window.importUserTemplatesFromJSON = async function (
 
 
 
-
-window.getSelectedUserTemplateIds = function(){
-  return Array.from(document.querySelectorAll('#userTplList .ut-select:checked'))
-    .map(cb => cb.dataset.id)
-    .filter(Boolean);
-};
