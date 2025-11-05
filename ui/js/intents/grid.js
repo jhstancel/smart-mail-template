@@ -59,6 +59,8 @@ function makeIntentCard(item){
     }
   });
 
+  return div; // <-- fix
+}
 function renderIntentGridFromData(list){
   intentGrid.innerHTML = '';
 
