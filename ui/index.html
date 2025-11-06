@@ -92,15 +92,15 @@
     <!-- Show search bar on main screen -->
     <div class="settings-row" style="margin-top:10px">
       <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="toggleFrontSearch" />
-        <span>Show search bar on main screen</span>
+<input type="checkbox" id="toggleMainSearch" />
+<span>Show search bar on main screen</span>
+
       </label>
     </div>
   </div>
 </div>
 
 <!-- Item: Typing Animation -->
-<div aria-label="Compose Behavior" class="seg" id="composeSeg" role="tablist">
 
 <div class="settings-item" data-item="intents" role="menuitem" tabindex="0">
 <div>
@@ -157,29 +157,31 @@
 
 
 
-
 <!-- new Global Defaults section -->
 <div class="settings-item" data-item="defaults" role="menuitem" tabindex="0">
-<div>
-<div class="label">Global Defaults</div>
-<div class="hint">Set Ship Address &amp; FedEx Account defaults</div>
-</div>
-<svg class="chev" viewbox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="currentColor"></path></svg>
-</div>
-<div class="settings-subpanel" id="subDefaults">
-<div class="label" style="margin:8px 0 6px">Global Defaults</div>
-<div class="hint" style="margin:-2px 0 10px">Fill these once and we’ll prefill matching fields.</div>
-<label style="display:block; font-weight:600; margin:8px 0 4px">Ship Address</label>
-<input id="g_shipAddress" placeholder="1457 Merrimon Ave. Asheville, NC 28804" type="text"/>
-<div class="inline" style="margin-top:10px">
-<label class="toggle"><input id="g_save" type="checkbox"/> Save for this browser</label>
-<button class="btn secondary" id="g_apply" type="button">Apply</button>
-<button class="btn secondary" id="g_clear" type="button">Clear</button>
-</div>
-</div>
-</div>
+  <div>
+    <div class="label">Global Defaults</div>
+    <div class="hint">Set Ship Address &amp; FedEx Account defaults</div>
+  </div>
+  <svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="currentColor"></path></svg>
 </div>
 
+<div class="settings-subpanel" id="subDefaults">
+  <div class="label" style="margin:8px 0 6px">Global Defaults</div>
+  <div class="hint" style="margin:-2px 0 10px">Fill these once and we’ll prefill matching fields.</div>
+
+  <label style="display:block; font-weight:600; margin:8px 0 4px">Ship Address</label>
+  <input id="g_shipAddress" placeholder="1457 Merrimon Ave. Asheville, NC 28804" type="text"/>
+
+  <div class="inline" style="margin-top:10px">
+    <label class="toggle"><input id="g_save" type="checkbox"/> Save for this browser</label>
+    <button class="btn secondary" id="g_apply" type="button">Apply</button>
+    <button class="btn secondary" id="g_clear" type="button">Clear</button>
+  </div>
+</div>
+<!-- END settings-menu -->
+</div> <!-- /#settingsMenu -->
+</div> <!-- /.settings -->
 
 <!-- Pastell pets layer (background) -->
 <div id="petFlakes" aria-hidden="true"></div>
