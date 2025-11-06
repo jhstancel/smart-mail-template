@@ -64,17 +64,28 @@ export function userTemplatesAsIntents(){
 
 
 
-// UI list builder and actions (now with search filter)
 export function buildUserTemplatesUI(){
   const wrap = document.getElementById('userTplList');
   if(!wrap) return;
 
   const all = loadUserTemplates();
 
-  // read current search query (if present)
+  // wire search once
   const qEl = document.getElementById('ut_search');
-  const q = (qEl?.value || '').trim().toLowerCase();
+  if (qEl && !qEl._wired){
+    qEl._wired = true;
+    let t = null;
+    qEl.addEventListener('input', ()=>{
+      clearTimeout(t);
+      t = setTimeout(buildUserTemplatesUI, 120);
+    });
+    qEl.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape'){ qEl.value=''; buildUserTemplatesUI(); }
+    });
+  }
 
+  // current query value
+  const q = (qEl?.value || '').trim().toLowerCase();
   // filter by label/id/description
   const list = q
     ? all.filter(t => {
@@ -141,15 +152,23 @@ export function buildUserTemplatesUI(){
       document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
     });
 
-    btnDup.addEventListener('click', (e)=>{
-      e.stopPropagation();
-      const copy = {
-        ...t,
-        id: `${t.id || 'u:tpl'}_${Date.now()}`,
-        label: t.label ? `${t.label} (copy)` : 'Untitled (copy)'
-      };
-      upsertTemplate(copy);
-    });
+btnDup.addEventListener('click', (e)=>{
+  e.stopPropagation();
+  const copy = {
+    ...t,
+    id: `${t.id || 'u:tpl'}_${Date.now()}`,
+    label: t.label ? `${t.label} (copy)` : 'Untitled (copy)'
+  };
+  upsertTemplate(copy);
+
+  // Mark visible + select + gentle scroll
+  try{
+    const vi = window.loadVisibleIntents?.();
+    if (vi && typeof vi.add === 'function') { vi.add(copy.id); window.saveVisibleIntents?.(vi); }
+    window.selectIntentById?.(copy.id);
+    document.querySelector(`.intent-card[data-intent="${copy.id}"]`)?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }catch(_){}
+});
 
     btnDel.addEventListener('click', (e)=>{
       e.stopPropagation();
@@ -296,6 +315,13 @@ export function emptyTrash(){
   window.renderTrashPanel?.();
 }
 
+
+
+
+
+
+
+
 export function restoreFromTrash(id){
   const stack = window.UserTemplates.__trash || [];
   const idx = stack.findIndex(x => x.id === id);
@@ -322,14 +348,26 @@ export function restoreFromTrash(id){
   const merged = [...core, ...userTemplatesAsIntents()];
   if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged);
   else window.INTENTS = merged;
-  window.pruneVisibleIntentsAgainst?.(merged);
+ window.pruneVisibleIntentsAgainst?.(merged);
   window.renderIntentGridFromData?.(merged);
   window.buildIntentsChecklist?.();
   window.buildUserTemplatesUI?.();
   window.renderTrashPanel?.();
 
+  // Make restored intent visible & selected
+  try{
+    const vi = window.loadVisibleIntents?.();
+    if (vi && typeof vi.add === 'function') { vi.add(restored.id); window.saveVisibleIntents?.(vi); }
+    window.selectIntentById?.(restored.id);
+    document.querySelector(`.intent-card[data-intent="${restored.id}"]`)?.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }catch(_){}
+
   window.showToast?.('Template restored.', { duration: 4000 });
 }
+
+
+
+
 
 // expose for wiring
 window.getTrash = window.getTrash || getTrash;

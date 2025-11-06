@@ -118,4 +118,13 @@
 .trash-item .meta .id{ font-size:12px; color:var(--muted); }
 .trash-item .controls{ display:flex; gap:6px; }
 .trash-empty{ color:var(--muted); font-size:13px; padding:8px; text-align:center; }
+/* Wrap long names without pushing buttons off-screen */
+.trash-item{ flex-wrap: wrap; }
+.trash-item .meta{ min-width: 0; flex: 1 1 auto; }
+.trash-item .meta .label{ word-break: break-word; }
+.trash-item .controls{ flex: 0 0 auto; }
+
+.tpl-card .tpl-main{ display:flex; gap:10px; align-items:flex-start; }
+.tpl-card .tpl-title{ word-break: break-word; }
+.tpl-card .tpl-desc{ word-break: break-word; }
 

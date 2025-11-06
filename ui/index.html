@@ -53,29 +53,49 @@
 </div>
 <svg class="chev" viewbox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="currentColor"></path></svg>
 </div>
-<div class="settings-subpanel" id="subTheme">
-<div class="settings-row">
-<label class="muted" for="themeSelect" style="min-width:90px">Preset</label>
 
-<select aria-label="Theme" id="themeSelect">
-  <option value="light-minimal">Light Minimal (Default)</option>
-  <option value="dark-minimal">Dark Minimal</option>
-  <option value="cosmic">Cosmic</option>
-  <option value="dusk-gradient">Dusk Gradient</option>
-  <option value="forest-mist">Forest Mist</option>
-  <option value="pastell">Pastell</option>
-  <option value="claude">Claude Warm</option>
-</select>
-<!-- Descriptions (Verbose/Simple) -->
-<div class="settings-row" style="margin-top:10px">
-  <label class="muted" for="opt_desc" style="min-width:90px">Display Descriptions</label>
-  <div style="display:flex; align-items:center; gap:10px">
-    <input id="opt_desc" type="checkbox" />
+<div class="settings-subpanel" id="subTheme">
+  <div class="settings-row">
+    <label class="muted" for="themeSelect" style="min-width:90px">Preset</label>
+
+    <select aria-label="Theme" id="themeSelect">
+      <option value="light-minimal">Light Minimal (Default)</option>
+      <option value="dark-minimal">Dark Minimal</option>
+      <option value="cosmic">Cosmic</option>
+      <option value="dusk-gradient">Dusk Gradient</option>
+      <option value="forest-mist">Forest Mist</option>
+      <option value="pastell">Pastell</option>
+      <option value="claude">Claude Warm</option>
+    </select>
+
+    <!-- Descriptions (Verbose/Simple) -->
+    <div class="settings-row" style="margin-top:10px">
+      <label class="muted" for="opt_desc" style="min-width:90px">Display Descriptions</label>
+      <div style="display:flex; align-items:center; gap:10px">
+        <input id="opt_desc" type="checkbox" />
+      </div>
+    </div>
+
+    <!-- Compose animations (Preview / Type / Off) -->
+    <div class="settings-row" style="margin-top:10px">
+      <label class="muted" style="min-width:90px">Compose animations</label>
+      <div id="composeSegTheme" class="seg" role="tablist" aria-label="Compose animations">
+        <button class="opt" data-mode="preview" role="tab" aria-selected="false">Preview</button>
+        <button class="opt" data-mode="type" role="tab" aria-selected="true">Type</button>
+        <button class="opt" data-mode="off" role="tab" aria-selected="false">Off</button>
+      </div>
+    </div>
+
+    <!-- Show search bar on main screen -->
+    <div class="settings-row" style="margin-top:10px">
+      <label style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="toggleFrontSearch" />
+        <span>Show search bar on main screen</span>
+      </label>
+    </div>
   </div>
 </div>
 
-</div>
-</div>
 <!-- Item: Typing Animation -->
 <div class="settings-item" data-item="typing" role="menuitem" tabindex="0">
 <div>
@@ -93,6 +113,7 @@
 </div>
 <p class="muted" style="margin:8px 0 0">Tip: Minimal themes reduce visible animations.</p>
 </div>
+
 <div class="settings-item" data-item="intents" role="menuitem" tabindex="0">
 <div>
 <div class="label">Visible Intents</div>
@@ -133,7 +154,7 @@
 
   <!-- NEW: search for My Templates -->
   <div class="ut-search">
-    <input id="ut_search" type="search" placeholder="Search My Templates…" autocomplete="off" />
+    <input id="ut_search" type="search" placeholder="Search" autocomplete="off" />
   </div>
 
   <div class="tpl-list" id="userTplList"></div>
@@ -292,11 +313,10 @@
     </label>
 
 <label>Custom Fields (one per line)
-  <textarea id="ute_fields" rows="4" placeholder="Examples:
-companyName
+  <textarea id="ute_fields" rows="4" placeholder="companyName
 quantity:number
-item:required
-partNumber:number:required"></textarea>
+partNumber:string
+shipDate:date"></textarea>
 </label>
 
     <div class="grid" style="display:grid; grid-template-columns:1fr; gap:10px; margin-top:6px">

@@ -109,43 +109,80 @@ function wireSettingsUI() {
   }
   window.openOnly = openOnly;
 
-  function toggleMenu(){
-    const willOpen = !settingsMenu.classList.contains('open');
-    settingsMenu.classList.toggle('open', willOpen);
-    if(!willOpen) closeAllSubs();
-    const btn = document.getElementById('settingsBtn');
-    if(btn) btn.setAttribute('aria-expanded', String(willOpen));
+function toggleMenu(){
+  const willOpen = !settingsMenu.classList.contains('open');
+  settingsMenu.classList.toggle('open', willOpen);
+  if(!willOpen) closeAllSubs();
+  const btn = document.getElementById('settingsBtn');
+  if(btn) btn.setAttribute('aria-expanded', String(willOpen));
+
+  // If opening Settings, auto-hide Trash panel
+  if (willOpen) {
+    const trashPanel = document.getElementById('trashBinPanel');
+    const trashBtn   = document.getElementById('trashBinBtn');
+    if (trashPanel && !trashPanel.hasAttribute('hidden')) {
+      trashPanel.setAttribute('hidden','');
+      trashBtn?.setAttribute('aria-expanded','false');
+    }
   }
+}
+
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
+
+// ---- Compose animations under Theme (Preview / Type / Off) ----
+(function(){
+  const segMain  = document.getElementById('composeSeg');        // Typing panel control
+  const segTheme = document.getElementById('composeSegTheme');   // Theme control
+  if (!segTheme) return;
+
+  function setActive(seg, mode){
+    const btn = seg?.querySelector(`.opt[data-mode="${mode}"]`);
+    if (!btn) return;
+    seg.querySelectorAll('.opt').forEach(o => o.setAttribute('aria-selected','false'));
+    btn.setAttribute('aria-selected','true');
+  }
+
+  // Prefer a global setter if compose-mode provides one; fallback to clicking main
+  const setCompose = window.setComposeMode
+    || (mode => {
+         const b = segMain?.querySelector(`.opt[data-mode="${mode}"]`);
+         b?.click();
+       });
+
+  // Initialize Theme control to whatever the main control currently shows (default 'type')
+  (function initThemeSeg(){
+    const current = segMain?.querySelector('.opt[aria-selected="true"]')?.getAttribute('data-mode') || 'type';
+    setActive(segTheme, current);
+  })();
+
+  // Clicking Theme control -> set mode once, then sync both segment UIs
+  segTheme.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.opt[data-mode]');
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const mode = btn.getAttribute('data-mode');
+    setCompose(mode);                 // single source of truth (saves + applies)
+    setActive(segTheme, mode);        // reflect on Theme row
+    if (segMain) setActive(segMain, mode); // reflect on Typing panel without extra clicks
+  });
+
+  // If Typing panel changes elsewhere, mirror into Theme control
+  segMain?.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.opt[data-mode]');
+    if (!btn) return;
+    const mode = btn.getAttribute('data-mode');
+    setActive(segTheme, mode);
+  }, true);
+})();
+
 
 // ---- Toggleable main-screen search bar (Theme/UI) ----
 (function(){
   const PREF_KEY = 'ui.showFrontSearch';
 
-  function ensureToggleRow(){
-    const menu = document.getElementById('settingsMenu');
-    if (!menu || document.getElementById('toggleFrontSearch')) return;
-
-    const row = document.createElement('div');
-    row.className = 'settings-row';
-    row.innerHTML = `
-      <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" id="toggleFrontSearch" />
-        <span>Show search bar on main screen</span>
-      </label>
-    `;
-    // insert near top of menu
-    menu.insertBefore(row, menu.firstChild);
-    const cb = row.querySelector('#toggleFrontSearch');
-    cb.checked = localStorage.getItem(PREF_KEY) === '1';
-    cb.addEventListener('change', ()=>{
-      localStorage.setItem(PREF_KEY, cb.checked ? '1' : '0');
-      applyFrontSearch(cb.checked);
-    });
-  }
-
   function applyFrontSearch(on){
-    const host = document.getElementById('intents'); // container above the grid
+    const host = document.getElementById('intents');
     if (!host) return;
     let wrap = document.getElementById('gridSearchWrap');
 
@@ -154,14 +191,13 @@ function wireSettingsUI() {
         wrap = document.createElement('div');
         wrap.id = 'gridSearchWrap';
         wrap.innerHTML = `<input id="gridSearchInput" type="search" placeholder="Search intents…" autocomplete="off" />`;
-        host.parentNode.insertBefore(wrap, host); // place above grid
+        host.parentNode.insertBefore(wrap, host);
         const input = wrap.querySelector('#gridSearchInput');
         let t = null;
         input.addEventListener('input', ()=>{
           clearTimeout(t);
           t = setTimeout(()=> window.filterIntentGrid?.(input.value), 120);
         });
-        // ESC clears
         input.addEventListener('keydown', (e)=>{
           if (e.key === 'Escape'){ input.value=''; window.filterIntentGrid?.(''); }
         });
@@ -171,16 +207,31 @@ function wireSettingsUI() {
     }
   }
 
-  // Run once settings open (or immediately if menu exists)
-  const tryInit = ()=>{
-    ensureToggleRow();
-    applyFrontSearch(localStorage.getItem(PREF_KEY) === '1');
-  };
-  // If your settings opens via a button, you might emit an event; else just run now:
+  function wireExistingToggle(){
+    const cb = document.getElementById('toggleFrontSearch');
+    if (!cb || cb._wiredFrontSearch) return;
+    cb._wiredFrontSearch = true;
+    // init from saved pref
+    const on = (localStorage.getItem(PREF_KEY) === '1');
+    cb.checked = on;
+    applyFrontSearch(on);
+    cb.addEventListener('change', ()=>{
+      localStorage.setItem(PREF_KEY, cb.checked ? '1' : '0');
+      applyFrontSearch(cb.checked);
+    });
+  }
+
+  const tryInit = ()=> wireExistingToggle();
   document.addEventListener('DOMContentLoaded', tryInit);
-  // Also try again when the gear is clicked (in case menu mounts late)
+  // also try when settings opens (if panel mounts late)
   document.getElementById('settingsBtn')?.addEventListener('click', tryInit);
 })();
+
+
+
+
+
+
 
 document.addEventListener('click', (e)=>{
   if(!settingsMenu.classList.contains('open')) return;

@@ -194,11 +194,13 @@ try{
 }
 
 try {
+  // Mark visible so it appears on the grid if filtered
+  const vi = window.loadVisibleIntents?.();
+  if (vi && typeof vi.add === 'function') { vi.add(def.id); window.saveVisibleIntents?.(vi); }
+
   window.selectIntentById?.(def.id);
-  // Immediately show the new text in Output
   window.scheduleLiveGenerate?.(0);
 
-  // DO NOT close Settings; just close the editor
   closeEditorInternal();
   document.getElementById('fieldsTitle')?.scrollIntoView({behavior:'smooth', block:'start'});
 } catch(e) {}

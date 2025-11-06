@@ -181,6 +181,8 @@ function selectIntentById(intentId){
     document.querySelectorAll('[data-intent]').forEach(el=>{
       el.classList.toggle('active', el.getAttribute('data-intent') === intentId);
     });
+ const node = document.querySelector(`.intent-card[data-intent="${intentId}"]`);
+    if (node) node.scrollIntoView({ behavior:'smooth', block:'nearest' });
 
     // set current and render fields (renderFields already handles u:*)
     window.CURRENT_INTENT = intentId;
