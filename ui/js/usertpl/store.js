@@ -189,10 +189,25 @@ export function upsertTemplate(def){
   window.buildIntentsChecklist?.();
   window.buildUserTemplatesUI?.();
 }
+
+
+
+
+
+
+
 export function deleteTemplate(id){
   if(!id) return;
-  const next = loadUserTemplates().filter(t => t.id !== id);
+
+  // Save the deleted item for possible undo
+  const all = loadUserTemplates();
+  const deleted = all.find(t => t.id === id) || null;
+  const next = all.filter(t => t.id !== id);
   saveUserTemplates(next);
+
+  // Remember last deleted
+  window.UserTemplates = window.UserTemplates || {};
+  window.UserTemplates.__lastDeleted = deleted;
 
   // Remove from Visible Intents (if that feature is loaded)
   const vi = window.loadVisibleIntents?.();
@@ -212,41 +227,77 @@ export function deleteTemplate(id){
   // If we just deleted the currently selected intent, fall back to Auto Detect (or nothing)
   if (window.SELECTED_INTENT === id) {
     window.SELECTED_INTENT = '';
-    // Prefer to show auto_detect if present
     const hasAuto = merged.some(x => x.name === 'auto_detect');
     if (typeof window.selectIntentById === 'function') {
       window.selectIntentById(hasAuto ? 'auto_detect' : '');
     } else if (typeof window.setSelectedIntent === 'function') {
       window.setSelectedIntent(hasAuto ? 'auto_detect' : '');
     }
-    // Nudge preview so Output area clears
     window.scheduleLiveGenerate?.(0);
   }
 
+  // Refresh UI and dependent views
+  window.renderIntentGridFromData?.(merged);
+  window.buildIntentsChecklist?.();
+  window.buildUserTemplatesUI?.();
 
+  // ---- Undo logic ----
+  const name = deleted?.label || deleted?.id || 'template';
+  window.showToast?.(`Deleted “${name}”. Undo available for 5s.`);
 
-// If this is a newly created template and a visible-intents Set exists, mark it visible
-try {
-  const wasExisting = !!prev;            // from your earlier merge logic (prev is the found old template)
-  const vi = window.loadVisibleIntents?.();
-  if (!wasExisting && vi && typeof vi.add === 'function') {
-    vi.add(def.id);
-    window.saveVisibleIntents?.(vi);
+  const actions = document.querySelector('#subUserTpls .ut-actions');
+  let undoBtn = document.getElementById('utUndoBtn');
+  if (!undoBtn && actions) {
+    undoBtn = document.createElement('button');
+    undoBtn.id = 'utUndoBtn';
+    undoBtn.className = 'btn';
+    undoBtn.textContent = 'Undo';
+    undoBtn.style.marginLeft = '8px';
+    actions.appendChild(undoBtn);
   }
-} catch (_) { /* ignore */ }
+  if (undoBtn) undoBtn.style.display = 'inline-block';
 
-window.renderIntentGridFromData?.(merged);
-window.buildIntentsChecklist?.();
-window.buildUserTemplatesUI?.();
+  const doUndo = ()=>{
+    const last = window.UserTemplates?.__lastDeleted;
+    if (!last) return;
 
-// Let listeners (e.g., settings panel) react if open
-window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: def.id } }));
+    // restore, avoiding ID conflicts
+    const curr = loadUserTemplates();
+    const ids = new Set(curr.map(x=>x.id));
+    let restore = { ...last };
+    if (ids.has(restore.id)) {
+      const base = restore.id.replace(/_copy\d*$/i,'');
+      let newId = `${base}_copy`, i=2;
+      while(ids.has(newId)) newId = `${base}_copy${i++}`;
+      restore.id = restore.name = newId;
+      restore.label = `${restore.label || newId} (copy)`;
+    }
+    curr.push(restore);
+    saveUserTemplates(curr);
+
+    const core = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
+    const merged2 = [...core, ...userTemplatesAsIntents()];
+    if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged2);
+    else window.INTENTS = merged2;
+    window.pruneVisibleIntentsAgainst?.(merged2);
+    window.renderIntentGridFromData?.(merged2);
+    window.buildIntentsChecklist?.();
+    window.buildUserTemplatesUI?.();
+
+    window.UserTemplates.__lastDeleted = null;
+    if (undoBtn) undoBtn.style.display = 'none';
+    window.showToast?.('Restored.');
+  };
+
+  undoBtn?.addEventListener('click', doUndo, { once: true });
+
+  clearTimeout(window.__utUndoTimer);
+  window.__utUndoTimer = setTimeout(()=>{
 
 
-  // Broadcast a small event for any listeners (optional, harmless)
-window.dispatchEvent?.(new CustomEvent('usertpl:deleted', { detail: { id } }));
 
-}
+
+
 
 window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesUI;
 /* expose selected APIs for non-module listeners (list-delegation, etc.) */

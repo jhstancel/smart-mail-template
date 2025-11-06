@@ -205,3 +205,19 @@ window.buildIntentsChecklist = buildIntentsChecklist;
 window.loadIntents = loadIntents;
 window.selectIntentById = selectIntentById;
 
+
+
+
+// Simple main-grid filter by label/desc/id
+window.filterIntentGrid = function(query){
+  const q = (query||'').trim().toLowerCase();
+  const cards = document.querySelectorAll('.intent-card');
+  cards.forEach(card=>{
+    const name = (card.querySelector('.intent-name')?.textContent || '').toLowerCase();
+    const desc = (card.querySelector('.intent-desc')?.textContent || '').toLowerCase();
+    const id = (card.dataset.intent || '').toLowerCase();
+    const show = !q || name.includes(q) || desc.includes(q) || id.includes(q);
+    card.style.display = show ? '' : 'none';
+  });
+};
+

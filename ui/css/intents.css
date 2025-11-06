@@ -20,6 +20,31 @@
 .stage{ margin-top:16px; overflow:hidden; transition: height .45s ease, opacity .45s ease, margin .45s ease; }
 .stage.hidden{ height:0; opacity:0; margin:0; }
 
+/* My Templates search */
+.ut-search{ margin:8px 0 10px; }
+.ut-search input[type="search"]{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--surface-2);
+  color:var(--fg);
+  outline:none;
+}
+.ut-search input[type="search"]::placeholder{ color:var(--muted); }
+
+/* Optional main-screen search bar container (inserted dynamically) */
+#gridSearchWrap{ margin:8px 0 10px; }
+#gridSearchInput{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--surface-2);
+  color:var(--fg);
+  outline:none;
+}
+
 /* My Templates export mode (inside Settings panel) */
 #subUserTpls.ut-export-mode .tpl-card{
   outline: 2px dashed color-mix(in srgb, var(--accent) 50%, transparent);
@@ -34,11 +59,9 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent), var(--shadow-2);
   filter: saturate(1.05);
 }
-/* Hide per-card actions while selecting */
 #subUserTpls.ut-export-mode .tpl-card .tpl-actions{
   display: none;
 }
-/* Show Cancel button during export mode */
 #subUserTpls.ut-export-mode #btnCancelUserTplExport{
   display: inline-block !important;
 }

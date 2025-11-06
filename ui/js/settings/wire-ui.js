@@ -118,6 +118,69 @@ function wireSettingsUI() {
   }
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
 
+// ---- Toggleable main-screen search bar (Theme/UI) ----
+(function(){
+  const PREF_KEY = 'ui.showFrontSearch';
+
+  function ensureToggleRow(){
+    const menu = document.getElementById('settingsMenu');
+    if (!menu || document.getElementById('toggleFrontSearch')) return;
+
+    const row = document.createElement('div');
+    row.className = 'settings-row';
+    row.innerHTML = `
+      <label style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="toggleFrontSearch" />
+        <span>Show search bar on main screen</span>
+      </label>
+    `;
+    // insert near top of menu
+    menu.insertBefore(row, menu.firstChild);
+    const cb = row.querySelector('#toggleFrontSearch');
+    cb.checked = localStorage.getItem(PREF_KEY) === '1';
+    cb.addEventListener('change', ()=>{
+      localStorage.setItem(PREF_KEY, cb.checked ? '1' : '0');
+      applyFrontSearch(cb.checked);
+    });
+  }
+
+  function applyFrontSearch(on){
+    const host = document.getElementById('intents'); // container above the grid
+    if (!host) return;
+    let wrap = document.getElementById('gridSearchWrap');
+
+    if (on){
+      if (!wrap){
+        wrap = document.createElement('div');
+        wrap.id = 'gridSearchWrap';
+        wrap.innerHTML = `<input id="gridSearchInput" type="search" placeholder="Search intents…" autocomplete="off" />`;
+        host.parentNode.insertBefore(wrap, host); // place above grid
+        const input = wrap.querySelector('#gridSearchInput');
+        let t = null;
+        input.addEventListener('input', ()=>{
+          clearTimeout(t);
+          t = setTimeout(()=> window.filterIntentGrid?.(input.value), 120);
+        });
+        // ESC clears
+        input.addEventListener('keydown', (e)=>{
+          if (e.key === 'Escape'){ input.value=''; window.filterIntentGrid?.(''); }
+        });
+      }
+    } else {
+      if (wrap){ wrap.remove(); window.filterIntentGrid?.(''); }
+    }
+  }
+
+  // Run once settings open (or immediately if menu exists)
+  const tryInit = ()=>{
+    ensureToggleRow();
+    applyFrontSearch(localStorage.getItem(PREF_KEY) === '1');
+  };
+  // If your settings opens via a button, you might emit an event; else just run now:
+  document.addEventListener('DOMContentLoaded', tryInit);
+  // Also try again when the gear is clicked (in case menu mounts late)
+  document.getElementById('settingsBtn')?.addEventListener('click', tryInit);
+})();
 
 document.addEventListener('click', (e)=>{
   if(!settingsMenu.classList.contains('open')) return;
