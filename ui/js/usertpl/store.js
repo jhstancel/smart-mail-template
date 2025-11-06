@@ -59,12 +59,32 @@ export function userTemplatesAsIntents(){
   }));
 }
 
-// UI list builder and actions
+
+
+
+
+
+// UI list builder and actions (now with search filter)
 export function buildUserTemplatesUI(){
   const wrap = document.getElementById('userTplList');
   if(!wrap) return;
 
-  const list = loadUserTemplates();
+  const all = loadUserTemplates();
+
+  // read current search query (if present)
+  const qEl = document.getElementById('ut_search');
+  const q = (qEl?.value || '').trim().toLowerCase();
+
+  // filter by label/id/description
+  const list = q
+    ? all.filter(t => {
+        const label = (t.label || '').toLowerCase();
+        const id = (t.id || '').toLowerCase();
+        const desc = (t.description || '').toLowerCase();
+        return label.includes(q) || id.includes(q) || desc.includes(q);
+      })
+    : all;
+
   wrap.innerHTML = '';
 
   if(!list.length){
@@ -72,45 +92,47 @@ export function buildUserTemplatesUI(){
     empty.className = 'tpl-card';
     empty.innerHTML = `<div class="tpl-main">
         <div>
-          <div class="tpl-title">No templates yet</div>
-          <div class="tpl-desc">Click “+ New” to create your first local template.</div>
+          <div class="tpl-title">${q ? 'No matches' : 'No templates yet'}</div>
+          <div class="tpl-desc">${
+            q
+              ? 'Try a different search.'
+              : 'Click “+ New” to create your first local template.'
+          }</div>
         </div>
       </div>`;
     wrap.appendChild(empty);
     return;
   }
 
-// AFTER
-list.forEach(t=>{
-const card = document.createElement('div');
-card.className = 'tpl-card';
+  list.forEach(t=>{
+    const card = document.createElement('div');
+    card.className = 'tpl-card';
 
-// When UT export mode is on, clicking the card toggles picked state
-card.addEventListener('click', (e)=>{
-  if (!window.__utExportMode) return;
-  // ignore clicks on buttons inside the card
-  if ((e.target instanceof HTMLElement) && e.target.closest('.tpl-actions')) return;
+    // Export-select mode: click card to toggle picked (ignore inner action buttons)
+    card.addEventListener('click', (e)=>{
+      if (!window.__utExportMode) return;
+      if ((e.target instanceof HTMLElement) && e.target.closest('.tpl-actions')) return;
 
-  const set = window.__utExportSelection || (window.__utExportSelection = new Set());
-  const picked = card.classList.toggle('ut-picked');
-  if (picked) set.add(t.id); else set.delete(t.id);
-  window.dispatchEvent?.(new CustomEvent('ut-export:selection-changed', { detail: { count: set.size } }));
-});
+      const set = window.__utExportSelection || (window.__utExportSelection = new Set());
+      const picked = card.classList.toggle('ut-picked');
+      if (picked) set.add(t.id); else set.delete(t.id);
+      window.dispatchEvent?.(new CustomEvent('ut-export:selection-changed', { detail: { count: set.size } }));
+    });
 
-card.innerHTML = `
-  <div class="tpl-main">
-    <span class="tpl-badge">local</span>
-    <div>
-      <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
-      ${t.description ? `<div class="tpl-desc">${t.description}</div>` : ''}
-    </div>
-  </div>
-  <div class="tpl-actions">
-    <button class="btn ghost" type="button">Edit</button>
-    <button class="btn ghost" type="button">Duplicate</button>
-    <button class="btn danger" type="button">Delete</button>
-  </div>
-`;
+    card.innerHTML = `
+      <div class="tpl-main">
+        <span class="tpl-badge">local</span>
+        <div>
+          <div class="tpl-title">${t.label || t.id || 'Untitled'}</div>
+          ${t.description ? `<div class="tpl-desc">${t.description}</div>` : ''}
+        </div>
+      </div>
+      <div class="tpl-actions">
+        <button class="btn ghost" type="button">Edit</button>
+        <button class="btn ghost" type="button">Duplicate</button>
+        <button class="btn danger" type="button">Delete</button>
+      </div>
+    `;
 
     const [btnEdit, btnDup, btnDel] = card.querySelectorAll('.tpl-actions .btn');
 
@@ -119,26 +141,33 @@ card.innerHTML = `
       document.dispatchEvent(new CustomEvent('userTpl:edit', { detail: { template:t } }));
     });
 
-btnDup.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  const copy = {
-    ...t,
-    id: `${t.id || 'u:tpl'}_${Date.now()}`,
-    label: t.label ? `${t.label} (copy)` : 'Untitled (copy)'
-  };
-  // This will rebuild INTENTS + grid + checklist and emit events as needed
-  upsertTemplate(copy);
-});
+    btnDup.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const copy = {
+        ...t,
+        id: `${t.id || 'u:tpl'}_${Date.now()}`,
+        label: t.label ? `${t.label} (copy)` : 'Untitled (copy)'
+      };
+      upsertTemplate(copy);
+    });
 
-btnDel.addEventListener('click', (e)=>{
-  e.stopPropagation();
-  // This will rebuild INTENTS + grid + checklist and emit usertpl:deleted
-  deleteTemplate(t.id);
-});
+    btnDel.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      deleteTemplate(t.id);
+    });
 
     wrap.appendChild(card);
   });
 }
+
+
+
+
+
+
+
+
+
 
 // cross-module helpers
 export function upsertTemplate(def){
