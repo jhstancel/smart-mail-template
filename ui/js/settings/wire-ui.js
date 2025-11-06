@@ -529,4 +529,90 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
     alert('Import failed: ' + e.message);
   }
 });
+// ---- Trash Bin UI wiring ----
+(function(){
+  const btn = document.getElementById('trashBinBtn');
+  const panel = document.getElementById('trashBinPanel');
+  const list = document.getElementById('trashList');
+  const btnRestoreAll = document.getElementById('trashRestoreAll');
+  const btnEmpty = document.getElementById('trashEmpty');
+  if (!btn || !panel || !list) return;
+
+  function render(){
+    const items = (window.getTrash?.() || []);
+    list.innerHTML = '';
+    if (!items.length){
+      const empty = document.createElement('div');
+      empty.className = 'trash-empty';
+      empty.textContent = 'Nothing here yet.';
+      list.appendChild(empty);
+      return;
+    }
+    items.forEach(t=>{
+      const row = document.createElement('div');
+      row.className = 'trash-item';
+      row.innerHTML = `
+        <div class="meta">
+          <div class="label">${t.label || t.id || 'Untitled'}</div>
+          <div class="id">${t.id}</div>
+        </div>
+        <div class="controls">
+          <button class="btn small" data-act="restore" data-id="${t.id}">Restore</button>
+          <button class="btn small danger" data-act="purge" data-id="${t.id}">Delete</button>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+  }
+  window.renderTrashPanel = render;
+
+  // Toggle panel
+  btn.addEventListener('click', ()=>{
+    const open = panel.hasAttribute('hidden') ? false : true;
+    if (open){
+      panel.setAttribute('hidden','');
+      btn.setAttribute('aria-expanded','false');
+    } else {
+      render();
+      panel.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded','true');
+    }
+  });
+
+  // Click handlers inside list
+  list.addEventListener('click', (e)=>{
+    const el = e.target.closest('button[data-act]');
+    if (!el) return;
+    const id = el.getAttribute('data-id');
+    const act = el.getAttribute('data-act');
+    if (act === 'restore'){
+      window.restoreFromTrash?.(id);
+    } else if (act === 'purge'){
+      window.purgeFromTrash?.(id);
+      window.showToast?.('Deleted permanently.', { duration: 3000 });
+    }
+    render();
+  });
+
+  // Bulk actions
+  btnRestoreAll?.addEventListener('click', ()=>{
+    const items = window.getTrash?.() || [];
+    items.forEach(t => window.restoreFromTrash?.(t.id));
+    render();
+  });
+  btnEmpty?.addEventListener('click', ()=>{
+    window.emptyTrash?.();
+    render();
+    window.showToast?.('Trash emptied.', { duration: 3000 });
+  });
+
+  // Close panel on outside click
+  document.addEventListener('click', (e)=>{
+    if (e.target === btn) return;
+    if (!panel.hasAttribute('hidden') && !panel.contains(e.target)){
+      panel.setAttribute('hidden','');
+      btn.setAttribute('aria-expanded','false');
+    }
+  });
+})();
 

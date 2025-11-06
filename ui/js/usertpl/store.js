@@ -196,55 +196,62 @@ export function upsertTemplate(def){
 
 
 
+// Keep a capped trash stack (max 5)
+window.UserTemplates = window.UserTemplates || {};
+window.UserTemplates.__trash = window.UserTemplates.__trash || []; // most-recent first
+let __utUndoTimer = null;
+
 export function deleteTemplate(id){
   if(!id) return;
 
-  // Save the deleted item for possible undo
   const all = loadUserTemplates();
   const deleted = all.find(t => t.id === id) || null;
   const next = all.filter(t => t.id !== id);
   saveUserTemplates(next);
 
-  // Remember last deleted
-  window.UserTemplates = window.UserTemplates || {};
-  window.UserTemplates.__lastDeleted = deleted;
+  // Push into trash (capped at 5)
+  if (deleted){
+    const stack = window.UserTemplates.__trash;
+    // remove any older duplicate of same id to avoid dupes
+    const filtered = stack.filter(x => x.id !== deleted.id);
+    filtered.unshift({ ...deleted, __ts: Date.now() });
+    window.UserTemplates.__trash = filtered.slice(0, 5);
+    window.UserTemplates.__lastDeleted = deleted; // also maintain single-slot undo
+  }
 
-  // Remove from Visible Intents (if that feature is loaded)
+  // Remove from Visible Intents
   const vi = window.loadVisibleIntents?.();
   if(vi && vi.has(id)){ vi.delete(id); window.saveVisibleIntents?.(vi); }
 
-  // Rebuild INTENTS without any u:* first, then re-append current user templates
-  const coreIntents = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
-  const merged = [...coreIntents, ...userTemplatesAsIntents()];
+  // Rebuild INTENTS (core + user)
+  const core = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
+  const merged = [...core, ...userTemplatesAsIntents()];
+  if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged);
+  else window.INTENTS = merged;
 
-  // Respect the guard
-  if (typeof window.setINTENTSFromHydrator === 'function') {
-    window.setINTENTSFromHydrator(merged);
-  } else {
-    window.INTENTS = merged; // fallback if guard hasn’t loaded yet
-  }
-
-  // If we just deleted the currently selected intent, fall back to Auto Detect (or nothing)
+  // If selected was deleted, fall back
   if (window.SELECTED_INTENT === id) {
     window.SELECTED_INTENT = '';
     const hasAuto = merged.some(x => x.name === 'auto_detect');
-    if (typeof window.selectIntentById === 'function') {
-      window.selectIntentById(hasAuto ? 'auto_detect' : '');
-    } else if (typeof window.setSelectedIntent === 'function') {
-      window.setSelectedIntent(hasAuto ? 'auto_detect' : '');
-    }
+    if (typeof window.selectIntentById === 'function') window.selectIntentById(hasAuto ? 'auto_detect' : '');
+    else if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(hasAuto ? 'auto_detect' : '');
     window.scheduleLiveGenerate?.(0);
   }
 
-  // Refresh UI and dependent views
+  // Refresh UI
   window.renderIntentGridFromData?.(merged);
   window.buildIntentsChecklist?.();
   window.buildUserTemplatesUI?.();
 
-  // ---- Undo logic ----
-  const name = deleted?.label || deleted?.id || 'template';
-  window.showToast?.(`Deleted “${name}”. Undo available for 5s.`);
+  // Longer toast (8s if supported)
+  try {
+    window.showToast?.(`Deleted “${deleted?.label || deleted?.id || 'template'}”. Undo available for 8s.`, { duration: 8000 });
+  } catch(_) { /* best effort */ }
 
+  // Panel may be open: refresh its list
+  window.renderTrashPanel?.();
+
+  // Inline Undo button (kept, now 8s)
   const actions = document.querySelector('#subUserTpls .ut-actions');
   let undoBtn = document.getElementById('utUndoBtn');
   if (!undoBtn && actions) {
@@ -257,48 +264,84 @@ export function deleteTemplate(id){
   }
   if (undoBtn) undoBtn.style.display = 'inline-block';
 
-  const doUndo = ()=>{
-    const last = window.UserTemplates?.__lastDeleted;
-    if (!last) return;
-
-    // restore, avoiding ID conflicts
-    const curr = loadUserTemplates();
-    const ids = new Set(curr.map(x=>x.id));
-    let restore = { ...last };
-    if (ids.has(restore.id)) {
-      const base = restore.id.replace(/_copy\d*$/i,'');
-      let newId = `${base}_copy`, i=2;
-      while(ids.has(newId)) newId = `${base}_copy${i++}`;
-      restore.id = restore.name = newId;
-      restore.label = `${restore.label || newId} (copy)`;
-    }
-    curr.push(restore);
-    saveUserTemplates(curr);
-
-    const core = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
-    const merged2 = [...core, ...userTemplatesAsIntents()];
-    if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged2);
-    else window.INTENTS = merged2;
-    window.pruneVisibleIntentsAgainst?.(merged2);
-    window.renderIntentGridFromData?.(merged2);
-    window.buildIntentsChecklist?.();
-    window.buildUserTemplatesUI?.();
-
-    window.UserTemplates.__lastDeleted = null;
-    if (undoBtn) undoBtn.style.display = 'none';
-    window.showToast?.('Restored.');
-  };
-
+  const doUndo = ()=> restoreFromTrash(deleted?.id);
   undoBtn?.addEventListener('click', doUndo, { once: true });
 
-  clearTimeout(window.__utUndoTimer);
-  window.__utUndoTimer = setTimeout(()=>{
+  clearTimeout(__utUndoTimer);
+  __utUndoTimer = setTimeout(()=>{
+    window.UserTemplates.__lastDeleted = null;
+    if (undoBtn) undoBtn.style.display = 'none';
+  }, 8000);
+
+  window.dispatchEvent?.(new CustomEvent('usertpl:deleted', { detail: { id } }));
+}
+
+// ===== Trash helpers (exposed) =====
+function makeCopyId(base, existingIds){
+  const clean = (base || 'u:tpl').replace(/_copy\d*$/i,'');
+  let n = `${clean}_copy`, i=2;
+  while(existingIds.has(n)) n = `${clean}_copy${i++}`;
+  return n;
+}
+
+export function getTrash(){ return (window.UserTemplates.__trash || []).slice(); }
+
+export function purgeFromTrash(id){
+  window.UserTemplates.__trash = (window.UserTemplates.__trash || []).filter(x => x.id !== id);
+  window.renderTrashPanel?.();
+}
+
+export function emptyTrash(){
+  window.UserTemplates.__trash = [];
+  window.renderTrashPanel?.();
+}
+
+export function restoreFromTrash(id){
+  const stack = window.UserTemplates.__trash || [];
+  const idx = stack.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  const original = stack[idx];
+
+  const curr = loadUserTemplates();
+  const ids = new Set(curr.map(x=>x.id));
+  let restored = { ...original };
+  if (ids.has(restored.id)) {
+    const newId = makeCopyId(restored.id, ids);
+    restored.id = restored.name = newId;
+    restored.label = restored.label ? `${restored.label} (copy)` : newId;
+  }
+  curr.push(restored);
+  saveUserTemplates(curr);
+
+  // remove from trash
+  stack.splice(idx, 1);
+  window.UserTemplates.__trash = stack;
+
+  // refresh INTENTS/UI
+  const core = (window.INTENTS || []).filter(x => !String(x.name||'').startsWith('u:'));
+  const merged = [...core, ...userTemplatesAsIntents()];
+  if (typeof window.setINTENTSFromHydrator === 'function') window.setINTENTSFromHydrator(merged);
+  else window.INTENTS = merged;
+  window.pruneVisibleIntentsAgainst?.(merged);
+  window.renderIntentGridFromData?.(merged);
+  window.buildIntentsChecklist?.();
+  window.buildUserTemplatesUI?.();
+  window.renderTrashPanel?.();
+
+  window.showToast?.('Template restored.', { duration: 4000 });
+}
+
+// expose for wiring
+window.getTrash = window.getTrash || getTrash;
+window.restoreFromTrash = window.restoreFromTrash || restoreFromTrash;
+window.purgeFromTrash = window.purgeFromTrash || purgeFromTrash;
+window.emptyTrash = window.emptyTrash || emptyTrash;
 
 
 
 
 
-
+// ===== Globals / exposures (outside of deleteTemplate) =====
 window.buildUserTemplatesUI = window.buildUserTemplatesUI || buildUserTemplatesUI;
 /* expose selected APIs for non-module listeners (list-delegation, etc.) */
 window.loadUserTemplates  = window.loadUserTemplates  || loadUserTemplates;
@@ -307,7 +350,6 @@ window.upsertTemplate     = window.upsertTemplate     || upsertTemplate;
 
 /* NEW: global helpers used by generator & quickEdit handoff */
 window.renderLocalTemplate = window.renderLocalTemplate || renderLocalTemplate;
-
 window.userTemplatesAsIntents = window.userTemplatesAsIntents || userTemplatesAsIntents;
 
 window.UserTemplates = window.UserTemplates || {};
@@ -335,11 +377,6 @@ window.exportUserTemplates = function () {
     alert('Export failed: ' + e.message);
   }
 };
-
-
-
-
-
 
 
 
@@ -484,7 +521,6 @@ window.importUserTemplatesFromJSON = async function (
   const msg = `Import complete: ${added} added${mode ? ` (mode=${mode})` : ''}`;
   window.showToast?.(msg) || alert(msg);
 };
-
 
 
 

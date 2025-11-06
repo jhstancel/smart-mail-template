@@ -459,6 +459,20 @@ function applyThemePets(){
 <!-- Your app (ES module) -->
 <script type="module" src="js/main.js"></script>
 
+  <!-- Trash Bin floating button + panel -->
+  <button id="trashBinBtn" class="floating-btn" title="Recently deleted templates" aria-haspopup="true" aria-expanded="false">🗑️</button>
+  <div id="trashBinPanel" class="trash-panel" hidden>
+    <div class="trash-head">
+      <div class="trash-title">Recently Deleted</div>
+      <div class="trash-actions">
+        <button id="trashRestoreAll" class="btn small">Restore All</button>
+        <button id="trashEmpty" class="btn small danger">Empty</button>
+      </div>
+    </div>
+    <div id="trashList" class="trash-list"></div>
+  </div>
+
+  <!-- scripts ... -->
 </body>
 </html>
 

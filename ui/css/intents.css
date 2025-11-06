@@ -71,4 +71,51 @@
   70%{ box-shadow: 0 0 0 6px transparent; }
   100%{ box-shadow: 0 0 0 0 transparent; }
 }
+/* Floating Trash Bin */
+.floating-btn{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 999;
+  padding: 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--fg);
+  box-shadow: var(--shadow-2);
+  cursor: pointer;
+}
+.floating-btn:hover{ filter: brightness(1.05); }
+
+/* Trash panel */
+.trash-panel{
+  position: fixed;
+  right: 16px;
+  bottom: 68px;
+  width: 320px;
+  max-height: 60vh;
+  overflow: auto;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-3);
+  padding: 10px;
+}
+.trash-head{
+  display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;
+}
+.trash-title{ font-weight:600; }
+.trash-actions .btn.small{ padding:4px 8px; font-size:12px; }
+.trash-list{ display:flex; flex-direction:column; gap:6px; }
+.trash-item{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  border:1px solid var(--border); border-radius:8px; padding:8px;
+  background: var(--surface-2);
+}
+.trash-item .meta{ display:flex; flex-direction:column; }
+.trash-item .meta .label{ font-weight:600; }
+.trash-item .meta .id{ font-size:12px; color:var(--muted); }
+.trash-item .controls{ display:flex; gap:6px; }
+.trash-empty{ color:var(--muted); font-size:13px; padding:8px; text-align:center; }
 
