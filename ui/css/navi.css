@@ -1,24 +1,25 @@
-/* ui/css/navi.css — coachmarks only (no orb yet) */
+/* ui/css/navi.css — coachmarks & overlay (frontmost, with a true hole) */
 
 :root{
   --coach-bg: rgba(20,20,23,.96);
   --coach-fg: #fff;
   --coach-accent: #8bd0ff;
   --coach-subtle: rgba(255,255,255,.7);
-  --coach-shadow: 0 8px 26px rgba(0,0,0,.35);
+  --coach-shadow: 0 10px 30px rgba(0,0,0,.38);
+  --ring-pad: 8px;
 }
 
+/* ——— frontmost elements ——— */
 .coachmark {
   position: fixed;
-  z-index: 2147483647;
-  max-width: min(320px, 80vw);
+  z-index: 2147483647; /* frontmost */
+  max-width: min(360px, 86vw);
   background: var(--coach-bg);
   color: var(--coach-fg);
   border-radius: 14px;
   box-shadow: var(--coach-shadow);
   padding: 12px 14px 12px;
   pointer-events: auto;
-  /* unified anchor: always center on (left,top) we compute in JS */
   transform: translate(-50%, -50%);
   opacity: 0;
   transition: opacity .18s ease, transform .18s ease;
@@ -32,7 +33,7 @@
 
 .coachmark .msg {
   font-size: 13.5px;
-  line-height: 1.35;
+  line-height: 1.38;
   margin-bottom: 8px;
 }
 
@@ -42,7 +43,6 @@
   display: none;
   margin-top: 4px;
 }
-
 .coachmark .prompt.breathe {
   display: block;
   animation: breathe 1.4s ease-in-out infinite;
@@ -57,8 +57,14 @@
 .coachmark .actions {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-top: 8px;
+}
+
+.coach-esc {
+  font-size: 11px;
+  opacity: .8;
 }
 
 .coach-btn {
@@ -71,28 +77,47 @@
   font-size: 12px;
   cursor: pointer;
 }
-.coach-btn.primary {
-  border-color: var(--coach-accent);
-}
+.coach-btn.primary { border-color: var(--coach-accent); }
 
+/* ——— tint overlay that never blocks clicks ——— */
 .coach-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.18); /* keep a touch of dimming */
-  z-index: 2147483645;
-  opacity: 0;
-  transition: opacity .18s ease;
-  pointer-events: none;         /* never blocks clicks */
+  z-index: 2147483644;
+  pointer-events: none; /* NEVER block UI */
 }
-.coach-scrim.show { opacity: 1; } /* no pointer-events change */
 
-/* optional highlight ring for target */
+/* Build a hole using 4 slabs around the target rect */
+.coach-slab {
+  position: fixed;
+  background: rgba(0,0,0,.22); /* overall tint */
+  pointer-events: none;
+  transition: all .15s ease;
+  z-index: 2147483644;
+}
+
+/* ——— highlight ring around target ——— */
 .coach-ring {
   position: fixed;
-  z-index: 2147483646;
+  z-index: 2147483646; /* above slabs, below box */
   pointer-events: none;
   border-radius: 12px;
   outline: 2px solid var(--coach-accent);
-  box-shadow: 0 0 0 6px rgba(139,208,255,.18), inset 0 0 0 999px rgba(0,0,0,.05);
+  box-shadow: 0 0 0 6px rgba(139,208,255,.18), inset 0 0 0 999px rgba(0,0,0,0);
+}
+
+/* top-left ESC hint */
+.coach-esc-banner {
+  position: fixed;
+  top: 8px; left: 10px;
+  z-index: 2147483647;
+  font: 12px/1.1 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color: rgba(255,255,255,.9);
+  background: rgba(20,20,23,.6);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 10px;
+  padding: 6px 8px;
+  pointer-events: none;
+  user-select: none;
 }
 
