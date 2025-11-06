@@ -1,217 +1,173 @@
 // ui/js/tutorial/coachmarks.js
-// Beautiful, logical, and stable coachmarks with real action gates.
-// - Centered intro (no jargon), top-down flow.
-// - Non-blocking tint, with a real "hole" over the highlighted area.
-// - Persistent ESC hint; Esc exits tutorial.
-// - Guides through creating a User Template, field-by-field.
-// - Covers Settings controls: typing effect, preview, descriptions, search bar, visible intents,
-//   global defaults, export/import, and explains duplicate-on-import behavior.
+// Polished coachmarks: no layout jump on prompts, menu-first gating, Next never closes menus,
+// stays front-most (even over custom template editor), and a real tint “hole”.
 
 const LS_STAGE = 'tutorial.stage';
 const LS_SEEN  = 'tutorial.seen';
 
 const Steps = [
-  // ——— Intro ———
-  { id: 'intro',
-    target: 'body',
+  // Intro (centered, non-jargony)
+  { id: 'intro', target: 'body',
     message: "Welcome! Quick tour so you can fly through Smart Mail.",
     prompt: "Click Next",
     advance: { type: 'click-next' },
     placement: 'center'
   },
-  { id: 'how',
-    target: 'body',
+  { id: 'how', target: 'body',
     message: "I’ll point to each part, then ask you to try something. When you do it, we advance.",
     prompt: "Ready? Click Next",
     advance: { type: 'click-next' },
     placement: 'center'
   },
 
-  // ——— Main screen, top-down ———
-  { id: 'templates-grid',
-    target: '#intentGrid',
-    message: "Templates live here. Pick one to load its fields; or use the hint box below to Auto-Detect.",
+  // Main screen (top-down)
+  { id: 'templates-grid', target: '#intentGrid',
+    message: "Templates live here. Pick one to load fields—or use the hint box to auto-detect.",
     prompt: "Click Next",
-    showPromptDelayMs: 1000,
+    showPromptDelayMs: 1400,
     advance: { type: 'click-next' },
     placement: 'top'
   },
-  { id: 'auto-detect',
-    target: '#hint',
+  { id: 'auto-detect', target: '#hint',
     message: "Type a short hint (e.g., “confirm PO 12014, ship Friday”). We’ll help choose and prefill.",
     prompt: "Type in this box",
-    showPromptDelayMs: 1200,
+    showPromptDelayMs: 1600,
     advance: { type: 'input', selector: '#hint' },
     placement: 'bottom'
   },
-  { id: 'fields',
-    target: '#fields',
-    message: "Fields show only what this template needs. Required ones highlight; the rest are optional.",
+  { id: 'fields', target: '#fields',
+    message: "Only the essentials for this template show here. Fill required ones; others are optional.",
     prompt: "Change any field",
-    showPromptDelayMs: 1200,
+    showPromptDelayMs: 1600,
     advance: { type: 'input', selector: '#fields input, #fields select, #fields textarea' },
     placement: 'top'
   },
-  { id: 'generate',
-    target: '#btnGenerate',
-    message: "Generate creates a clean Subject and Body from the fields you filled.",
+  { id: 'generate', target: '#btnGenerate',
+    message: "Generate creates a clean Subject and Body from your fields.",
     prompt: "Click Generate",
-    showPromptDelayMs: 800,
+    showPromptDelayMs: 1000,
     advance: { type: 'click', selector: '#btnGenerate' },
     placement: 'left'
   },
-  { id: 'output',
-    target: '#outBody',
-    message: "Here’s your output. You can copy it, or adjust your personal template for next time.",
+  { id: 'output', target: '#outBody',
+    message: "Here’s your output. Copy it now—or adjust your personal template to change the default.",
     prompt: "Copy Subject or Body (or click Edit Template)",
-    showPromptDelayMs: 1100,
+    showPromptDelayMs: 1400,
     advance: { type: 'click', selector: '#copySubject, #copyBody, #btnEditTemplate' },
     placement: 'top'
   },
 
-  // ——— Personalize (Settings) ———
-  { id: 'open-settings',
-    target: '#settingsBtn',
-    message: "Personalize: themes, which templates show up, behavior, and your local templates.",
+  // Settings flow — menu-first, then toggles
+  { id: 'open-settings', target: '#settingsBtn',
+    message: "Personalize: themes, visibility, behavior, and your local templates.",
     prompt: "Open Settings",
-    showPromptDelayMs: 900,
+    showPromptDelayMs: 1000,
     advance: { type: 'class-on', selector: '#settingsMenu', className: 'open' },
     placement: 'right'
   },
+  { id: 'open-theme-subpanel', target: ".settings-item[data-item='theme']",
+    message: "Themes change the vibe. Let’s open the Theme panel first.",
+    prompt: "Open the Theme panel",
+    showPromptDelayMs: 1400,
+    advance: { type: 'click', selector: ".settings-item[data-item='theme']" },
+    placement: 'left'
+  },
+  { id: 'theme-select', target: "#themeSelect, #composeSegTheme",
+    message: "Pick a theme or adjust compose/preview behavior here. We’ll remember it.",
+    prompt: "Try a different theme or mode",
+    showPromptDelayMs: 1400,
+    advance: { type: 'change', selector: "#themeSelect, #composeSegTheme .opt[data-mode]" },
+    placement: 'bottom'
+  },
 
-  // Compose/Preview controls (under Settings → Behavior/Display sections)
-  { id: 'typing-effect',
-    target: "#composeTypingToggle, [data-setting='composeTyping']",
-    message: "Typing effect: animated text appearance while composing. Toggle on/off here.",
-    prompt: "Toggle the typing effect",
-    showPromptDelayMs: 1000,
-    advance: { type: 'change', selector: "#composeTypingToggle, [data-setting='composeTyping']" },
-    placement: 'left'
-  },
-  { id: 'preview-setting',
-    target: "#composePreviewToggle, [data-setting='composePreview']",
-    message: "Preview: show a live preview while you fill fields. Toggle as you prefer.",
-    prompt: "Toggle the preview",
-    showPromptDelayMs: 800,
-    advance: { type: 'change', selector: "#composePreviewToggle, [data-setting='composePreview']" },
-    placement: 'left'
-  },
-  { id: 'display-descriptions',
-    target: "#displayDescriptionsToggle, [data-setting='showFieldDescriptions']",
-    message: "Field descriptions: show helpful tips next to inputs. You can turn them off here.",
+  { id: 'display-descriptions', target: "#displayDescriptionsToggle, [data-setting='showFieldDescriptions']",
+    message: "Field descriptions: show helpful tips next to inputs.",
     prompt: "Toggle descriptions",
-    showPromptDelayMs: 800,
+    showPromptDelayMs: 1200,
     advance: { type: 'change', selector: "#displayDescriptionsToggle, [data-setting='showFieldDescriptions']" },
     placement: 'left'
   },
-  { id: 'show-search',
-    target: "#toggleMainSearch, [data-setting='mainSearch']",
-    message: "Main search bar: add a search on the home screen if you like it visible.",
+  { id: 'show-search', target: "#toggleMainSearch, [data-setting='mainSearch']",
+    message: "Main search bar: add a search on the home screen.",
     prompt: "Toggle Show Search Bar",
-    showPromptDelayMs: 800,
+    showPromptDelayMs: 1200,
     advance: { type: 'change', selector: "#toggleMainSearch, [data-setting='mainSearch']" },
     placement: 'left'
   },
-
-  // Visible intents + Global defaults
-  { id: 'visible-intents',
-    target: "#visibleIntents, [data-setting='visibleIntents']",
+  { id: 'visible-intents', target: "#visibleIntents, [data-setting='visibleIntents']",
     message: "Choose which templates appear in the grid. Changes save automatically.",
-    prompt: "Adjust visibility (or click Next)",
-    showPromptDelayMs: 900,
+    prompt: "Adjust a checkbox (or Next to continue)",
+    showPromptDelayMs: 1200,
     advance: { type: 'click-next-or', selector: "#visibleIntents, [data-setting='visibleIntents']" },
     placement: 'left'
   },
-  { id: 'global-defaults',
-    target: "#globalDefaultsBtn, [data-item='global-defaults']",
-    message: "Global defaults: set values used across templates (like your company, contact, etc.).",
-    prompt: "Open Global Defaults (or click Next)",
-    showPromptDelayMs: 900,
-    advance: { type: 'click-next-or', selector: "#globalDefaultsBtn, [data-item='global-defaults']" },
-    placement: 'left'
-  },
 
-  // My Templates (create → export → import)
-  { id: 'usertpls-open',
-    target: ".settings-item[data-item='usertpls'], #userTemplatesBtn",
+  // My Templates → create → field-by-field → export → import
+  { id: 'usertpls-open', target: ".settings-item[data-item='usertpls'], #userTemplatesBtn",
     message: "My Templates: your personal templates saved on this device.",
     prompt: "Open My Templates",
-    showPromptDelayMs: 900,
+    showPromptDelayMs: 1100,
     advance: { type: 'click', selector: ".settings-item[data-item='usertpls'], #userTemplatesBtn" },
     placement: 'left'
   },
-  { id: 'ut-new',
-    target: "#tplNew",
-    message: "Let’s make one now. Click + New.",
+  { id: 'ut-new', target: "#tplNew",
+    message: "Let’s make one. Click + New.",
     prompt: "Click + New",
     showPromptDelayMs: 900,
     advance: { type: 'click', selector: "#tplNew" },
     placement: 'bottom'
   },
-
-  // ——— Field-by-field guidance inside the New Template editor ———
-  { id: 'ut-id',
-    target: "#ut_id, [name='id']",
-    message: "Template ID: a short unique key (like “followup”). Used for import/export matching.",
+  { id: 'ut-id', target: "#ut_id, [name='id']",
+    message: "Template ID: a short unique key (e.g., “followup”). Used for import/export matching.",
     prompt: "Type an ID",
-    showPromptDelayMs: 700,
+    showPromptDelayMs: 800,
     advance: { type: 'input', selector: "#ut_id, [name='id']" },
     placement: 'top'
   },
-  { id: 'ut-label',
-    target: "#ut_label, [name='label']",
+  { id: 'ut-label', target: "#ut_label, [name='label']",
     message: "Label: the human-friendly name you’ll see in the grid.",
     prompt: "Type a label",
-    showPromptDelayMs: 600,
+    showPromptDelayMs: 700,
     advance: { type: 'input', selector: "#ut_label, [name='label']" },
     placement: 'top'
   },
-  { id: 'ut-subject',
-    target: "#ut_subject, [name='subject']",
-    message: "Subject: default subject line. You can always tweak it per email.",
+  { id: 'ut-subject', target: "#ut_subject, [name='subject']",
+    message: "Subject: your default subject line.",
     prompt: "Enter a subject",
-    showPromptDelayMs: 600,
+    showPromptDelayMs: 700,
     advance: { type: 'input', selector: "#ut_subject, [name='subject']" },
     placement: 'top'
   },
-  { id: 'ut-body',
-    target: "#ut_body, [name='body']",
-    message: "Body: your default message text. Use placeholders if you like.",
+  { id: 'ut-body', target: "#ut_body, [name='body']",
+    message: "Body: your default message text. Placeholders are okay.",
     prompt: "Enter a body",
-    showPromptDelayMs: 600,
+    showPromptDelayMs: 700,
     advance: { type: 'input', selector: "#ut_body, [name='body']" },
     placement: 'top'
   },
-  { id: 'ut-save',
-    target: "#ut_save, [data-action='saveUserTpl']",
-    message: "Save your personal template.",
+  { id: 'ut-save', target: "#ut_save, [data-action='saveUserTpl']",
+    message: "Save your template.",
     prompt: "Click Save",
-    showPromptDelayMs: 600,
+    showPromptDelayMs: 700,
     advance: { type: 'click', selector: "#ut_save, [data-action='saveUserTpl']" },
     placement: 'left'
   },
-
-  // Export → Import flow (intuitive round trip)
-  { id: 'export',
-    target: "#btnExportUserTemplates, [data-action='exportUserTpls']",
-    message: "Export your templates to a .zip — perfect for backup or sharing.",
+  { id: 'export', target: "#btnExportUserTemplates, [data-action='exportUserTpls']",
+    message: "Export to a .zip to back up or share.",
     prompt: "Click Export",
-    showPromptDelayMs: 900,
+    showPromptDelayMs: 1000,
     advance: { type: 'click', selector: "#btnExportUserTemplates, [data-action='exportUserTpls']" },
     placement: 'left'
   },
-  { id: 'import',
-    target: "#btnImportUserTemplates, [data-action='importUserTpls']",
-    message: "Import a .zip to add templates here. If an ID already exists, we keep both (your original stays).",
-    prompt: "Click Import and choose the file you exported",
+  { id: 'import', target: "#btnImportUserTemplates, [data-action='importUserTpls']",
+    message: "Import your .zip. If an ID already exists, we duplicate (your original stays intact).",
+    prompt: "Click Import and pick your file",
     showPromptDelayMs: 1200,
     advance: { type: 'click', selector: "#btnImportUserTemplates, [data-action='importUserTpls']" },
     placement: 'left'
   },
 
-  // Done
-  { id: 'done',
-    target: 'body',
+  { id: 'done', target: 'body',
     message: "All set. Explore templates, use the hint box, fine-tune settings, and enjoy the speed.",
     prompt: "Finish",
     advance: { type: 'click-next' },
@@ -219,15 +175,13 @@ const Steps = [
   }
 ];
 
-const root = document.getElementById('tutorialRoot') || (()=> {
-  const div = document.createElement('div'); div.id='tutorialRoot'; document.body.appendChild(div); return div;
+const root = document.getElementById('tutorialRoot') || (() => {
+  const div = document.createElement('div'); div.id='tutorialRoot';
+  document.body.appendChild(div); return div;
 })();
 
 const hasSeen = localStorage.getItem(LS_SEEN) === 'true';
-let state = {
-  idx: hasSeen ? Number(localStorage.getItem(LS_STAGE) || 0) : 0,
-  mounted: false
-};
+let state = { idx: hasSeen ? Number(localStorage.getItem(LS_STAGE) || 0) : 0, mounted: false };
 
 function clampIdx(i){ return Math.max(0, Math.min(Steps.length - 1, i)); }
 function saveIdx(){ localStorage.setItem(LS_STAGE, String(state.idx)); }
@@ -240,66 +194,73 @@ function getTargetRect(sel){
   const el = document.querySelector(sel);
   if (!el) return null;
   const r = el.getBoundingClientRect();
-  return { x: r.left, y: r.top, width: r.width, height: r.height, centerX: r.left + r.width/2, centerY: r.top + r.height/2 };
+  return { x: r.left, y: r.top, width: r.width, height: r.height,
+           centerX: r.left + r.width/2, centerY: r.top + r.height/2 };
 }
 
 function computeTopSafe(){
+  // detect fixed headers at the top and reserve that space
   let topSafe = 0;
   const all = document.body.getElementsByTagName('*');
   for (let i = 0; i < all.length; i++){
-    const el = all[i];
-    const cs = getComputedStyle(el);
+    const el = all[i], cs = getComputedStyle(el);
     if (cs.position === 'fixed'){
       const top = parseFloat(cs.top || 'auto');
-      if (!Number.isNaN(top) && top <= 4){
-        const r = el.getBoundingClientRect();
-        topSafe = Math.max(topSafe, r.bottom);
-      }
+      if (!Number.isNaN(top) && top <= 4){ const r = el.getBoundingClientRect(); topSafe = Math.max(topSafe, r.bottom); }
     }
   }
   return Math.max(72, Math.min(200, Math.round(topSafe)));
 }
 
-function afterFontsReady(){
-  if (document.fonts && document.fonts.ready) return document.fonts.ready.catch(()=>{});
-  return Promise.resolve();
+/* ---------- overlay hole (slabs + ring) ---------- */
+function ensureOverlayScaffold(){
+  if (!document.querySelector('.coach-scrim')) {
+    const scrim = document.createElement('div'); scrim.className='coach-scrim';
+    const t = document.createElement('div'); t.className='coach-slab top';
+    const l = document.createElement('div'); l.className='coach-slab left';
+    const r = document.createElement('div'); r.className='coach-slab right';
+    const b = document.createElement('div'); b.className='coach-slab bottom';
+    scrim.appendChild(t); scrim.appendChild(l); scrim.appendChild(r); scrim.appendChild(b);
+    root.appendChild(scrim);
+  }
+  if (!document.querySelector('.coach-ring')) {
+    const ring = document.createElement('div'); ring.className='coach-ring';
+    root.appendChild(ring);
+  }
+  if (!document.querySelector('.coach-esc-banner')) {
+    const esc = document.createElement('div'); esc.className='coach-esc-banner';
+    esc.textContent = 'Press Esc to exit tutorial';
+    root.appendChild(esc);
+  }
 }
 
 function placeSlabsAndRing(r, ringPad){
-  // position four slabs to leave a hole where the ring is
   const top = document.querySelector('.coach-slab.top');
   const left = document.querySelector('.coach-slab.left');
   const right = document.querySelector('.coach-slab.right');
   const bottom = document.querySelector('.coach-slab.bottom');
+  const ring = document.querySelector('.coach-ring');
 
   const x = Math.max(0, r.x - ringPad);
   const y = Math.max(0, r.y - ringPad);
   const w = r.width + ringPad*2;
   const h = r.height + ringPad*2;
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
+  const vw = window.innerWidth, vh = window.innerHeight;
 
-  // top slab
-  Object.assign(top.style, { left: '0px', top: '0px', width: vw + 'px', height: y + 'px' });
-  // left slab
-  Object.assign(left.style, { left: '0px', top: y + 'px', width: x + 'px', height: h + 'px' });
-  // right slab
+  Object.assign(top.style,    { left:'0px', top:'0px', width: vw+'px', height: y+'px' });
+  Object.assign(left.style,   { left:'0px', top:y+'px', width: x+'px', height: h+'px' });
   const rx = x + w;
-  Object.assign(right.style, { left: rx + 'px', top: y + 'px', width: (vw - rx) + 'px', height: h + 'px' });
-  // bottom slab
+  Object.assign(right.style,  { left: rx+'px', top:y+'px', width:(vw - rx)+'px', height:h+'px' });
   const by = y + h;
-  Object.assign(bottom.style, { left: '0px', top: by + 'px', width: vw + 'px', height: (vh - by) + 'px' });
+  Object.assign(bottom.style, { left:'0px', top:by+'px', width: vw+'px', height:(vh - by)+'px' });
 
-  // ring
-  const ring = document.querySelector('.coach-ring');
-  Object.assign(ring.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' });
+  Object.assign(ring.style,   { left:x+'px', top:y+'px', width:w+'px', height:h+'px', display:'block' });
 }
 
+/* ---------- bubble placement ---------- */
 function placeBox(box, step){
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  const MARGIN = 12, SIDE_SAFE = 12, BOTTOM_SAFE = 20;
-  const TOP_SAFE = computeTopSafe();
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const MARGIN = 12, SIDE_SAFE = 12, BOTTOM_SAFE = 20, TOP_SAFE = computeTopSafe();
 
   const bw = box.offsetWidth || 320;
   const bh = box.offsetHeight || 140;
@@ -307,18 +268,19 @@ function placeBox(box, step){
   const r = getTargetRect(step.target);
 
   // slabs/hole & ring
+  ensureOverlayScaffold();
   const ring = document.querySelector('.coach-ring');
-  const slabs = document.querySelector('.coach-scrim');
-  if (!r) {
-    slabs.style.display = 'block';
+  const ringPad = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ring-pad')) || 8;
+
+  if (!r || step.target === 'body') {
     ring.style.display = 'none';
+    // slabs just cover full screen (no hole)
+    placeSlabsAndRing({ x: -ringPad, y: -ringPad, width: 0, height: 0 }, ringPad);
   } else {
-    slabs.style.display = 'block';
-    ring.style.display = (step.target === 'body') ? 'none' : 'block';
-    if (ring.style.display !== 'none') placeSlabsAndRing(r, parseInt(getComputedStyle(document.documentElement).getPropertyValue('--ring-pad')) || 8);
+    placeSlabsAndRing(r, ringPad);
   }
 
-  // pick bubble position (auto-flip)
+  // position bubble (auto-flip with clamps)
   const fits = (x, y) =>
     (x - bw/2 >= SIDE_SAFE) && (x + bw/2 <= vw - SIDE_SAFE) &&
     (y - bh/2 >= TOP_SAFE)   && (y + bh/2 <= vh - BOTTOM_SAFE);
@@ -356,23 +318,10 @@ function placeBox(box, step){
   box.style.top  = `${final.y}px`;
 }
 
+/* ---------- main UI ---------- */
 function makeUI(){
-  // overlay parts
-  const scrim = document.createElement('div'); scrim.className='coach-scrim';
-  const slabTop = document.createElement('div'); slabTop.className='coach-slab top';
-  const slabLeft = document.createElement('div'); slabLeft.className='coach-slab left';
-  const slabRight = document.createElement('div'); slabRight.className='coach-slab right';
-  const slabBottom = document.createElement('div'); slabBottom.className='coach-slab bottom';
-  scrim.appendChild(slabTop); scrim.appendChild(slabLeft); scrim.appendChild(slabRight); scrim.appendChild(slabBottom);
-
-  const ring  = document.createElement('div'); ring.className='coach-ring';
-
-  const escBanner = document.createElement('div');
-  escBanner.className = 'coach-esc-banner';
-  escBanner.textContent = 'Press Esc to exit tutorial';
-
-  // bubble
-  const box   = document.createElement('div'); box.className='coachmark';
+  // bubble (front-most)
+  const box = document.createElement('div'); box.className='coachmark';
   box.innerHTML = `
     <div class="msg"></div>
     <div class="prompt"></div>
@@ -384,62 +333,59 @@ function makeUI(){
       </div>
     </div>
   `;
-
-  root.appendChild(scrim);
-  root.appendChild(ring);
-  root.appendChild(escBanner);
   root.appendChild(box);
 
-  // buttons
+  // prevent Next/Back clicks from closing menus (don’t bubble)
   box.addEventListener('click', (e)=>{
-    const b = e.target.closest('[data-act]');
-    if (!b) return;
-    const act = b.getAttribute('data-act');
+    const btn = e.target.closest('[data-act]');
+    if (btn) { e.stopPropagation(); e.stopImmediatePropagation(); }
+    if (!btn) return;
+    const act = btn.getAttribute('data-act');
     if (act === 'prev') prev();
     if (act === 'next') next();
-  });
+  }, true);
 
-  // Esc exits
-  window.addEventListener('keydown', (e)=> {
-    if (e.key === 'Escape') { end(); }
-  });
+  // ESC ends tutorial (persistent hint is created in ensureOverlayScaffold)
+  window.addEventListener('keydown', (e)=> { if (e.key === 'Escape') end(); });
 
   function render(){
-    const s = Steps[state.idx];
-    if (!s) return;
+    const s = Steps[state.idx]; if (!s) return;
 
+    // message + prompt (reserve space; prompt becomes .ready later)
     box.querySelector('.msg').textContent = s.message || '';
     const promptEl = box.querySelector('.prompt');
     promptEl.textContent = s.prompt || '';
+    promptEl.classList.remove('ready'); // not visible yet
 
-    // show, but keep invisible until placed to avoid jump
+    // show bubble then place it; keep invisible until accurate
     box.classList.add('show');
     box.style.visibility = 'hidden';
 
-    // scroll target into view if needed
+    // ensure overlay pieces exist
+    ensureOverlayScaffold();
+
+    // scroll target if way off-screen
     const tgtEl = (s.target && s.target !== 'body') ? document.querySelector(s.target) : null;
     if (tgtEl) {
       const tr = tgtEl.getBoundingClientRect();
       const outVert = (tr.bottom < 0) || (tr.top > window.innerHeight);
       const outHorz = (tr.right < 0) || (tr.left > window.innerWidth);
-      if (outVert || outHorz) {
-        try { tgtEl.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' }); } catch {}
-      }
+      if (outVert || outHorz) { try { tgtEl.scrollIntoView({ behavior:'smooth', block:'center', inline:'center' }); } catch {} }
     }
 
-    // position; reflow watchers keep it stable
-    const doPlace = () => { placeBox(box, s); box.style.visibility = 'visible'; };
-    requestAnimationFrame(doPlace);
+    requestAnimationFrame(() => {
+      placeBox(box, s);
+      box.style.visibility = 'visible';
+    });
 
-    // prompt delay
-    const delay = (typeof s.showPromptDelayMs === 'number') ? s.showPromptDelayMs : 1800;
-    promptEl.classList.remove('breathe');
-    if (s.prompt) setTimeout(()=> promptEl.classList.add('breathe'), delay);
+    // prompt delay (default ~4.5s to avoid “pop in”)
+    const delay = (typeof s.showPromptDelayMs === 'number') ? s.showPromptDelayMs : 4500;
+    setTimeout(()=> promptEl.classList.add('ready'), delay);
 
     wireAdvance(s);
   }
 
-  // clean listeners for step
+  /* ---- per-step wiring ---- */
   function cleanupAdvance(){
     window.removeEventListener('click', onDocClick, true);
     window.removeEventListener('input', onDocInput, true);
@@ -478,16 +424,15 @@ function makeUI(){
 
   const ro = new ResizeObserver(() => onReflow());
   ro.observe(document.body);
-
   const mo = new MutationObserver(() => onReflow());
-  mo.observe(document.body, { childList: true, subtree: true, attributes: true });
+  mo.observe(document.body, { childList:true, subtree:true, attributes:true });
 
   function wireAdvance(s){
     cleanupAdvance();
     window.addEventListener('resize', onReflow, { passive: true });
     window.addEventListener('scroll', onReflow, { passive: true, capture: true });
 
-    // If the condition is already met, skip immediately.
+    // If already satisfied on enter, advance right away
     if (s.advance?.type === 'class-on') {
       const { selector, className } = s.advance;
       const el = document.querySelector(selector);
@@ -495,7 +440,7 @@ function makeUI(){
       pollId = setInterval(()=>{
         const el2 = document.querySelector(selector);
         if (el2 && el2.classList.contains(className)) { clearInterval(pollId); pollId=null; next(); }
-      }, 120);
+      }, 140);
       return;
     }
     if (s.advance?.type === 'click'){ window.addEventListener('click', onDocClick, true); return; }
@@ -505,29 +450,17 @@ function makeUI(){
     if (s.advance?.type === 'change'){ window.addEventListener('change', onDocChange, true); return; }
   }
 
-  function next(){
-    cleanupAdvance();
-    state.idx = clampIdx(state.idx + 1);
-    saveIdx();
-    if (state.idx === Steps.length - 1) localStorage.setItem(LS_SEEN, 'true');
-    render();
-  }
-  function prev(){
-    cleanupAdvance();
-    state.idx = clampIdx(state.idx - 1);
-    saveIdx();
-    render();
-  }
+  function next(){ cleanupAdvance(); state.idx = clampIdx(state.idx + 1); saveIdx(); if (state.idx === Steps.length - 1) localStorage.setItem(LS_SEEN, 'true'); render(); }
+  function prev(){ cleanupAdvance(); state.idx = clampIdx(state.idx - 1); saveIdx(); render(); }
+
   function end(){
     cleanupAdvance();
-    // remove UI
-    try { root.removeChild(scrim); } catch {}
-    try { root.removeChild(ring); } catch {}
-    try { root.removeChild(box); } catch {}
-    const esc = document.querySelector('.coach-esc-banner');
-    if (esc) esc.remove();
-    // reset stage to intro next time
-    localStorage.removeItem(LS_STAGE);
+    // remove overlay pieces and bubble
+    try { document.querySelector('.coach-scrim')?.remove(); } catch {}
+    try { document.querySelector('.coach-ring')?.remove(); } catch {}
+    try { document.querySelector('.coach-esc-banner')?.remove(); } catch {}
+    try { root.querySelector('.coachmark')?.remove(); } catch {}
+    localStorage.removeItem(LS_STAGE); // next run starts from intro
   }
 
   // public controls
@@ -540,11 +473,6 @@ function makeUI(){
   render();
 }
 
-function start(){
-  if (state.mounted) return;
-  state.mounted = true;
-  makeUI();
-}
-
+function start(){ if (state.mounted) return; state.mounted = true; makeUI(); }
 window.addEventListener('DOMContentLoaded', () => setTimeout(start, 250));
 

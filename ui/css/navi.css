@@ -1,4 +1,4 @@
-/* ui/css/navi.css — coachmarks & overlay (frontmost, with a true hole) */
+/* ui/css/navi.css — coachmarks with true “hole”, no-click-blocking scrim */
 
 :root{
   --coach-bg: rgba(20,20,23,.96);
@@ -9,10 +9,10 @@
   --ring-pad: 8px;
 }
 
-/* ——— frontmost elements ——— */
+/* front-most bubble */
 .coachmark {
   position: fixed;
-  z-index: 2147483647; /* frontmost */
+  z-index: 2147483647; /* sit above everything */
   max-width: min(360px, 86vw);
   background: var(--coach-bg);
   color: var(--coach-fg);
@@ -25,11 +25,7 @@
   transition: opacity .18s ease, transform .18s ease;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
-
-.coachmark.show {
-  opacity: 1;
-  transform: translate(-50%, -50%) translateY(-4px);
-}
+.coachmark.show { opacity: 1; transform: translate(-50%, -50%) translateY(-4px); }
 
 .coachmark .msg {
   font-size: 13.5px;
@@ -37,17 +33,23 @@
   margin-bottom: 8px;
 }
 
+/* Reserve space to prevent layout jump.
+   Starts invisible, then we fade it in + breathe without changing size. */
 .coachmark .prompt {
+  display: block;            /* keep flow space */
+  min-height: 1.1em;         /* reserve height */
+  visibility: hidden;        /* not visible initially */
+  opacity: 0;                /* not visible initially */
+  transition: opacity .4s ease;
   font-size: 12px;
   color: var(--coach-subtle);
-  display: none;
   margin-top: 4px;
 }
-.coachmark .prompt.breathe {
-  display: block;
+.coachmark .prompt.ready {   /* after 4–5s we reveal it */
+  visibility: visible;
+  opacity: 1;
   animation: breathe 1.4s ease-in-out infinite;
 }
-
 @keyframes breathe {
   0%   { color: var(--coach-subtle); }
   50%  { color: var(--coach-accent); }
@@ -61,12 +63,7 @@
   align-items: center;
   margin-top: 8px;
 }
-
-.coach-esc {
-  font-size: 11px;
-  opacity: .8;
-}
-
+.coach-esc { font-size: 11px; opacity: .8; }
 .coach-btn {
   background: transparent;
   color: #fff;
@@ -79,34 +76,29 @@
 }
 .coach-btn.primary { border-color: var(--coach-accent); }
 
-/* ——— tint overlay that never blocks clicks ——— */
-.coach-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 2147483644;
-  pointer-events: none; /* NEVER block UI */
-}
+/* Tint overlay never blocks pointer events */
+.coach-scrim { position: fixed; inset: 0; z-index: 2147483644; pointer-events: none; }
 
-/* Build a hole using 4 slabs around the target rect */
+/* Build a real “hole” with 4 slabs so the target region is NOT tinted */
 .coach-slab {
   position: fixed;
-  background: rgba(0,0,0,.22); /* overall tint */
+  background: rgba(0,0,0,.22);
   pointer-events: none;
   transition: all .15s ease;
   z-index: 2147483644;
 }
 
-/* ——— highlight ring around target ——— */
+/* Highlight ring */
 .coach-ring {
   position: fixed;
-  z-index: 2147483646; /* above slabs, below box */
+  z-index: 2147483646; /* above slabs, below bubble */
   pointer-events: none;
   border-radius: 12px;
   outline: 2px solid var(--coach-accent);
   box-shadow: 0 0 0 6px rgba(139,208,255,.18), inset 0 0 0 999px rgba(0,0,0,0);
 }
 
-/* top-left ESC hint */
+/* Persistent ESC hint */
 .coach-esc-banner {
   position: fixed;
   top: 8px; left: 10px;

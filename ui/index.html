@@ -100,22 +100,7 @@
 </div>
 
 <!-- Item: Typing Animation -->
-<div class="settings-item" data-item="typing" role="menuitem" tabindex="0">
-<div>
-<div class="label">Compose Animation</div>
-<div class="hint">Enable or disable live typing effect</div>
-</div>
-<svg class="chev" viewbox="0 0 24 24"><path d="M9 6l6 6-6 6" fill="currentColor"></path></svg>
-</div>
-<div class="settings-subpanel" id="subTyping">
-<!-- Segmented control -->
 <div aria-label="Compose Behavior" class="seg" id="composeSeg" role="tablist">
-<button aria-selected="false" class="opt" data-mode="preview" role="tab">Preview</button>
-<button aria-selected="false" class="opt" data-mode="type" role="tab">Type</button>
-<button aria-selected="false" class="opt" data-mode="off" role="tab">Off</button>
-</div>
-<p class="muted" style="margin:8px 0 0">Tip: Minimal themes reduce visible animations.</p>
-</div>
 
 <div class="settings-item" data-item="intents" role="menuitem" tabindex="0">
 <div>
@@ -130,12 +115,9 @@
     <input id="intentSearch" type="search" placeholder="Search" style="width:100%; padding:6px 8px; border-radius:8px; border:1px solid #ccc">
   </div>
   <div class="kvs" id="intentChecks" style="margin:6px 0 10px"></div>
-  <div class="inline" style="margin-top:6px">
-    <button class="btn secondary" id="vi_save" type="button">Save</button>
-    <button class="btn secondary" id="vi_all" type="button">Select All</button>
-    <button class="btn secondary" id="vi_none" type="button">Select None</button>
-    <button class="btn secondary" id="vi_reset" type="button">Reset</button>
-  </div>
+<!-- autosave: controls removed by request -->
+<div class="inline" style="margin-top:6px"></div>
+
   <p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
 </div>
 

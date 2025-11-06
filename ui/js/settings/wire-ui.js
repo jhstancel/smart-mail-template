@@ -44,11 +44,11 @@ function wireSettingsUI() {
     });
   }
 
-  const subIntents    = document.getElementById('subIntents'); 
-  const subUserTpls   = document.getElementById('subUserTpls');
-  const subTheme      = document.getElementById('subTheme');
-  const subTyping     = document.getElementById('subTyping');
-  const subDefaults   = document.getElementById('subDefaults');
+const subIntents    = document.getElementById('subIntents'); 
+const subUserTpls   = document.getElementById('subUserTpls');
+const subTheme      = document.getElementById('subTheme');
+const subDefaults   = document.getElementById('subDefaults');
+
   const themeSelect   = document.getElementById('themeSelect');
 
   (function fixThemePresetRow(){
@@ -65,11 +65,11 @@ function wireSettingsUI() {
     Object.assign(subTheme.style, { background:'transparent', border:'none', boxShadow:'none', padding:'0', marginTop:'6px' });
     const row = subTheme.querySelector('.settings-row'); if (row) row.style.margin = '0';
   })();
+function closeAllSubs(){
+  [subTheme, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
+  document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
+}
 
-  function closeAllSubs(){
-    [subTheme, subTyping, subIntents, subUserTpls, subDefaults].forEach(el => el && el.classList.remove('open'));
-    document.querySelectorAll('.settings-item .chev').forEach(c => c.classList.remove('rot90'));
-  }
 
   let currentlyOpen = null;
 
@@ -81,12 +81,12 @@ function wireSettingsUI() {
     }
     closeAllSubs();
 
-    if(which==='theme'     && subTheme)     subTheme.classList.add('open');
-    if(which==='typing'    && subTyping)    subTyping.classList.add('open');
-    if(which==='intents'   && subIntents) { 
-      subIntents.classList.add('open');  
-      buildIntentsChecklist?.(); 
-    }
+if(which==='theme'     && subTheme)     subTheme.classList.add('open');
+if(which==='intents'   && subIntents) { 
+  subIntents.classList.add('open');  
+  buildIntentsChecklist?.(); 
+}
+
     if(which==='usertpls'  && subUserTpls){ 
       subUserTpls.classList.add('open'); 
       buildUserTemplatesUI?.(); 
@@ -131,8 +131,7 @@ function toggleMenu(){
 
 // ---- Compose animations under Theme (Preview / Type / Off) ----
 (function(){
-  const segMain  = document.getElementById('composeSeg');        // Typing panel control
-  const segTheme = document.getElementById('composeSegTheme');   // Theme control
+  const segTheme = document.getElementById('composeSegTheme');   // Theme control (only source of truth)
   if (!segTheme) return;
 
   function setActive(seg, mode){
@@ -142,40 +141,24 @@ function toggleMenu(){
     btn.setAttribute('aria-selected','true');
   }
 
-  // Prefer a global setter if compose-mode provides one; fallback to clicking main
-  const setCompose = window.setComposeMode
-    || (mode => {
-         const b = segMain?.querySelector(`.opt[data-mode="${mode}"]`);
-         b?.click();
-       });
+  const setCompose = window.setComposeMode || (()=>{}); // assume compose-mode persists changes
 
-  // Initialize Theme control to whatever the main control currently shows (default 'type')
+  // Initialize to saved/active mode if available, else default 'type'
   (function initThemeSeg(){
-    const current = segMain?.querySelector('.opt[aria-selected="true"]')?.getAttribute('data-mode') || 'type';
+    const current = window.getComposeMode?.() || 'type';
     setActive(segTheme, current);
   })();
 
-  // Clicking Theme control -> set mode once, then sync both segment UIs
   segTheme.addEventListener('click', (e)=>{
     const btn = e.target.closest('.opt[data-mode]');
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
     const mode = btn.getAttribute('data-mode');
-    setCompose(mode);                 // single source of truth (saves + applies)
-    setActive(segTheme, mode);        // reflect on Theme row
-    if (segMain) setActive(segMain, mode); // reflect on Typing panel without extra clicks
-  });
-
-  // If Typing panel changes elsewhere, mirror into Theme control
-  segMain?.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.opt[data-mode]');
-    if (!btn) return;
-    const mode = btn.getAttribute('data-mode');
+    setCompose(mode);
     setActive(segTheme, mode);
-  }, true);
+  });
 })();
-
 
 // ---- Toggleable main-screen search bar (Theme/UI) ----
 (function(){
@@ -307,6 +290,27 @@ window.addEventListener('usertpl:saved', () => {
     buildIntentsChecklist?.(); // re-render list + checkboxes
   }
 });
+// Autosave "Visible Intents" on any checkbox change (no buttons needed)
+(function(){
+  const panel = document.getElementById('subIntents');
+  if (!panel) return;
+  const root = document.getElementById('intentChecks');
+  if (!root || root._autosaveWired) return;
+  root._autosaveWired = true;
+
+  function snapshot(){
+    const ids = Array.from(root.querySelectorAll('input[type="checkbox"][data-id]'))
+      .filter(cb => cb.checked)
+      .map(cb => cb.getAttribute('data-id'));
+    try { localStorage.setItem('intents.visible', JSON.stringify(ids)); } catch {}
+    window.dispatchEvent(new CustomEvent('intents:visibility-changed', { detail: { ids } }));
+  }
+
+  root.addEventListener('change', (e)=>{
+    if (e.target.matches('input[type="checkbox"]')) snapshot();
+  });
+})();
+
 window.addEventListener('usertpl:deleted', () => {
   const panel = document.getElementById('subIntents');
   if (panel?.classList.contains('open')) {
