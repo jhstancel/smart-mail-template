@@ -98,13 +98,12 @@
 
     setPredictStatus('Predicting…');
     try{
-	const ENDPOINT = '/autodetect';
-	const res = await fetch(ENDPOINT, {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify(payload),
-        signal: inflight.signal
-      });
+const res = await fetch('/autodetect', {
+  method:'POST',
+  headers:{'Content-Type':'application/json'},
+  body: JSON.stringify(payload),
+  signal: inflight.signal
+});
 
       if(!res.ok){
         console.warn('/predict failed', res.status, await res.text());

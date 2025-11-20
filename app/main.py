@@ -45,6 +45,11 @@ def _load_schema() -> Dict[str, Any]:
     return {}
 
 SCHEMA: Dict[str, Any] = _load_schema()
+# --- Autodetect rules (imported from generated file, fallback safe) ---
+try:
+    from app.autodetect_rules_generated import AUTODETECT_GENERATED as AUTODETECT  # type: ignore
+except Exception:
+    AUTODETECT: Dict[str, Any] = {}
 
 # Build compact intent list for cards (id + label + description + industry).
 # Also include "name" as an alias for id to simplify frontend code.
@@ -103,10 +108,30 @@ class GenerateResp(BaseModel):
     subject: str
     body: str
     missing: List[str] = []
+class AutoDetectReq(BaseModel):
+    to: Optional[str] = None
+    subject: Optional[str] = None
+    hint: Optional[str] = None
+    text: Optional[str] = None
+    body: Optional[str] = None
+    body_hint: Optional[str] = None
+
+
+class AutoDetectCandidate(BaseModel):
+    intent: str
+    score: float
+
+
+class AutoDetectResp(BaseModel):
+    intent: str
+    confidence: float
+    top_k: List[AutoDetectCandidate] = []
+    message: Optional[str] = None
 
 # --- Utilities ---
 _DATE_RE_YMD = re.compile(r"^\s*(\d{4})-(\d{1,2})-(\d{1,2})\s*$")
 _DATE_RE_MDY = re.compile(r"^\s*(\d{1,2})/(\d{1,2})(?:/(\d{2,4}))?\s*$")
+_PO_RE = re.compile(r"\bpo[-\s]?\d+", re.IGNORECASE)
 
 def _shorten_date(val: str) -> str:
     """
@@ -348,6 +373,99 @@ def generate(req: GenerateReq):
     subject = subject_value or _label_for(intent)
 
     return GenerateResp(subject=subject, body=body, missing=missing)
+def _run_autodetect(req: AutoDetectReq) -> AutoDetectResp:
+    """
+    Simple keyword + boost based intent detection using AUTODETECT rules.
+    Normalizes whatever fields the frontend sends (hint/text/body/body_hint/subject).
+    """
+    # Combine all hint-like fields into one text blob
+    parts: List[str] = []
+    for v in [req.subject, req.hint, req.text, req.body, req.body_hint]:
+        if isinstance(v, str) and v.strip():
+            parts.append(v.strip())
+    text = " ".join(parts).strip()
+
+    if not text:
+        raise HTTPException(status_code=400, detail="Provide at least one of: hint, text, body, body_hint, subject.")
+
+    low_text = text.lower()
+    subj_low = (req.subject or "").lower()
+
+    # Simple features for boosts
+    features = {
+        "containsPO": bool(_PO_RE.search(text)),
+        "reply": ("re:" in subj_low) or ("fw:" in subj_low),
+    }
+
+    candidates: List[Dict[str, Any]] = []
+
+    # Iterate over rules; skip the synthetic auto_detect intent
+    for intent_id, rule in (AUTODETECT or {}).items():
+        if intent_id == "auto_detect":
+            continue
+        if intent_id not in SCHEMA:
+            continue
+
+        rule = rule or {}
+        keywords = rule.get("keywords") or []
+        boosts = rule.get("boosts") or {}
+
+        score = 0.0
+
+        # Keyword hits
+        for kw in keywords:
+            kw = (kw or "").strip()
+            if not kw:
+                continue
+            if kw.lower() in low_text:
+                score += 0.25  # base weight per keyword hit
+
+        # Feature boosts (e.g., containsPO, reply)
+        for feat, weight in boosts.items():
+            if features.get(feat):
+                try:
+                    score += float(weight)
+                except Exception:
+                    continue
+
+        if score > 0.0:
+            candidates.append({"intent": intent_id, "score": score})
+
+    if not candidates:
+        # Fall back to auto_detect stub if nothing hits
+        return AutoDetectResp(
+            intent="auto_detect",
+            confidence=0.0,
+            top_k=[],
+            message="No strong match found. Use any template or fill fields manually.",
+        )
+
+    # Normalize scores
+    total = sum(c["score"] for c in candidates)
+    if total > 0:
+        for c in candidates:
+            c["score"] = c["score"] / total
+
+    # Sort best-first
+    candidates.sort(key=lambda c: c["score"], reverse=True)
+
+    best = candidates[0]
+    top_k_models = [AutoDetectCandidate(intent=c["intent"], score=float(c["score"])) for c in candidates]
+
+    return AutoDetectResp(
+        intent=best["intent"],
+        confidence=float(best["score"]),
+        top_k=top_k_models,
+        message=None,
+    )
+
+
+@app.post("/autodetect", response_model=AutoDetectResp)
+def autodetect(req: AutoDetectReq):
+    """
+    Heuristic autodetect endpoint used by the UI's hint box.
+    """
+    return _run_autodetect(req)
 
 @app.get("/template_source/{intent_id}")
 def template_source(intent_id: str):
