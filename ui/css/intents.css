@@ -127,4 +127,8 @@
 .tpl-card .tpl-main{ display:flex; gap:10px; align-items:flex-start; }
 .tpl-card .tpl-title{ word-break: break-word; }
 .tpl-card .tpl-desc{ word-break: break-word; }
+/* Hide the Auto Detect intent card from the main grid for v1 */
+.intent-card[data-intent="auto_detect"]{
+  display: none !important;
+}
 

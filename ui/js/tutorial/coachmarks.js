@@ -6,171 +6,249 @@ const LS_STAGE = 'tutorial.stage';
 const LS_SEEN  = 'tutorial.seen';
 
 const Steps = [
-  // Intro (centered, non-jargony)
-  { id: 'intro', target: 'body',
+  // ───────── Intro ─────────
+  {
+    id: 'intro',
+    target: 'body',
     message: "Welcome! Quick tour so you can fly through Smart Mail.",
-    prompt: "Click Next",
-    advance: { type: 'click-next' },
+    prompt: "Click anywhere to begin",
+    advance: { type: 'click', selector: 'body' },
     placement: 'center'
   },
-  { id: 'how', target: 'body',
-    message: "I’ll point to each part, then ask you to try something. When you do it, we advance.",
-    prompt: "Ready? Click Next",
-    advance: { type: 'click-next' },
+  {
+    id: 'how',
+    target: 'body',
+    message: "I’ll point to each part, then ask you to try something. When you do it, we move on.",
+    prompt: "Try clicking anywhere to continue",
+    advance: { type: 'click', selector: 'body' },
     placement: 'center'
   },
 
-  // Main screen (top-down)
-  { id: 'templates-grid', target: '#intentGrid',
-    message: "Templates live here. Pick one to load fields—or use the hint box to auto-detect.",
-    prompt: "Click Next",
-    showPromptDelayMs: 1400,
-    advance: { type: 'click-next' },
+  // ───────── Main screen ─────────
+  {
+    id: 'templates-grid',
+    target: '#intentGrid',
+    message: "Templates live here. Pick one to load its fields—or use the hint box below to auto-detect.",
+    prompt: "Click a template or open Settings",
+    showPromptDelayMs: 1200,
+    advance: { type: 'click', selector: '.intent-card, #settingsBtn' },
     placement: 'top'
   },
-  { id: 'auto-detect', target: '#hint',
-    message: "Type a short hint (e.g., “confirm PO 12014, ship Friday”). We’ll help choose and prefill.",
+  {
+    id: 'auto-detect',
+    target: '#hint',
+    message: "Type a short hint (like “confirm PO 12014 – ship Friday”). We’ll pick a template and fill details.",
     prompt: "Type in this box",
     showPromptDelayMs: 1600,
     advance: { type: 'input', selector: '#hint' },
     placement: 'bottom'
   },
-  { id: 'fields', target: '#fields',
-    message: "Only the essentials for this template show here. Fill required ones; others are optional.",
+  {
+    id: 'fields',
+    target: '#fields',
+    message: "Only the essentials for this template show here. Fill required ones; the rest are optional.",
     prompt: "Change any field",
     showPromptDelayMs: 1600,
     advance: { type: 'input', selector: '#fields input, #fields select, #fields textarea' },
     placement: 'top'
   },
-  { id: 'generate', target: '#btnGenerate',
-    message: "Generate creates a clean Subject and Body from your fields.",
+  {
+    id: 'generate',
+    target: '#btnGenerate',
+    message: "Generate builds a clean Subject and Body from your fields.",
     prompt: "Click Generate",
     showPromptDelayMs: 1000,
     advance: { type: 'click', selector: '#btnGenerate' },
     placement: 'left'
   },
-  { id: 'output', target: '#outBody',
-    message: "Here’s your output. Copy it now—or adjust your personal template to change the default.",
+  {
+    id: 'output',
+    target: '#outBody',
+    message: "Here’s your output. You can copy it—or edit your personal template to change the default.",
     prompt: "Copy Subject or Body (or click Edit Template)",
     showPromptDelayMs: 1400,
     advance: { type: 'click', selector: '#copySubject, #copyBody, #btnEditTemplate' },
     placement: 'top'
   },
 
-  // Settings flow — menu-first, then toggles
-  { id: 'open-settings', target: '#settingsBtn',
-    message: "Personalize: themes, visibility, behavior, and your local templates.",
+  // ───────── Settings (open first) ─────────
+  {
+    id: 'open-settings',
+    target: '#settingsBtn',
+    message: "Personalize: themes, visible templates, behavior, and your own templates.",
     prompt: "Open Settings",
-    showPromptDelayMs: 1000,
+    showPromptDelayMs: 800,
     advance: { type: 'class-on', selector: '#settingsMenu', className: 'open' },
     placement: 'right'
   },
-  { id: 'open-theme-subpanel', target: ".settings-item[data-item='theme']",
-    message: "Themes change the vibe. Let’s open the Theme panel first.",
-    prompt: "Open the Theme panel",
-    showPromptDelayMs: 1400,
+
+  // ───────── Theme & Compose Animations ─────────
+  {
+    id: 'open-theme-subpanel',
+    target: ".settings-item[data-item='theme']",
+    message: "Let’s start with the Theme panel.",
+    prompt: "Open Theme",
+    showPromptDelayMs: 700,
     advance: { type: 'click', selector: ".settings-item[data-item='theme']" },
     placement: 'left'
   },
-  { id: 'theme-select', target: "#themeSelect, #composeSegTheme",
-    message: "Pick a theme or adjust compose/preview behavior here. We’ll remember it.",
-    prompt: "Try a different theme or mode",
-    showPromptDelayMs: 1400,
+  {
+    id: 'theme-select',
+    target: "#themeSelect, #composeSegTheme",
+    message: "Pick a theme or adjust how text appears while composing (Preview / Type / Off).",
+    prompt: "Change theme or compose mode",
+    requireOpen: 'theme',
+    showPromptDelayMs: 800,
+    highlightRow: true,
     advance: { type: 'change', selector: "#themeSelect, #composeSegTheme .opt[data-mode]" },
     placement: 'bottom'
   },
 
-  { id: 'display-descriptions', target: "#displayDescriptionsToggle, [data-setting='showFieldDescriptions']",
-    message: "Field descriptions: show helpful tips next to inputs.",
-    prompt: "Toggle descriptions",
-    showPromptDelayMs: 1200,
+  // ───────── Display Descriptions → recap grid ─────────
+  {
+    id: 'display-descriptions',
+    target: "#displayDescriptionsToggle, [data-setting='showFieldDescriptions']",
+    message: "Field Descriptions show helpful hints next to inputs.",
+    prompt: "Toggle Descriptions",
+    requireOpen: 'theme',
+    showPromptDelayMs: 700,
+    highlightRow: true,
     advance: { type: 'change', selector: "#displayDescriptionsToggle, [data-setting='showFieldDescriptions']" },
     placement: 'left'
   },
-  { id: 'show-search', target: "#toggleMainSearch, [data-setting='mainSearch']",
-    message: "Main search bar: add a search on the home screen.",
-    prompt: "Toggle Show Search Bar",
-    showPromptDelayMs: 1200,
+  {
+    id: 'grid-recap',
+    target: '#intentGrid',
+    message: "Nice — descriptions are now visible where helpful.",
+    prompt: "Open Settings again to continue",
+    showPromptDelayMs: 600,
+    advance: { type: 'click', selector: '#settingsBtn' },
+    placement: 'top'
+  },
+
+  // ───────── Search Bar ─────────
+  {
+    id: 'show-search',
+    target: "#toggleMainSearch, [data-setting='mainSearch']",
+    message: "Show Search Bar adds a search field on the main screen.",
+    prompt: "Toggle Search Bar",
+    requireOpen: 'theme',
+    showPromptDelayMs: 700,
+    highlightRow: true,
     advance: { type: 'change', selector: "#toggleMainSearch, [data-setting='mainSearch']" },
     placement: 'left'
   },
-  { id: 'visible-intents', target: "#visibleIntents, [data-setting='visibleIntents']",
-    message: "Choose which templates appear in the grid. Changes save automatically.",
-    prompt: "Adjust a checkbox (or Next to continue)",
-    showPromptDelayMs: 1200,
-    advance: { type: 'click-next-or', selector: "#visibleIntents, [data-setting='visibleIntents']" },
+
+  // ───────── Visible Intents ─────────
+  {
+    id: 'open-intents-subpanel',
+    target: ".settings-item[data-item='intents']",
+    message: "Now let’s manage which templates appear in the grid.",
+    prompt: "Open Visible Intents",
+    showPromptDelayMs: 700,
+    advance: { type: 'click', selector: ".settings-item[data-item='intents']" },
+    placement: 'left'
+  },
+  {
+    id: 'visible-intents',
+    target: "#subIntents",
+    message: "Check or uncheck templates to control what’s visible. Changes save automatically.",
+    prompt: "Toggle a template",
+    showPromptDelayMs: 600,
+    advance: { type: 'change', selector: "#subIntents input[type='checkbox']" },
     placement: 'left'
   },
 
-  // My Templates → create → field-by-field → export → import
-  { id: 'usertpls-open', target: ".settings-item[data-item='usertpls'], #userTemplatesBtn",
-    message: "My Templates: your personal templates saved on this device.",
+  // ───────── My Templates → + New → fields → export/import ─────────
+  {
+    id: 'usertpls-open',
+    target: ".settings-item[data-item='usertpls'], #userTemplatesBtn",
+    message: "My Templates: your personal templates stored locally.",
     prompt: "Open My Templates",
-    showPromptDelayMs: 1100,
+    showPromptDelayMs: 600,
     advance: { type: 'click', selector: ".settings-item[data-item='usertpls'], #userTemplatesBtn" },
     placement: 'left'
   },
-  { id: 'ut-new', target: "#tplNew",
+  {
+    id: 'ut-new',
+    target: "#tplNew",
     message: "Let’s make one. Click + New.",
     prompt: "Click + New",
     showPromptDelayMs: 900,
-    advance: { type: 'click', selector: "#tplNew" },
+    advance: { type: 'click', selector: '#tplNew' },
     placement: 'bottom'
   },
-  { id: 'ut-id', target: "#ut_id, [name='id']",
-    message: "Template ID: a short unique key (e.g., “followup”). Used for import/export matching.",
+  {
+    id: 'ut-id',
+    target: "#ut_id, [name='id']",
+    message: "Template ID: a short unique key (like “followup”). Used for import/export matching.",
     prompt: "Type an ID",
-    showPromptDelayMs: 800,
-    advance: { type: 'input', selector: "#ut_id, [name='id']" },
-    placement: 'top'
-  },
-  { id: 'ut-label', target: "#ut_label, [name='label']",
-    message: "Label: the human-friendly name you’ll see in the grid.",
-    prompt: "Type a label",
     showPromptDelayMs: 700,
-    advance: { type: 'input', selector: "#ut_label, [name='label']" },
+    advance: { type: 'input', selector: '#ut_id, [name=\"id\"]' },
     placement: 'top'
   },
-  { id: 'ut-subject', target: "#ut_subject, [name='subject']",
+  {
+    id: 'ut-label',
+    target: "#ut_label, [name='label']",
+    message: "Label: the human-friendly name shown in the grid.",
+    prompt: "Type a label",
+    showPromptDelayMs: 600,
+    advance: { type: 'input', selector: '#ut_label, [name=\"label\"]' },
+    placement: 'top'
+  },
+  {
+    id: 'ut-subject',
+    target: "#ut_subject, [name='subject']",
     message: "Subject: your default subject line.",
     prompt: "Enter a subject",
-    showPromptDelayMs: 700,
-    advance: { type: 'input', selector: "#ut_subject, [name='subject']" },
+    showPromptDelayMs: 600,
+    advance: { type: 'input', selector: '#ut_subject, [name=\"subject\"]' },
     placement: 'top'
   },
-  { id: 'ut-body', target: "#ut_body, [name='body']",
-    message: "Body: your default message text. Placeholders are okay.",
+  {
+    id: 'ut-body',
+    target: "#ut_body, [name='body']",
+    message: "Body: your default message text — placeholders are okay.",
     prompt: "Enter a body",
-    showPromptDelayMs: 700,
-    advance: { type: 'input', selector: "#ut_body, [name='body']" },
+    showPromptDelayMs: 600,
+    advance: { type: 'input', selector: '#ut_body, [name=\"body\"]' },
     placement: 'top'
   },
-  { id: 'ut-save', target: "#ut_save, [data-action='saveUserTpl']",
+  {
+    id: 'ut-save',
+    target: "#ut_save, [data-action='saveUserTpl']",
     message: "Save your template.",
     prompt: "Click Save",
-    showPromptDelayMs: 700,
-    advance: { type: 'click', selector: "#ut_save, [data-action='saveUserTpl']" },
+    showPromptDelayMs: 600,
+    advance: { type: 'click', selector: '#ut_save, [data-action=\"saveUserTpl\"]' },
     placement: 'left'
   },
-  { id: 'export', target: "#btnExportUserTemplates, [data-action='exportUserTpls']",
-    message: "Export to a .zip to back up or share.",
+  {
+    id: 'export',
+    target: "#btnExportUserTemplates, [data-action='exportUserTpls']",
+    message: "Export your templates to a .zip — great for backup or sharing.",
     prompt: "Click Export",
-    showPromptDelayMs: 1000,
-    advance: { type: 'click', selector: "#btnExportUserTemplates, [data-action='exportUserTpls']" },
+    showPromptDelayMs: 900,
+    advance: { type: 'click', selector: '#btnExportUserTemplates, [data-action=\"exportUserTpls\"]' },
     placement: 'left'
   },
-  { id: 'import', target: "#btnImportUserTemplates, [data-action='importUserTpls']",
-    message: "Import your .zip. If an ID already exists, we duplicate (your original stays intact).",
-    prompt: "Click Import and pick your file",
+  {
+    id: 'import',
+    target: "#btnImportUserTemplates, [data-action='importUserTpls']",
+    message: "Import a .zip to add templates. If an ID already exists, we keep both (your original stays).",
+    prompt: "Click Import and choose your file",
     showPromptDelayMs: 1200,
-    advance: { type: 'click', selector: "#btnImportUserTemplates, [data-action='importUserTpls']" },
+    advance: { type: 'click', selector: '#btnImportUserTemplates, [data-action=\"importUserTpls\"]' },
     placement: 'left'
   },
 
-  { id: 'done', target: 'body',
-    message: "All set. Explore templates, use the hint box, fine-tune settings, and enjoy the speed.",
-    prompt: "Finish",
-    advance: { type: 'click-next' },
+  // ───────── Done ─────────
+  {
+    id: 'done',
+    target: 'body',
+    message: "All set! Explore templates, use Auto Detect, customize themes, and enjoy the speed.",
+    prompt: "Click anywhere to finish",
+    advance: { type: 'click', selector: 'body' },
     placement: 'center'
   }
 ];
@@ -186,12 +264,25 @@ let state = { idx: hasSeen ? Number(localStorage.getItem(LS_STAGE) || 0) : 0, mo
 function clampIdx(i){ return Math.max(0, Math.min(Steps.length - 1, i)); }
 function saveIdx(){ localStorage.setItem(LS_STAGE, String(state.idx)); }
 
-function getTargetRect(sel){
+function getTargetElement(sel, step){
+  if (sel === 'body' || !sel) return null;
+  let el = document.querySelector(sel);
+  if (!el) return null;
+
+  // If we want the whole row, expand to the container
+  if (step?.highlightRow) {
+    const row = el.closest('.settings-row, .settings-item');
+    if (row) el = row;
+  }
+  return el;
+}
+
+function getTargetRect(sel, step){
   if (sel === 'body' || !sel) {
     const w = window.innerWidth, h = window.innerHeight;
     return { x: w/2, y: h/2, width: w, height: h, centerX: w/2, centerY: h/2 };
   }
-  const el = document.querySelector(sel);
+  const el = getTargetElement(sel, step);
   if (!el) return null;
   const r = el.getBoundingClientRect();
   return { x: r.left, y: r.top, width: r.width, height: r.height,
@@ -265,7 +356,7 @@ function placeBox(box, step){
   const bw = box.offsetWidth || 320;
   const bh = box.offsetHeight || 140;
 
-  const r = getTargetRect(step.target);
+const r = getTargetRect(step.target, step);
 
   // slabs/hole & ring
   ensureOverlayScaffold();
@@ -329,7 +420,6 @@ function makeUI(){
       <span class="coach-esc">Esc to exit</span>
       <div>
         <button class="coach-btn" data-act="prev">Back</button>
-        <button class="coach-btn primary" data-act="next">Next</button>
       </div>
     </div>
   `;
@@ -342,7 +432,6 @@ function makeUI(){
     if (!btn) return;
     const act = btn.getAttribute('data-act');
     if (act === 'prev') prev();
-    if (act === 'next') next();
   }, true);
 
   // ESC ends tutorial (persistent hint is created in ensureOverlayScaffold)
@@ -364,19 +453,38 @@ function makeUI(){
     // ensure overlay pieces exist
     ensureOverlayScaffold();
 
-    // scroll target if way off-screen
-    const tgtEl = (s.target && s.target !== 'body') ? document.querySelector(s.target) : null;
-    if (tgtEl) {
-      const tr = tgtEl.getBoundingClientRect();
-      const outVert = (tr.bottom < 0) || (tr.top > window.innerHeight);
-      const outHorz = (tr.right < 0) || (tr.left > window.innerWidth);
-      if (outVert || outHorz) { try { tgtEl.scrollIntoView({ behavior:'smooth', block:'center', inline:'center' }); } catch {} }
-    }
+// auto-scroll until the ENTIRE target is visible in the viewport
+const tgtEl = (s.target && s.target !== 'body') ? getTargetElement(s.target, s) : null;
+const TOP_SAFE = computeTopSafe();
+function fullyVisible(r){
+  return r.top >= TOP_SAFE && r.left >= 0 &&
+         r.bottom <= window.innerHeight && r.right <= window.innerWidth;
+}
+if (tgtEl) {
+  let tries = 0;
+  const tick = () => {
+    const r = tgtEl.getBoundingClientRect();
+    if (fullyVisible(r) || tries++ > 12) return;
+    try { tgtEl.scrollIntoView({ behavior:'smooth', block:'center', inline:'center' }); } catch {}
+    setTimeout(tick, 120);
+  };
+  tick();
+}
 
-    requestAnimationFrame(() => {
-      placeBox(box, s);
-      box.style.visibility = 'visible';
-    });
+// if a panel must be open, open it BEFORE placing
+if (s.requireOpen) {
+  try {
+    // ensure Settings is open
+    const menu = document.getElementById('settingsMenu');
+    if (menu && !menu.classList.contains('open')) document.getElementById('settingsBtn')?.click();
+    // open the subpanel
+    window.openOnly?.(s.requireOpen);
+  } catch {}
+}
+requestAnimationFrame(() => {
+  placeBox(box, s);
+  box.style.visibility = 'visible';
+});
 
     // prompt delay (default ~4.5s to avoid “pop in”)
     const delay = (typeof s.showPromptDelayMs === 'number') ? s.showPromptDelayMs : 4500;

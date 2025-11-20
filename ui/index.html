@@ -117,8 +117,6 @@
   <div class="kvs" id="intentChecks" style="margin:6px 0 10px"></div>
 <!-- autosave: controls removed by request -->
 <div class="inline" style="margin-top:6px"></div>
-
-  <p class="muted" style="margin:8px 0 0">Tip: “Auto Detect” is always available.</p>
 </div>
 
 <div class="settings-item" data-item="usertpls" role="menuitem" tabindex="0">
@@ -155,6 +153,9 @@
 <!-- add JSZip before your main module scripts -->
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 
+<script>
+  window.FEATURE_AUTODETECT = false;
+</script>
 
 
 <!-- new Global Defaults section -->
@@ -210,11 +211,11 @@
 <!-- Header -->
 <div class="panel reveal">
 <h1 class="title">Smart Mail</h1>
-<div class="subtitle">Pick an intent. Or use Auto Detect.</div>
+<div class="subtitle">Pick an intent.</div>
 <!-- Intent grid -->
 <div class="intent-grid" id="intentGrid"></div>
-<!-- Auto-detect stage -->
-<div class="stage hidden" id="autoStage">
+<!-- Auto-detect stage (hidden in v1) -->
+<div class="stage hidden" id="autoStage" style="display:none">
 <div class="hr"></div>
 <div class="row">
 <div>
@@ -245,7 +246,7 @@
 <div class="panel reveal" style="margin-top:16px">
 <div class="inline">
 <h2 class="title" style="font-size:18px; margin:0">Fields</h2>
-<span class="subtitle" id="fieldsHint">(Select An Option Or Use Auto Detect)</span>
+<span class="subtitle" id="fieldsHint">(Select a template to see its fields)</span>
 </div>
 <div class="kvs" id="fields"></div>
 <div class="inline" style="margin:8px 0">

@@ -1,5 +1,6 @@
 /* === Live Auto-Detect on Hint typing (resilient + correct payload) === */
 (function(){
+
   const $ = (s)=>document.querySelector(s);
   const THR = (typeof window.CONF_THR === 'number' ? window.CONF_THR : 0.55);
 
@@ -33,24 +34,30 @@
   function setPredictStatus(msg){ if(els.predStatus) els.predStatus.textContent = msg || ''; }
   function hidePredictInfo(){ if(els.predInfo) els.predInfo.style.display='none'; if(els.topK) els.topK.innerHTML=''; }
 
-  function updatePredictUI(data){
-    if(!data){ hidePredictInfo(); return; }
+function updatePredictUI(data){
+  if(!data){ hidePredictInfo(); return; }
 
-    // Normalize common server shapes
-    const normIntent =
-      data.intent ?? data.label ?? data.name ?? '';
-    const normConf =
-      (data.confidence ?? data.score ?? data.prob ?? data.probability ?? 0);
-    const normTopK =
-      data.top_k ?? data.topK ?? data.top ?? data.candidates ?? [];
-    const message = data.message || '';
+  // Normalize common server shapes
+  const normIntent =
+    data.intent ?? data.label ?? data.name ?? '';
+  const normConf =
+    (data.confidence ?? data.score ?? data.prob ?? data.probability ?? 0);
+  const normTopK =
+    data.top_k ?? data.topK ?? data.top ?? data.candidates ?? [];
+  const message = data.message || '';
 
-    if(els.predIntent) els.predIntent.textContent = normIntent ? toNice(normIntent) : '—';
-    if(els.predBadge)  els.predBadge.textContent  = `${Math.round(normConf * 100)}%`;
-    if(els.predMsg)    els.predMsg.textContent    = message;
+  // Treat "auto_detect" (or empty) as "no strong match" for display purposes
+  const isFallback   = !normIntent || normIntent === 'auto_detect';
+  const displayIntent = isFallback ? '' : normIntent;
+  const displayConf   = isFallback ? 0  : normConf;
 
-    if(els.topK){
-      els.topK.innerHTML = '';
+  if(els.predIntent) els.predIntent.textContent = displayIntent ? toNice(displayIntent) : '—';
+  if(els.predBadge)  els.predBadge.textContent  = `${Math.round(displayConf * 100)}%`;
+  if(els.predMsg)    els.predMsg.textContent    = message;
+
+  if(els.topK){
+    els.topK.innerHTML = '';
+    if (!isFallback) {
       (normTopK || []).forEach(item=>{
         const name  = Array.isArray(item) ? (item[0] ?? '') : (item.label ?? item.intent ?? item.name ?? '');
         const score = Array.isArray(item) ? (item[1] ?? 0) : (item.score ?? item.confidence ?? 0);
@@ -77,8 +84,12 @@
         els.topK.appendChild(b);
       });
     }
-    if(els.predInfo) els.predInfo.style.display='flex';
   }
+  if(els.predInfo) els.predInfo.style.display='flex';
+}
+
+
+
 
   async function predictNow(hintVal){
     if(inflight){ try{ inflight.abort(); }catch{} }

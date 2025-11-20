@@ -63,6 +63,8 @@
   align-items: center;
   margin-top: 8px;
 }
+.coachmark .actions > div:empty { display:none; }
+
 .coach-esc { font-size: 11px; opacity: .8; }
 .coach-btn {
   background: transparent;
