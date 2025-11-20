@@ -84,16 +84,22 @@
     if(inflight){ try{ inflight.abort(); }catch{} }
     inflight = new AbortController();
 
-    const payload = {
-      to:       (els.to?.value || '').trim(),
-      subject:  (els.subject?.value || '').trim(),
-      body_hint: (hintVal || '').trim()
-    };
+	const payload = {
+ 	 // common aliases so either server shape is happy
+ 	 to:        (els.to?.value || '').trim(),
+	  subject:   (els.subject?.value || '').trim(),
+ 	 hint:      (hintVal || '').trim(),
+ 	 text:      (hintVal || '').trim(),
+	  body:      (hintVal || '').trim(),
+ 	 body_hint: (hintVal || '').trim()
+	};
+
     if(!payload.subject && !payload.body_hint){ setPredictStatus(''); hidePredictInfo(); return; }
 
     setPredictStatus('Predicting…');
     try{
-      const res = await fetch('/predict', {
+	const ENDPOINT = '/autodetect';
+	const res = await fetch(ENDPOINT, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body: JSON.stringify(payload),
