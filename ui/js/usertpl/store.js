@@ -264,7 +264,7 @@ export function deleteTemplate(id){
 
   // Longer toast (8s if supported)
   try {
-    window.showToast?.(`Deleted “${deleted?.label || deleted?.id || 'template'}”. Undo available for 8s.`, { duration: 8000 });
+    window.showToast?.(`Deleted “${deleted?.label || deleted?.id || 'template'}”.`, { duration: 5000 });
   } catch(_) { /* best effort */ }
 
   // Panel may be open: refresh its list

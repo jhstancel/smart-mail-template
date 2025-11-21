@@ -359,7 +359,6 @@ window.showToast = window.showToast || function (msg, opts = 1400) {
 
 // Show toast when user templates change
 window.addEventListener('usertpl:saved',   () => window.showToast?.('Saved!'));
-window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
 // ---- NEW: Select-All + multi Export / Import ----
 
 
@@ -380,14 +379,23 @@ window.addEventListener('usertpl:deleted', () => window.showToast?.('Deleted'));
     document.querySelectorAll('#subUserTpls .tpl-card.ut-picked').forEach(el=> el.classList.remove('ut-picked'));
   }
 
-  function setMode(on){
-    window.__utExportMode = !!on;
-    if (on && !window.__utExportSelection) window.__utExportSelection = new Set();
-    panel.classList.toggle('ut-export-mode', !!on);
-    btn.classList.toggle('accent', !!on);
-    if (btnCancel) btnCancel.style.display = on ? 'inline-block' : 'none';
-    updateLabel();
-  }
+function setMode(on){
+  window.__utExportMode = !!on;
+
+  if (on && !window.__utExportSelection) window.__utExportSelection = new Set();
+
+  panel.classList.toggle('ut-export-mode', !!on);
+  btn.classList.toggle('accent', !!on);
+
+  // Show/Hide cancel button
+  if (btnCancel) btnCancel.style.display = on ? 'inline-block' : 'none';
+
+  // Hide Import button entirely while in export mode
+  const importBtn = document.getElementById('btnImportUserTemplates');
+  if (importBtn) importBtn.style.display = on ? 'none' : 'inline-block';
+
+  updateLabel();
+}
 
   function updateLabel(count){
     const n = (typeof count === 'number') ? count : (window.__utExportSelection?.size || 0);
