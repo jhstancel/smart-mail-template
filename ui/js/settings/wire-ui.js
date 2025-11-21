@@ -205,19 +205,19 @@ function toggleMenu(){
     }
   }
 
-  function wireExistingToggle(){
-    const cb = document.getElementById('toggleFrontSearch');
-    if (!cb || cb._wiredFrontSearch) return;
-    cb._wiredFrontSearch = true;
-    // init from saved pref
-    const on = (localStorage.getItem(PREF_KEY) === '1');
-    cb.checked = on;
-    applyFrontSearch(on);
-    cb.addEventListener('change', ()=>{
-      localStorage.setItem(PREF_KEY, cb.checked ? '1' : '0');
-      applyFrontSearch(cb.checked);
-    });
-  }
+function wireExistingToggle(){
+  const cb = document.getElementById('toggleMainSearch');
+  if (!cb || cb._wiredFrontSearch) return;
+  cb._wiredFrontSearch = true;
+  // init from saved pref
+  const on = (localStorage.getItem(PREF_KEY) === '1');
+  cb.checked = on;
+  applyFrontSearch(on);
+  cb.addEventListener('change', ()=>{
+    localStorage.setItem(PREF_KEY, cb.checked ? '1' : '0');
+    applyFrontSearch(cb.checked);
+  });
+}
 
   const tryInit = ()=> wireExistingToggle();
   document.addEventListener('DOMContentLoaded', tryInit);
