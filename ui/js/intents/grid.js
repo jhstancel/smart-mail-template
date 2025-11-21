@@ -1,15 +1,19 @@
 // ui/js/intents/grid.js
 // Exact extraction of grid + selection + checklist + loader.
 
+const intentGrid = document.getElementById('intents');
+const autoStage  = document.getElementById('autoStage');
+
 function selectIntent(name){
-  SELECTED_INTENT = name || '';
+  window.SELECTED_INTENT = name || '';
   if (!name || name === 'auto_detect'){
     autoStage?.classList.remove('hidden');
-    renderFields(null);
+    window.renderFields?.(null);
   } else {
     autoStage?.classList.add('hidden');
-    renderFields(name);
+    window.renderFields?.(name);
   }
+
   document.querySelectorAll('.intent-card')
     .forEach(card => card.classList.toggle('active', card.dataset.intent === name));
 }
@@ -34,14 +38,13 @@ function makeIntentCard(item){
     badge.textContent = 'local';
     div.querySelector('.intent-name')?.appendChild(badge);
   }
-
   div.addEventListener('click', ()=>{
     const isActive = div.classList.contains('active');
     document.querySelectorAll('.intent-card').forEach(x=>x.classList.remove('active'));
 
     if(isActive){
-      SELECTED_INTENT = '';
-      renderFields(null);
+      window.SELECTED_INTENT = '';
+      window.renderFields?.(null);
       if (autoStage) autoStage.classList.add('hidden');
       return;
     }
@@ -50,7 +53,7 @@ function makeIntentCard(item){
 
     if(item.name === 'auto_detect'){
       if (autoStage) autoStage.classList.remove('hidden');
-      renderFields(null); // clear manual fields
+      window.renderFields?.(null); // clear manual fields
       if (typeof window.setSelectedIntent === 'function') window.setSelectedIntent(null);
     } else {
       if (autoStage) autoStage.classList.add('hidden');
@@ -59,15 +62,20 @@ function makeIntentCard(item){
     }
   });
 
+
   return div; // <-- fix
 }
 function renderIntentGridFromData(list){
+  if (!intentGrid) return;
   intentGrid.innerHTML = '';
 
-  const viSet = loadVisibleIntents(); // Set or null
+  const viSet = (typeof window.loadVisibleIntents === 'function'
+    ? window.loadVisibleIntents()
+    : null); // Set or null
   const visible = Array.isArray(list)
-    ? list.filter(x => !x.hidden && isIntentVisible(x.name, viSet))
+    ? list.filter(x => !x.hidden && (window.isIntentVisible?.(x.name, viSet) ?? true))
     : [];
+
   const normals = visible
     .filter(x => x.name !== 'auto_detect')
     .sort((a,b)=>{
@@ -91,11 +99,11 @@ function renderIntentGridFromData(list){
 
 function buildIntentsChecklist(){
   const box = document.getElementById('intentChecks');
-  if(!box) return;
+  if (!box) return;
 
   box.innerHTML = '';
 
-  // wire the search input once
+  // wire the search input once (search by label/description)
   const search = document.getElementById('intentSearch');
   if (search && !search._wired) {
     search._wired = true;
@@ -103,32 +111,41 @@ function buildIntentsChecklist(){
   }
   const q = (search?.value || '').toLowerCase().trim();
 
-  const current = loadVisibleIntents(); // Set or null
-  const base = (INTENTS || []).filter(x => x && x.name !== 'auto_detect');
-  const filtered = q ? base.filter(it => ((it.label || it.name || '').toLowerCase().includes(q))) : base;
+  const current = (typeof window.loadVisibleIntents === 'function'
+    ? window.loadVisibleIntents()
+    : null); // Set or null
+
+  const base = ((window.INTENTS || [])).filter(x => x && x.name !== 'auto_detect');
+
+  const filtered = q
+    ? base.filter(it => ((it.label || it.name || '').toLowerCase().includes(q)))
+    : base;
+
   const items = filtered
     .slice()
-    .sort((a,b) => (a.label||a.name).localeCompare(b.label||b.name));
+    .sort((a, b) => (a.label || a.name).localeCompare(b.label || b.name));
 
   // helper to rebuild & render after any change
-  function commitFromUI(){
+  function commitFromUI() {
     const s = new Set();
-    items.forEach(it=>{
+    items.forEach(it => {
       const cb = document.getElementById(`vi_${it.name}`);
-      if(cb && cb.checked) s.add(it.name);
+      if (cb && cb.checked) s.add(it.name);
     });
-    saveVisibleIntents(s);
-    renderIntentGridFromData(INTENTS);
+    if (typeof window.saveVisibleIntents === 'function') {
+      window.saveVisibleIntents(s);
+    }
+    renderIntentGridFromData(window.INTENTS || []);
     buildIntentsChecklist();
   }
 
-  items.forEach(it=>{
+  items.forEach(it => {
     const id = `vi_${it.name}`;
     const wrap = document.createElement('div');
     wrap.className = 'kv';
     wrap.innerHTML = `
       <label class="toggle" for="${id}">
-        <input id="${id}" type="checkbox" ${isIntentVisible(it.name, current) ? 'checked':''} />
+        <input id="${id}" type="checkbox" ${window.isIntentVisible?.(it.name, current) ? 'checked':''} />
         ${it.label || it.name}
       </label>
       <div class="muted">${it.description || ''}</div>
@@ -137,35 +154,58 @@ function buildIntentsChecklist(){
 
     // live update on toggle
     const cb = wrap.querySelector('input[type="checkbox"]');
-    if(cb){
+    if (cb) {
       cb.addEventListener('change', commitFromUI);
     }
   });
 
-  // Buttons
+  // Footer buttons
   const btnSave  = document.getElementById('vi_save');
   const btnAll   = document.getElementById('vi_all');
   const btnNone  = document.getElementById('vi_none');
   const btnReset = document.getElementById('vi_reset');
 
-  if(btnSave)  btnSave.onclick  = commitFromUI;
-  if(btnAll)   btnAll.onclick   = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=true; }); commitFromUI(); };
-  if(btnNone)  btnNone.onclick  = ()=>{ items.forEach(it=>{ const cb=document.getElementById(`vi_${it.name}`); if(cb) cb.checked=false;}); commitFromUI(); };
-  if(btnReset) btnReset.onclick = ()=>{ localStorage.removeItem(VI_KEY); buildIntentsChecklist(); renderIntentGridFromData(INTENTS); };
+  if (btnSave)  btnSave.onclick  = commitFromUI;
+  if (btnAll)   btnAll.onclick   = () => {
+    items.forEach(it => {
+      const cb = document.getElementById(`vi_${it.name}`);
+      if (cb) cb.checked = true;
+    });
+    commitFromUI();
+  };
+  if (btnNone)  btnNone.onclick  = () => {
+    items.forEach(it => {
+      const cb = document.getElementById(`vi_${it.name}`);
+      if (cb) cb.checked = false;
+    });
+    commitFromUI();
+  };
+  if (btnReset) btnReset.onclick = () => {
+    if (typeof window.VI_KEY === 'string') {
+      localStorage.removeItem(window.VI_KEY);
+    }
+    buildIntentsChecklist();
+    renderIntentGridFromData(window.INTENTS || []);
+  };
 }
+
+
+
+
+
 
 async function loadIntents(){
   try{
     const res = await fetch('/intents');
     if(!res.ok) throw new Error('Failed to fetch /intents');
     const data = await res.json();
-    INTENTS = Array.isArray(data) ? data : [];
-    renderIntentGridFromData(INTENTS);
+    window.INTENTS = Array.isArray(data) ? data : [];
+    renderIntentGridFromData(window.INTENTS);
 
   }catch(err){
     console.error('Error loading intents:', err);
-    INTENTS = [];
-    intentGrid.innerHTML = '';
+    window.INTENTS = [];
+    if (intentGrid) intentGrid.innerHTML = '';
   }
 }
 
@@ -186,7 +226,7 @@ function selectIntentById(intentId){
 
     // set current and render fields (renderFields already handles u:*)
     window.CURRENT_INTENT = intentId;
-    if (typeof renderFields === 'function') renderFields(intentId);
+    if (typeof window.renderFields === 'function') window.renderFields(intentId);
 
     // update header (use schema label when present; fall back to INTENTS)
     const spec = (window.SCHEMA && window.SCHEMA[intentId]) || {};

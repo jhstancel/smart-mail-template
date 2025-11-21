@@ -1,7 +1,9 @@
-import './guards/intents-guard.js';
-import './state/visible-intents.js';
-import './utils/dom.js';
-import './utils/text.js';
+import './settings/wire-ui.js';
+import './autodetect/predict.js';
+import './easter/corruption.js';
+import './easter/evil-larry.js';
+import './easter/nyan.js';
+import './easter/oddy-nuff.js';
 
 // make sure globals exist before anything reads them
 import './defaults/global-defaults.js';
@@ -12,7 +14,6 @@ import './mode/compose-mode.js';
 import './intents/grid.js';
 import './fields/render-fields.js';
 import './parts/order-parts-editor.js';
-import './settings/wire-ui.js';
 import './usertpl/store.js';
 import './usertpl/editor-dialog.js';
 import './usertpl/list-delegation.js';
@@ -31,19 +32,18 @@ const initOrderPartsEditor      = window.initOrderPartsEditor;
 const renderIntentGridFromData  = window.renderIntentGridFromData;
 const buildIntentsChecklist     = window.buildIntentsChecklist;
 const buildUserTemplatesUI      = window.buildUserTemplatesUI;
-const loadVisibleIntents        = window.loadVisibleIntents;
 const loadGlobalDefaults        = window.loadGlobalDefaults;
 const GLOBAL_DEFAULTS           = window.GLOBAL_DEFAULTS;
 
-
 // --- Boot ---
-on(document, 'DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => {
   // Load persisted defaults into inputs
-  loadGlobalDefaults();
+  loadGlobalDefaults?.();
 
   // Ensure visible intents set exists (read-only if not present)
-  loadVisibleIntents();
-
+if (typeof window.loadVisibleIntents === 'function') {
+    window.loadVisibleIntents();
+  }
   // Render grid (uses window.INTENTS if already present; safe to call early)
   if (Array.isArray(window.INTENTS)) {
     renderIntentGridFromData(window.INTENTS);
@@ -61,6 +61,7 @@ on(document, 'DOMContentLoaded', () => {
   // Gentle initial live preview attempt (debounced)
   scheduleLiveGenerate(300);
 });
+
 // === Live state + typewriter + debounced generate (idempotent) ===
 (function(){
   if (!window.liveState) window.liveState = { compose:false, preview:true, tId:null };
@@ -103,11 +104,15 @@ on(document, 'DOMContentLoaded', () => {
     document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') || 'light-minimal');
     if(document.body.dataset.theme === 'cosmic') Starfield.start();
 
+    const intentGrid = document.getElementById('intents');
+    const fieldsHint = document.getElementById('fieldsHint') || document.querySelector('#fieldsTitle + .subtitle');
+
     try {
       // Fetch generated schema
       const schemaRes = await fetch('/schema');
       if (!schemaRes.ok) throw new Error('Failed to load schema');
       window.SCHEMA = await schemaRes.json();
+      const SCHEMA = window.SCHEMA || {};
 
       // Fetch compact intent list for cards
       const intentsRes = await fetch('/intents');
@@ -142,7 +147,10 @@ on(document, 'DOMContentLoaded', () => {
 
       // --- Merge local templates (My Templates) ---
       const coreIntents  = nextIntents;
-      const localIntents = (typeof userTemplatesAsIntents === 'function') ? userTemplatesAsIntents() : [];
+      const localIntents = (typeof window.userTemplatesAsIntents === 'function')
+        ? window.userTemplatesAsIntents()
+        : [];
+
       const merged = [...coreIntents, ...localIntents];
 
       // Respect the INTENTS write-guard
