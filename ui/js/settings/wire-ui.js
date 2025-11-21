@@ -206,7 +206,7 @@ function toggleMenu(){
   }
 
 function wireExistingToggle(){
-  const cb = document.getElementById('toggleMainSearch');
+const cb = document.getElementById('toggleFrontSearch');
   if (!cb || cb._wiredFrontSearch) return;
   cb._wiredFrontSearch = true;
   // init from saved pref

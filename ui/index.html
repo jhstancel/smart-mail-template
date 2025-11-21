@@ -60,7 +60,6 @@
 <div class="settings-subpanel" id="subTheme">
   <div class="settings-row">
     <label class="muted" for="themeSelect" style="min-width:90px">Preset</label>
-
     <select aria-label="Theme" id="themeSelect">
       <option value="light-minimal">Light Minimal (Default)</option>
       <option value="dark-minimal">Dark Minimal</option>
@@ -70,33 +69,28 @@
       <option value="pastell">Pastell</option>
       <option value="claude">Claude Warm</option>
     </select>
+<!-- Display descriptions toggle -->
+<div class="settings-row" style="margin-top:10px; display:flex; align-items:center; gap:16px;">
+  <label for="opt_desc" class="muted" style="min-width:140px;">Display descriptions</label>
+  <input id="opt_desc" type="checkbox" />
+</div>
 
-    <!-- Descriptions (Verbose/Simple) -->
-    <div class="settings-row" style="margin-top:10px">
-      <label class="muted" for="opt_desc" style="min-width:90px">Display Descriptions</label>
-      <div style="display:flex; align-items:center; gap:10px">
-        <input id="opt_desc" type="checkbox" />
-      </div>
-    </div>
+<!-- Show search bar on main screen -->
+<div class="settings-row" style="margin-top:6px; display:flex; align-items:center; gap:16px;">
+  <label for="toggleFrontSearch" class="muted" style="min-width:140px;">Show search bar</label>
+  <input id="toggleFrontSearch" type="checkbox" />
+</div>
 
     <!-- Compose animations (Preview / Type / Off) -->
     <div class="settings-row" style="margin-top:10px">
       <label class="muted" style="min-width:90px">Compose animations</label>
-      <div id="composeSegTheme" class="seg" role="tablist" aria-label="Compose animations">
+      <div id="composeSeg" class="seg" role="tablist" aria-label="Compose animations">
         <button class="opt" data-mode="preview" role="tab" aria-selected="false">Preview</button>
         <button class="opt" data-mode="type" role="tab" aria-selected="true">Type</button>
         <button class="opt" data-mode="off" role="tab" aria-selected="false">Off</button>
       </div>
     </div>
 
-    <!-- Show search bar on main screen -->
-    <div class="settings-row" style="margin-top:10px">
-      <label style="display:flex; align-items:center; gap:8px;">
-<input type="checkbox" id="toggleMainSearch" />
-<span>Show search bar on main screen</span>
-
-      </label>
-    </div>
   </div>
 </div>
 
