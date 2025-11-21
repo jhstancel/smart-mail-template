@@ -128,6 +128,21 @@ function toggleMenu(){
 }
 
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
+ // Close settings when clicking outside (but ignore template editors)
+  if (!document.__settingsOutsideClickWired) {
+    document.__settingsOutsideClickWired = true;
+    document.addEventListener('click', (e)=>{
+      if (!settingsMenu || !settingsMenu.classList.contains('open')) return;
+      const inSettings = settingsMenu.contains(e.target);
+      const onBtn      = settingsBtn?.contains(e.target);
+      const inDialog   = !!(e.target.closest('#ut_editor') || e.target.closest('#tplEditor'));
+      const anyEditorOpen = !!(window.__tplEditorOpen || window.__utEditorOpen);
+      if (!inSettings && !onBtn && !inDialog && !anyEditorOpen) {
+        settingsMenu.classList.remove('open');
+        closeAllSubs();
+      }
+    });
+  }
 
 // ---- Compose animations under Theme (Preview / Type / Off) ----
 (function(){
@@ -216,31 +231,30 @@ function toggleMenu(){
 
 
 
-document.addEventListener('click', (e)=>{
-  if(!settingsMenu.classList.contains('open')) return;
-  const inSettings = settingsMenu.contains(e.target);
-  const onBtn      = settingsBtn?.contains(e.target);
-const inDialog   = !!(e.target.closest('#ut_editor') || e.target.closest('#tplEditor'));
-const anyEditorOpen = !!(window.__tplEditorOpen || window.__utEditorOpen);
-if(!inSettings && !onBtn && !inDialog && !anyEditorOpen){
-  settingsMenu.classList.remove('open');
-  closeAllSubs();
-}
 
-});
 
   const THEME_KEY = 'sm_theme';
   const saved = localStorage.getItem(THEME_KEY);
   if(saved){ document.body.dataset.theme = saved; }
   if(themeSelect){ themeSelect.value = document.body.dataset.theme || 'light-minimal'; }
-
 themeSelect?.addEventListener('change', ()=>{
   const val = themeSelect.value || 'light-minimal';
   document.body.dataset.theme = val;
   localStorage.setItem(THEME_KEY, val);
-  if(val==='cosmic') Starfield.start(); else Starfield.stop();
-  if(val==='pastell') PastellPets.enable(); else PastellPets.disable();
+
+  if (val === 'cosmic') {
+    Starfield.start();
+  } else {
+    Starfield.stop();
+  }
+
+  if (val === 'pastell') {
+    PastellPets?.enable?.();
+  } else {
+    PastellPets?.disable?.();
+  }
 });
+
 
 /* ---- Local Template Editor + Override badge (non-invasive) ---- */
 const editBtn = document.getElementById('btnEditTemplate');
@@ -290,86 +304,6 @@ window.addEventListener('usertpl:saved', () => {
     buildIntentsChecklist?.(); // re-render list + checkboxes
   }
 });
-// Autosave "Visible Intents" on any checkbox change (no buttons needed)
-(function(){
-  const panel = document.getElementById('subIntents');
-  if (!panel) return;
-  const root = document.getElementById('intentChecks');
-  if (!root || root._autosaveWired) return;
-  root._autosaveWired = true;
-
-  function snapshot(){
-    const ids = Array.from(root.querySelectorAll('input[type="checkbox"][data-id]'))
-      .filter(cb => cb.checked)
-      .map(cb => cb.getAttribute('data-id'));
-    try { localStorage.setItem('intents.visible', JSON.stringify(ids)); } catch {}
-    window.dispatchEvent(new CustomEvent('intents:visibility-changed', { detail: { ids } }));
-  }
-
-  root.addEventListener('change', (e)=>{
-    if (e.target.matches('input[type="checkbox"]')) snapshot();
-  });
-})();
-
-window.addEventListener('usertpl:deleted', () => {
-  const panel = document.getElementById('subIntents');
-  if (panel?.classList.contains('open')) {
-    buildIntentsChecklist?.();
-  }
-});
-  const copySubjectBtn = document.getElementById('copySubject');
-  const copyBodyBtn    = document.getElementById('copyBody');
-  const clearBtn       = document.getElementById('btnClear');
-
-  async function copyText(txt){
-    try{ await navigator.clipboard.writeText(txt); }catch(e){ console.warn('Clipboard error', e); }
-  }
-  function flashBtn(btn, msg){
-    if(!btn) return;
-    const old = btn.textContent;
-    btn.textContent = msg;
-    btn.classList.add('toast');
-    setTimeout(()=>{ btn.classList.remove('toast'); btn.textContent = old; }, 900);
-  }
-
-  copySubjectBtn?.addEventListener('click', ()=>{
-    const txt = (document.getElementById('outSubject')?.textContent || '').trim();
-    if(!txt){ flashBtn(copySubjectBtn, 'Copied'); return; }
-    copyText(txt); flashBtn(copySubjectBtn, 'Copied');
-  });
-  copyBodyBtn?.addEventListener('click', ()=>{
-    const txt = (document.getElementById('outBody')?.textContent || '').trim();
-    if(!txt){ flashBtn(copyBodyBtn, 'Copied'); return; }
-    copyText(txt); flashBtn(copyBodyBtn, 'Copied');
-  });
-  clearBtn?.addEventListener('click', ()=>{
-    const outSubject = document.getElementById('outSubject');
-    const outBody = document.getElementById('outBody');
-    if(outSubject) outSubject.textContent = '';
-    if(outBody)    outBody.textContent = '';
-    document.querySelectorAll('#fields input, #fields select, #fields textarea').forEach(i=> i.value = '');
-    flashBtn(clearBtn, 'Cleared');
-  });
-
-  loadGlobalDefaults();
-  const gAddr  = document.getElementById('g_shipAddress');
-  const gSave  = document.getElementById('g_save');
-  const gApply = document.getElementById('g_apply');
-  const gClear = document.getElementById('g_clear');
-
-  function captureDefaultsFromUI(){ GLOBAL_DEFAULTS.shipAddress  = (gAddr?.value || '').trim(); }
-
-  gApply?.addEventListener('click', ()=>{
-    captureDefaultsFromUI();
-    if(gSave?.checked) saveGlobalDefaults();
-    if(window.SELECTED_INTENT){ window.renderFields?.(window.SELECTED_INTENT); }
-  });
-  gClear?.addEventListener('click', ()=>{
-    const persist = !!gSave?.checked;
-    clearGlobalDefaults(persist);
-    if(window.SELECTED_INTENT){ window.renderFields?.(window.SELECTED_INTENT); }
-  });
-} // ← close function wireSettingsUI
 
 // ensure public API for settings panel
 if (!window.scheduleLiveGenerate) window.scheduleLiveGenerate = scheduleLiveGenerate;
@@ -398,8 +332,15 @@ function applyDescriptions(on) {
     applyDescriptions(!!e.target.checked);
   });
 })();
-// Simple toast
-window.showToast = window.showToast || function (msg, ms = 1400) {
+
+window.showToast = window.showToast || function (msg, opts = 1400) {
+  let ms = 1400;
+  if (typeof opts === 'number') {
+    ms = opts;
+  } else if (opts && typeof opts === 'object' && typeof opts.duration === 'number') {
+    ms = opts.duration;
+  }
+
   const t = document.createElement('div');
   t.textContent = msg;
   t.style.cssText = `
@@ -584,6 +525,9 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
     alert('Import failed: ' + e.message);
   }
 });
+
+
+
 // ---- Trash Bin UI wiring ----
 (function(){
   const btn = document.getElementById('trashBinBtn');
@@ -670,4 +614,44 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
     }
   });
 })();
+
+// ---- Visible Intents helpers (used by grid.js & others) ----
+const VI_KEY = 'intents.visible';
+
+function loadVisibleIntents() {
+  try {
+    const raw = localStorage.getItem(VI_KEY);
+    if (!raw) return null;                 // null → "no explicit list" → show all
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return null;
+    return new Set(arr.filter(Boolean));   // Set of intent ids
+  } catch (_) {
+    return null;
+  }
+}
+
+function saveVisibleIntents(setOrArray) {
+  try {
+    const ids = Array.isArray(setOrArray)
+      ? setOrArray
+      : Array.from(setOrArray || []);
+    localStorage.setItem(VI_KEY, JSON.stringify(ids));
+  } catch (_) {}
+}
+
+function isIntentVisible(name, set) {
+  if (!name) return false;
+  // If no set, default to "everything visible"
+  if (!set || !(set instanceof Set)) return true;
+  return set.has(name);
+}
+
+// back-compat / globals for other modules
+window.VI_KEY             = VI_KEY;
+window.loadVisibleIntents = loadVisibleIntents;
+window.saveVisibleIntents = saveVisibleIntents;
+window.isIntentVisible    = isIntentVisible;
+
+
+
 
