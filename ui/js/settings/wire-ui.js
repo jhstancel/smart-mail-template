@@ -128,7 +128,6 @@ function toggleMenu(){
 }
 
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
- // Close settings when clicking outside (but ignore template editors)
   if (!document.__settingsOutsideClickWired) {
     document.__settingsOutsideClickWired = true;
     document.addEventListener('click', (e)=>{
@@ -143,6 +142,7 @@ function toggleMenu(){
       }
     });
   }
+}  // <-- close wireSettingsUI here
 
 // ---- Compose animations under Theme (Preview / Type / Off) ----
 (function(){
