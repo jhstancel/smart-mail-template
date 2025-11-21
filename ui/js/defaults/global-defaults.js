@@ -1,5 +1,7 @@
 // ui/js/defaults/global-defaults.js
 
+const $ = (s) => document.querySelector(s);
+
 // NEW: Global defaults (session memory) + persistence key
 let GLOBAL_DEFAULTS = { shipAddress: ''};
 const DEFAULTS_STORAGE_KEY = 'sm_global_defaults_v1';

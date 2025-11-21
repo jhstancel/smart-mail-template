@@ -57,3 +57,9 @@ body[data-theme="cosmic"] .seg .opt[aria-selected="true"]{ background:color-mix(
   display: flex !important;
   width: 38px; height: 38px;
 }
+/* Make the compose animation segmented switch smaller */
+#composeSegTheme.seg {
+  transform: scale(1.1);
+  transform-origin: left center;
+}
+
