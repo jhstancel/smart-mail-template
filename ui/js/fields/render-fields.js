@@ -5,6 +5,16 @@
 const fieldsWrap = document.getElementById('fields');
 const fieldsHint = document.getElementById('fieldsHint');
 
+// Local title-case helper; prefer any existing global, else fallback
+const toTitle = window.toTitle || function (str) {
+  const s = String(str || '').replace(/[_\-]+/g, ' ').trim();
+  if (!s) return '';
+  return s
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+};
+
 function renderFields(intent){
   fieldsWrap.innerHTML = '';
 
