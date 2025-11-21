@@ -341,21 +341,60 @@ window.showToast = window.showToast || function (msg, opts = 1400) {
     ms = opts.duration;
   }
 
+  // Root container (bottom-right, stack upwards)
+  let root = document.getElementById('toastRoot');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'toastRoot';
+    root.style.cssText = `
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      pointer-events: none;
+    `;
+    document.body.appendChild(root);
+  }
+
   const t = document.createElement('div');
   t.textContent = msg;
   t.style.cssText = `
-    position: fixed; right: 16px; bottom: 16px; z-index: 9999;
-    background: rgba(0,0,0,.8); color: #fff; padding: 8px 12px;
-    border-radius: 10px; font-size: 13px; opacity: 0; transform: translateY(6px);
-    transition: opacity .18s ease, transform .18s ease; pointer-events: none;
+    background: rgba(0,0,0,.85);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,.35);
+    max-width: 280px;
   `;
-  document.body.appendChild(t);
-  requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+  root.appendChild(t);
+
+  requestAnimationFrame(() => {
+    t.style.opacity = '1';
+    t.style.transform = 'translateY(0)';
+  });
+
   setTimeout(() => {
-    t.style.opacity = '0'; t.style.transform = 'translateY(6px)';
-    t.addEventListener('transitionend', () => t.remove(), { once: true });
+    t.style.opacity = '0';
+    t.style.transform = 'translateY(6px)';
+    t.addEventListener('transitionend', () => {
+      t.remove();
+      if (!root.childElementCount) root.remove();
+    }, { once: true });
   }, ms);
 };
+
+
+
+
+
 
 // Show toast when user templates change
 window.addEventListener('usertpl:saved',   () => window.showToast?.('Saved!'));
@@ -455,8 +494,10 @@ function setMode(on){
       const all = window.loadUserTemplates?.() || [];
       const items = all.filter(t => ids.includes(t.id));
       if (!items.length) { window.showToast?.('Nothing to export'); return; }
-
-      if(typeof JSZip==='undefined'){ alert('JSZip missing'); return; }
+if(typeof JSZip==='undefined'){
+        window.showToast?.('Export failed: JSZip not loaded', { duration: 4000 });
+        return;
+      }
       const zip = new JSZip();
       for(const t of items){
         const safe = (t.id||'template').replace(/[^\w.-]+/g,'_');
@@ -471,8 +512,9 @@ function setMode(on){
       window.showToast?.(`Exported ${items.length} template(s)`);
       setMode(false);
       clearPicks();
-    }catch(e){
-      alert('Export failed: '+e.message);
+}catch(e){
+      console.error('Export failed:', e);
+      window.showToast?.('Export failed', { duration: 4000 });
     }
   });
 
@@ -530,7 +572,8 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
     }, { once: true });
     input.click();
   } catch (e) {
-    alert('Import failed: ' + e.message);
+    console.error('Import failed:', e);
+    window.showToast?.('Import failed', { duration: 4000 });
   }
 });
 

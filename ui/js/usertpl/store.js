@@ -410,12 +410,12 @@ window.exportUserTemplates = function () {
     a.download = `user-templates-${new Date().toISOString().slice(0,10)}.json`;
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(a.href);
-    window.showToast?.('Exported user templates');
+window.showToast?.('Exported user templates');
   } catch (e) {
-    alert('Export failed: ' + e.message);
+    console.error('Export failed:', e);
+    window.showToast?.('Export failed', { duration: 4000 });
   }
 };
-
 
 
 
@@ -441,7 +441,8 @@ window.importUserTemplatesFromJSON = async function (
   try {
     payload = JSON.parse(text || '[]');
   } catch (e) {
-    alert('Invalid JSON');
+    console.error('Invalid JSON during import:', e);
+    window.showToast?.('Invalid JSON', { duration: 4000 });
     return;
   }
 
@@ -557,7 +558,7 @@ window.importUserTemplatesFromJSON = async function (
   // 7) Notify
   window.dispatchEvent?.(new CustomEvent('usertpl:saved', { detail: { id: '[bulk-import]', added, mode } }));
   const msg = `Import complete: ${added} added${mode ? ` (mode=${mode})` : ''}`;
-  window.showToast?.(msg) || alert(msg);
+  window.showToast?.(msg, { duration: 4000 });
 };
 
 
