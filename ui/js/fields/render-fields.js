@@ -13,11 +13,16 @@ function renderFields(intent){
     return;
   }
 
-  // --- Local templates (u:...) -> build fields from local def, not SCHEMA
+// --- Local templates (u:...) -> build fields from local def, not SCHEMA
   if (intent.startsWith('u:')) {
-    if(fieldsHint) fieldsHint.textContent = '';
-    const def = loadUserTemplates().find(t => t.id === intent);
-    if(!def){ return; }
+    if (fieldsHint) fieldsHint.textContent = '';
+
+    const list = (typeof window.loadUserTemplates === 'function')
+      ? window.loadUserTemplates()
+      : [];
+
+    const def = list.find(t => t.id === intent);
+    if (!def) { return; }
 
     const required = (def.fields || []).filter(f => f.required).map(f => f.name);
     const optional = (def.fields || []).filter(f => !f.required).map(f => f.name);
@@ -61,14 +66,15 @@ function renderFields(intent){
     if (firstLocal) firstLocal.focus();
     return; // ✅ handled local template path
   }
-
   // --- Server templates (schema-backed) ---
-  if(!SCHEMA || !SCHEMA[intent]){
-    if(fieldsHint) fieldsHint.textContent = '';
+  const SCHEMA = window.SCHEMA || {};
+  if (!SCHEMA[intent]) {
+    if (fieldsHint) fieldsHint.textContent = '';
     return;
   }
 
-  const spec      = SCHEMA[intent];
+  const spec = SCHEMA[intent];
+
   const required  = Array.isArray(spec.required) ? spec.required : [];
   const optional  = Array.isArray(spec.optional) ? spec.optional : [];
   const allKeys   = [...required, ...optional];
@@ -233,8 +239,10 @@ function renderFields(intent){
   }
 
   // Prefill shipAddress if global default exists
-  const ga = (GLOBAL_DEFAULTS.shipAddress || '').trim();
+  const gd = window.GLOBAL_DEFAULTS || {};
+  const ga = (gd.shipAddress || '').trim();
   const shipAddrEl = fieldsWrap.querySelector('#f_shipAddress');
+
   if (shipAddrEl && !shipAddrEl.value && ga){
     shipAddrEl.value = ga;
   }
