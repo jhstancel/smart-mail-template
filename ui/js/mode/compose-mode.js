@@ -71,4 +71,17 @@ export function applyComposeMode(mode){ return window.applyComposeMode?.(mode); 
 export function initComposeModeUI(){ return window.initComposeModeUI?.(); }
 window.wireComposeModeToggles = window.wireComposeModeToggles || wireComposeModeToggles;
 
+// Expose simple get/set helpers used by settings UI ("Compose animations" switch)
+if (typeof window.getComposeMode !== 'function') {
+  window.getComposeMode = function getComposeMode(){
+    const v = localStorage.getItem('sm_compose_mode');
+    return (v === 'preview' || v === 'type' || v === 'off') ? v : 'type';
+  };
+}
+if (typeof window.setComposeMode !== 'function') {
+  window.setComposeMode = function setComposeMode(mode){
+    window.applyComposeMode?.(mode);
+  };
+}
+
 
