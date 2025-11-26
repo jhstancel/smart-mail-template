@@ -609,28 +609,45 @@ document.getElementById('btnImportUserTemplates')?.addEventListener('click', asy
       btn.setAttribute('aria-expanded','true');
     }
   });
-
   // Click handlers inside list
   list.addEventListener('click', (e)=>{
     const el = e.target.closest('button[data-act]');
     if (!el) return;
     const id = el.getAttribute('data-id');
     const act = el.getAttribute('data-act');
+
     if (act === 'restore'){
       window.restoreFromTrash?.(id);
+
+      // Tell the rest of the app that a user template is back
+      window.dispatchEvent(new CustomEvent('usertpl:restored', { detail: { id } }));
+      // Treat restore like a save so other listeners stay in sync
+      window.dispatchEvent(new CustomEvent('usertpl:saved',    { detail: { id } }));
+
     } else if (act === 'purge'){
       window.purgeFromTrash?.(id);
       window.showToast?.('Deleted permanently.', { duration: 3000 });
     }
+
     render();
   });
 
   // Bulk actions
   btnRestoreAll?.addEventListener('click', ()=>{
     const items = window.getTrash?.() || [];
+    const ids = items.map(t => t.id);
+
     items.forEach(t => window.restoreFromTrash?.(t.id));
+
+    // Fire one summary event for “all restored”
+    if (ids.length) {
+      window.dispatchEvent(new CustomEvent('usertpl:restored', { detail: { all: true, ids } }));
+      window.dispatchEvent(new CustomEvent('usertpl:saved',    { detail: { all: true, ids } }));
+    }
+
     render();
   });
+
   btnEmpty?.addEventListener('click', ()=>{
     window.emptyTrash?.();
     render();
