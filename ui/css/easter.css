@@ -46,4 +46,90 @@ body.corrupting{ filter: hue-rotate(20deg) contrast(1.1) saturate(1.2); }
 .print-line{ position:fixed; left:0; right:0; top:0; height:2px; z-index:46; background: color-mix(in srgb, var(--ink) 40%, transparent); display:none; }
 .print-line.show{ display:block; animation: lineSweep 2.4s linear forwards .2s; }
 @keyframes lineSweep{ from{ transform: translateY(0) } to{ transform: translateY(100vh) } }
+/* === "oddy nuff" Easter egg ============================================== */
+/* Overlay container */
+#oddyNuffEgg{
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9996;
+}
+
+/* Shared sprite base */
+#oddyNuffEgg .g59-char,
+#oddyNuffEgg .g59-speaker{
+  position: fixed;
+  width: min(140px, 22vw);
+  height: min(140px, 22vw);
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+}
+
+/* Asset mapping — change URLs to your actual art */
+#oddyNuffEgg .g59-ruby{
+  background-image: url('../img/ruby.png');   /* e.g., ui/img/ruby.png */
+}
+#oddyNuffEgg .g59-scrim{
+  background-image: url('../img/scrim.png');  /* e.g., ui/img/scrim.png */
+}
+#oddyNuffEgg .g59-speaker{
+  background-image: url('../img/speaker.png'); /* e.g., ui/img/speaker.png */
+}
+
+/* Positions + entrance animations */
+#oddyNuffEgg .g59-bottom-left{
+  left: 0;
+  bottom: -180px;
+  animation:
+    oddyCharUp 0.6s ease-out forwards,
+    oddyPulse 3s ease-in-out infinite 0.6s;
+}
+#oddyNuffEgg .g59-bottom-right{
+  right: 0;
+  bottom: -180px;
+  animation:
+    oddyCharUp 0.6s ease-out forwards,
+    oddyPulse 3s ease-in-out infinite 0.6s;
+}
+#oddyNuffEgg .g59-top-left{
+  left: 0;
+  top: -160px;
+  animation: oddySpeakerDown 0.6s ease-out forwards;
+}
+#oddyNuffEgg .g59-top-right{
+  right: 0;
+  top: -160px;
+  animation: oddySpeakerDown 0.6s ease-out forwards;
+}
+
+/* Entrance: characters slide up from below */
+@keyframes oddyCharUp{
+  from{ transform: translateY(0); opacity: 0; }
+  to  { transform: translateY(-170px); opacity: 1; }
+}
+
+/* Entrance: speakers slide down from above */
+@keyframes oddySpeakerDown{
+  from{ transform: translateY(0); opacity: 0; }
+  to  { transform: translateY(170px); opacity: 1; }
+}
+
+/* Gentle breathing on the bottom characters */
+@keyframes oddyPulse{
+  0%,100%{ transform: translateY(-170px) scale(1); }
+  50%    { transform: translateY(-178px) scale(1.03); }
+}
+
+/* Exit phase triggered by .oddy-out */
+#oddyNuffEgg.oddy-out .g59-char,
+#oddyNuffEgg.oddy-out .g59-speaker{
+  animation: oddyExit 0.7s ease-in forwards;
+}
+
+@keyframes oddyExit{
+  to{ transform: translateY(40px) scale(0.85); opacity: 0; }
+}
 
