@@ -243,34 +243,6 @@ SCHEMA_GENERATED = {
       "subject": "Order Request \u2013 {{ recipientName }}"
     }
   },
-  "packing_slip_docs": {
-    "description": "Send or request documentation such as a packing slip, invoice, or certificate.",
-    "enums": {},
-    "fieldTypes": {
-      "customerName": "string",
-      "docsList": "longtext",
-      "notes": "longtext",
-      "poNumber": "string"
-    },
-    "hints": {
-      "customerName": "e.g., John Smith",
-      "docsList": "e.g., \"Packing Slip, Invoice, CoC\"",
-      "notes": "Optional internal note or context",
-      "poNumber": "e.g., PO-10922"
-    },
-    "industry": "Registry",
-    "label": "Packing Slip / Documents",
-    "optional": [],
-    "required": [
-      "customerName",
-      "poNumber",
-      "docsList"
-    ],
-    "template": {
-      "bodyPath": "templates/packing_slip_docs.j2",
-      "subject": "Documents for PO {{ poNumber }}"
-    }
-  },
   "qb_order": {
     "description": "QuickBooks order request or confirmation message.",
     "enums": {},
@@ -417,9 +389,7 @@ SCHEMA_GENERATED = {
     "industry": "Registry",
     "label": "Tax Exemption",
     "optional": [],
-    "required": [
-      "recipientName"
-    ],
+    "required": [],
     "template": {
       "bodyPath": "templates/tax_exemption.j2",
       "subject": "Tax Exempt Certificate Attached"

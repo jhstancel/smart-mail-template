@@ -85,22 +85,6 @@ AUTODETECT_GENERATED = {
       "FedEx"
     ]
   },
-  "packing_slip_docs": {
-    "boosts": {
-      "containsPO": 0.04,
-      "reply": 0.05
-    },
-    "keywords": [
-      "packing slip",
-      "invoice copy",
-      "certificate",
-      "document",
-      "attachment",
-      "CoC",
-      "CoA",
-      "SDS"
-    ]
-  },
   "qb_order": {
     "boosts": {
       "containsPO": 0.03,
