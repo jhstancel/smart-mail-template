@@ -21,6 +21,7 @@ import './autodetect/predict.js';
 import './easter/corruption.js';
 import './easter/evil-larry.js';
 import './easter/nyan.js';
+import './easter/oddy-nuff.js';
 
 
 const scheduleLiveGenerate      = window.scheduleLiveGenerate;
@@ -165,5 +166,31 @@ on(document, 'DOMContentLoaded', () => {
 
     if (fieldsHint) fieldsHint.textContent = ''; // invisible by design
   })();
+// --- Keep main grid in sync when user templates are restored/deleted ---
+window.addEventListener('usertpl:saved',   rebuildIntents);
+window.addEventListener('usertpl:restored', rebuildIntents);
+window.addEventListener('usertpl:deleted', rebuildIntents);
+
+function rebuildIntents() {
+  try {
+    const coreIntents  = (window.INTENTS || []).filter(x => !String(x.name).startsWith('u:'));
+    const localIntents = (typeof userTemplatesAsIntents === 'function')
+      ? userTemplatesAsIntents()
+      : [];
+
+    const merged = [...coreIntents, ...localIntents];
+
+    if (typeof window.setINTENTSFromHydrator === 'function') {
+      window.setINTENTSFromHydrator(merged);
+    } else {
+      window.INTENTS = merged;
+    }
+
+    renderIntentGridFromData(window.INTENTS);
+  } catch (err) {
+    console.error('Failed to rebuild intents after usertpl change:', err);
+  }
+}
+
 })();
 
