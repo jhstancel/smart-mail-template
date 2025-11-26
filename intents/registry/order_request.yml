@@ -56,16 +56,15 @@ autodetect:
   boosts:
     containsPO: 0.04
     reply: 0.05
-
 tests:
   samples:
     - fields:
         recipientName: "UP Aviation Receiving"
         shipAddress: "123 Innovation Dr, Dallas TX 75001"
         fedexAccount: "228448800"
-        parts:
-          - { partNumber: "PN-10423", quantity: 2 }
-          - { partNumber: "PN-55501", quantity: 1 }
+        parts: |
+          PN-10423 | qty 2
+          PN-55501 | qty 1
         notes: "Please ship ASAP"
       expectSubjectContains: ["Order Request"]
       expectBodyContains: ["UP Aviation", "PN-10423", "FedEx"]

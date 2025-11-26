@@ -1,8 +1,46 @@
 Can you please process the following order for me and let me know when it will ship?
 
-{% for p in parts if p.partNumber and p.quantity %}
-• Part Number: {{ p.partNumber }} | Quantity: {{ p.quantity }}
-{% endfor %}
+{% if parts %}
+  {# Case 1: parts is a list/sequence of objects #}
+  {% if parts is sequence and parts is not string %}
+    {% for p in parts if p %}
+      {# get a base description for the part #}
+      {% set raw = (p.partNumber or p.name or p|string)|trim %}
+      {% set qty_raw = (p.quantity or p.qty or '')|string|trim %}
+      {# try to parse "x<digits>" from the part text #}
+      {% set segs = raw.rsplit('x', 1) %}
+      {% if segs|length == 2 and segs[1].strip().isdigit() %}
+        {% set base = segs[0].strip() %}
+        {% set qty_str = segs[1].strip() %}
+      {% elif qty_raw.isdigit() %}
+        {# fall back to explicit quantity field if present #}
+        {% set base = raw %}
+        {% set qty_str = qty_raw %}
+      {% else %}
+        {% set base = raw %}
+        {% set qty_str = '' %}
+      {% endif %}
+      {% if qty_str %}
+• Part Number: {{ base }} | Quantity: {{ qty_str }}
+      {% else %}
+• {{ raw }}
+      {% endif %}
+    {% endfor %}
+  {# Case 2: parts is plain text from textarea #}
+  {% else %}
+    {% for line in (parts|string).split('\n') if line.strip() %}
+      {% set raw = line.strip() %}
+      {% set segs = raw.rsplit('x', 1) %}
+      {% if segs|length == 2 and segs[1].strip().isdigit() %}
+        {% set base = segs[0].strip() %}
+        {% set qty_str = segs[1].strip() %}
+• Part Number: {{ base }} | Quantity: {{ qty_str }}
+      {% else %}
+• {{ raw }}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
 
 Please ship on FedEx account {{ fedexAccount }}.
 Shipping address: {{ shipAddress }}
@@ -11,5 +49,6 @@ Shipping address: {{ shipAddress }}
 Additional notes: {{ notes }}
 {% endif %}
 
-Thank you very much for your help,  
+Thank you very much for your help,
 Best regards,
+
