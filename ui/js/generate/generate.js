@@ -22,6 +22,11 @@ window.setSelectedIntent = function selectIntent(name){
   }
   document.querySelectorAll('.intent-card')
     .forEach(card => card.classList.toggle('active', card.dataset.intent === name));
+
+  // If Preview mode is active, automatically refresh the preview for this intent
+  if (typeof window.scheduleLiveGenerate === 'function') {
+    window.scheduleLiveGenerate(150);
+  }
 };
 
 function listMissing(intentName, fieldsObj){
