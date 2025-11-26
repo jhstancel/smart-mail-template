@@ -2,7 +2,7 @@ id: tax_exemption
 label: Tax Exemption
 description: Notify a customer about tax-exempt status or send a tax-exempt certificate.
 
-required: [recipientName]
+required: []
 optional: []
 
 fieldTypes:
