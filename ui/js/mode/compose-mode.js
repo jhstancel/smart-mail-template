@@ -71,4 +71,17 @@ export function applyComposeMode(mode){ return window.applyComposeMode?.(mode); 
 export function initComposeModeUI(){ return window.initComposeModeUI?.(); }
 window.wireComposeModeToggles = window.wireComposeModeToggles || wireComposeModeToggles;
 
+// Backwards-compat: API expected by wire-ui.js (settings "Compose animations" segment)
+if (!window.setComposeMode) {
+  window.setComposeMode = function setComposeMode(mode){
+    return window.applyComposeMode?.(mode);
+  };
+}
+if (!window.getComposeMode) {
+  window.getComposeMode = function getComposeMode(){
+    const KEY = 'sm_compose_mode';
+    return localStorage.getItem(KEY) || 'type';
+  };
+}
+
 
