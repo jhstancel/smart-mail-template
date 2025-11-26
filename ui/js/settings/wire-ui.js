@@ -129,43 +129,12 @@ function toggleMenu(){
 
   settingsBtn?.addEventListener('click', (e)=>{ e.stopPropagation(); toggleMenu(); });
 
-// ---- Compose animations under Theme (Preview / Type / Off) ----
-(function(){
-  const segTheme = document.getElementById('composeSegTheme');   // Theme control (only source of truth)
-  if (!segTheme) return;
-
-  function setActive(seg, mode){
-    const btn = seg?.querySelector(`.opt[data-mode="${mode}"]`);
-    if (!btn) return;
-    seg.querySelectorAll('.opt').forEach(o => o.setAttribute('aria-selected','false'));
-    btn.setAttribute('aria-selected','true');
-  }
-
-  const setCompose = window.setComposeMode || (()=>{}); // assume compose-mode persists changes
-
-  // Initialize to saved/active mode if available, else default 'type'
-  (function initThemeSeg(){
-    const current = window.getComposeMode?.() || 'type';
-    setActive(segTheme, current);
-  })();
-
-  segTheme.addEventListener('click', (e)=>{
-    const btn = e.target.closest('.opt[data-mode]');
-    if (!btn) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const mode = btn.getAttribute('data-mode');
-    setCompose(mode);
-    setActive(segTheme, mode);
-  });
-})();
-
 // ---- Toggleable main-screen search bar (Theme/UI) ----
 (function(){
   const PREF_KEY = 'ui.showFrontSearch';
 
   function applyFrontSearch(on){
-    const host = document.getElementById('intents');
+    const host = document.getElementById('intentGrid'); // main grid container
     if (!host) return;
     let wrap = document.getElementById('gridSearchWrap');
 
@@ -191,7 +160,7 @@ function toggleMenu(){
   }
 
   function wireExistingToggle(){
-    const cb = document.getElementById('toggleFrontSearch');
+    const cb = document.getElementById('toggleMainSearch'); // match index.html
     if (!cb || cb._wiredFrontSearch) return;
     cb._wiredFrontSearch = true;
     // init from saved pref
@@ -205,10 +174,17 @@ function toggleMenu(){
   }
 
   const tryInit = ()=> wireExistingToggle();
-  document.addEventListener('DOMContentLoaded', tryInit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInit);
+  } else {
+    tryInit();
+  }
   // also try when settings opens (if panel mounts late)
   document.getElementById('settingsBtn')?.addEventListener('click', tryInit);
 })();
+
+
+
 
 
 
